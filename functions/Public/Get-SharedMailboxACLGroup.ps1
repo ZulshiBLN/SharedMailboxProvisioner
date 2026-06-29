@@ -56,11 +56,12 @@ function Get-SharedMailboxACLGroup {
     Write-Verbose "Searching for ACL group: $expectedGroupName (from user: $SamAccountName)"
 
     try {
-        # Build LDAP filter
-        $ldapFilter = "(sAMAccountName=$expectedGroupName)"
+        # Build filter for efficient search in large AD
+        # Using Get-ADObject with objectClass filter is faster than Get-ADGroup for large directories
+        $ldapFilter = "(sAMAccountName=$expectedGroupName)(objectClass=group)"
         Write-Verbose "LDAP filter: $ldapFilter"
 
-        # Prepare Get-ADGroup parameters
+        # Prepare Get-ADObject parameters (more efficient for large ADs)
         $getAdParams = @{
             Filter = $ldapFilter
             ErrorAction = 'Stop'
@@ -71,8 +72,8 @@ function Get-SharedMailboxACLGroup {
             $getAdParams['SearchBase'] = $SearchBase
         }
 
-        # Search for group
-        $adGroup = Get-ADGroup @getAdParams
+        # Search for group (using Get-ADObject for better performance on large directories)
+        $adGroup = Get-ADObject @getAdParams
 
         if (-not $adGroup) {
             Write-Verbose "ACL group not found: $expectedGroupName"
