@@ -1,0 +1,67 @@
+# Local environment files
+.env
+.env.local
+.env.*.local
+
+# Configuration files (environment-specific, not in Git)
+config.dev.json
+config.test.json
+config.prod.json
+
+# Credentials & Secrets
+*.pfx
+*.pem
+*.key
+secrets.json
+credentials.json
+
+# IDE & Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# PowerShell
+*.pdb
+profile.ps1
+.PSScriptAnalyzerCache
+
+# Logs
+logs/
+*.log
+
+# Build artifacts
+bin/
+obj/
+dist/
+
+# Node modules (if applicable)
+node_modules/
+package-lock.json
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# OS-specific
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Module files
+*.nupkg
+
+# PSGallery publish artifacts
+*.zip
+
+# Pester test results
+TestResults.xml
+
+# Archive files
+*.zip
+*.tar.gz
+*.rar
