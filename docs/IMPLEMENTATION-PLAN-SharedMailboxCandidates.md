@@ -423,92 +423,60 @@ Otherwise: IsReadyForProvisioning = false, Status = reason, ReadinessErrors = li
 
 **Critical Discovery:** AD data quality is poor. Need strict validation before provisioning.
 
-#### Function 6: Validate-SharedMailboxCandidate (NEW - HIGH PRIORITY)
+#### Function 6: Validate-SharedMailboxCandidate (REVISED - HIGH PRIORITY)
 
-**Purpose:** Comprehensive validation of candidate user object for provisioning readiness.
+**Purpose:** Simple pass/fail validation of candidate user object. Write result to AD attribute.
 
-**Validation Checks:**
+**Validation Logic: ALL-OR-NOTHING**
 
-1. **Mail Attribute Validation**
-   ```
-   ✓ Must exist (not empty/null)
-   ✓ Must be RFC 5321 compliant email format
-   ✓ Must not be duplicated in AD ProxyAddresses
-   ✓ Must be in accepted Exchange Online domains
-   ```
+```
+IF ALL checks pass THEN
+  Return: $true (Valid)
+  Write-Attribute: [SUCCESS] Validation passed {timestamp}
+ELSE
+  Return: $false (Invalid)
+  Write-Attribute: [FAIL] {Reason} {timestamp}
+  Log: Error details for audit
+END IF
+```
 
-2. **ProxyAddresses Validation**
-   ```
-   ✓ Must contain at least 1 SMTP address
-   ✓ Must include Exchange Online address (@ethz.onmicrosoft.com)
-   ✓ All addresses must be RFC 5321 compliant
-   ✓ No duplicate SMTP addresses across AD
-   ✓ All domains must be in Exchange Online AcceptedDomains
-   ✓ Must have at least 1 primary address (uppercase SMTP:)
-   ```
+**Checks Performed (Failure = Invalid):**
 
-3. **TargetAddress Validation**
-   ```
-   ✓ Must be EMPTY (null or '')
-   ✗ If set: Error (will be auto-generated during Remote Mailbox creation)
-   ```
-
-4. **DisplayName Validation**
-   ```
-   ✓ No invalid characters: < > @ \ / : ; . , [ ] ( )
-   ✓ Not empty
-   ✓ Max 256 characters (Exchange Online limit)
-   ✓ No leading/trailing whitespace
-   ```
-
-5. **SamAccountName (Alias) Validation**
-   ```
-   ✓ No invalid characters: < > @ \ / : ; . , [ ] ( ) space
-   ✓ Not empty
-   ✓ Max 20 characters (Windows limit)
-   ✓ No leading/trailing whitespace
-   ```
-
-6. **Exchange Online AcceptedDomains Check**
-   ```
-   ✓ Verify domains from ProxyAddresses exist in Exchange Online
-   ✓ Verify primary domain is accepted
-   ✗ If domain missing: Error with context
-   ```
+1. ✓ Mail attribute exists (not null/empty)
+2. ✓ Mail format valid (RFC 5321)
+3. ✓ Mail not duplicated in other users' ProxyAddresses
+4. ✓ Mail in accepted Exchange Online domains
+5. ✓ ProxyAddresses contains at least 1 SMTP
+6. ✓ ProxyAddresses contains M365 address (@ethz.onmicrosoft.com)
+7. ✓ ProxyAddresses format valid (RFC 5321)
+8. ✓ ProxyAddresses domains in AcceptedDomains
+9. ✓ TargetAddress is empty
+10. ✓ DisplayName has no invalid chars, not empty
+11. ✓ SamAccountName has no invalid chars, not empty
 
 **Returns:**
 
 ```powershell
+# Valid candidate
 [PSCustomObject]@{
-  SamAccountName      = "smbx_12345678"
-  IsValid             = $true/$false
-  Status              = "Valid" | "InvalidMail" | "DuplicateMail" | "InvalidDomain" | etc.
-  
-  ValidationChecks    = @{
-    "MailAttributeExists"           = $true/$false
-    "MailFormatValid"               = $true/$false
-    "MailNotDuplicated"             = $true/$false
-    "ProxyAddressesValid"           = $true/$false
-    "ExchangeOnlineAddressPresent"  = $true/$false
-    "DomainsInAcceptedList"         = $true/$false
-    "TargetAddressEmpty"            = $true/$false
-    "DisplayNameValid"              = $true/$false
-    "SamAccountNameValid"           = $true/$false
-  }
-  
-  Errors              = @(
-    "Mail attribute missing",
-    "ProxyAddresses contains invalid domain: invalidomain.local"
-  )
-  
-  Warnings            = @(
-    "DisplayName contains special characters (will be sanitized)"
-  )
-  
-  SuggestedFixes      = @{
-    "Mail"              = $null
-    "ProxyAddresses"    = @("smtp:smbx_12345678@ethz.ch", "SMTP:smbx_12345678@ethz.onmicrosoft.com")
-    "DisplayNameFixed"  = "Shared Mailbox 12345678"
+  SamAccountName        = "smbx_12345678"
+  IsValid               = $true
+  ValidationMessage     = "[SUCCESS] Validation passed 2026-06-29 14:23:15"
+  AttributeWritten      = $true
+}
+
+# Invalid candidate
+[PSCustomObject]@{
+  SamAccountName        = "smbx_12345678"
+  IsValid               = $false
+  ValidationMessage     = "[FAIL] Mail attribute missing 2026-06-29 14:23:16"
+  FailureReason         = "MailAttributeMissing"  # For categorization
+  AttributeWritten      = $true
+  LogDetails            = @{
+    User                = "smbx_12345678"
+    Timestamp           = "2026-06-29 14:23:16"
+    FailedCheck         = "Mail attribute exists"
+    Details             = "Mail attribute is null or empty"
   }
 }
 ```
@@ -521,20 +489,35 @@ Otherwise: IsReadyForProvisioning = false, Status = reason, ReadinessErrors = li
   # The candidate user to validate
 
 [Parameter(Mandatory=$false)]
+[string]$ValidationAttribute = "nethzTask"
+  # AD attribute to write result to
+  # Default: "nethzTask"
+
+[Parameter(Mandatory=$false)]
 [string[]]$AcceptedDomains = @("ethz.ch", "ethz.onmicrosoft.com")
-  # List of valid domains for email addresses
-  # Default: Common ETHZ domains
-  # Should load from Exchange Online if available
+  # List of valid domains (load from Exchange Online if available)
 
 [Parameter(Mandatory=$false)]
-[string]$M365ExchangeOnlineDomain = "@ethz.onmicrosoft.com"
-  # Required domain for Exchange Online address
-  # Default: @ethz.onmicrosoft.com
+[string]$M365Domain = "@ethz.onmicrosoft.com"
+  # Required M365 domain in ProxyAddresses
+```
 
-[Parameter(Mandatory=$false)]
-[switch]$AllowWarnings
-  # If $true: Warnings don't fail validation
-  # If $false: Warnings are collected but don't fail (only errors fail)
+**Workflow Integration:**
+
+```
+Get-SharedMailboxCandidatesWithGroups
+  │
+  ├─→ For each candidate:
+  │     ├─ Validate account (Validate-SharedMailboxCandidate)
+  │     ├─ Write result to AD attribute (nethzTask)
+  │     │   ├ [SUCCESS] → Ready for provisioning
+  │     │   └ [FAIL] → Skip, log, continue
+  │     ├ Validate group (Get-SharedMailboxACLGroup)
+  │     └ Return: Candidate (Valid/Invalid + Reason)
+  │
+  └─→ Return: Array of candidates
+      ├ Valid candidates → Ready for New-RemoteMailbox
+      └ Invalid candidates → Logged, skipped
 ```
 
 **Helper Functions (Private):**
@@ -568,27 +551,47 @@ _SanitizeDisplayName (Input: string, Output: string)
 
 ---
 
-#### Updated Function Hierarchy with Validation
+#### Updated Function Hierarchy with Validation (REVISED)
 
 ```
 Get-SharedMailboxCandidatesWithGroups (Orchestration)
   ├─ Get-SharedMailboxCandidates
   │   └─ Returns: Potential candidates
   │
-  ├─ Get-SharedMailboxACLGroup
-  │   └─ Returns: Group validation
+  ├─ For each candidate:
+  │   ├─ Validate-SharedMailboxCandidate
+  │   │   ├─ _ValidateEmailFormat (Helper)
+  │   │   ├─ _ValidateProxyAddresses (Helper)
+  │   │   ├─ _ValidateDomainInExchangeOnline (Helper)
+  │   │   ├─ _CheckForDuplicateEmails (Helper)
+  │   │   └─ Returns: $true/$false (Valid/Invalid)
+  │   │
+  │   ├─ Write-SharedMailboxValidationResult (NEW)
+  │   │   └─ Writes [SUCCESS]/[FAIL] to AD attribute
+  │   │
+  │   ├─ Get-SharedMailboxACLGroup (if account valid)
+  │   │   └─ Returns: Group validation ($true/$false)
+  │   │
+  │   └─ Add to results:
+  │       ├ Valid candidates (ready for provisioning)
+  │       └ Invalid candidates (logged, skipped)
   │
-  ├─ ✨ NEW: Validate-SharedMailboxCandidate (Per Candidate)
-  │   ├─ _ValidateEmailFormat (Helper)
-  │   ├─ _ValidateProxyAddresses (Helper)
-  │   ├─ _ValidateDomainInExchangeOnline (Helper)
-  │   ├─ _CheckForDuplicateEmails (Helper)
-  │   └─ _SanitizeDisplayName (Helper)
-  │
-  └─ Combine results with ReadinessStatus
-      ├─ ReadyForProvisioning = Group valid AND Account valid
-      ├─ ReadinessErrors = Array of all validation failures
-      └─ SuggestedFixes = How to fix invalid accounts
+  └─ Return: Array of candidates with status
+      ├ ReadyForProvisioning = true (account + group valid)
+      ├ ValidationStatus = "Valid" | "InvalidAccount" | "InvalidGroup"
+      └ ValidationMessage = from AD attribute
+```
+
+**New Helper Function:**
+
+```
+_WriteSharedMailboxValidationResult.ps1 (PRIVATE)
+  ├─ Input: User, IsValid (bool), FailureReason (string), Timestamp
+  ├─ If Valid:
+  │   └─ Write: "[SUCCESS] Validation passed {timestamp}"
+  ├─ If Invalid:
+  │   └─ Write: "[FAIL] {FailureReason} {timestamp}"
+  └─ Returns: bool (write successful?)
 ```
 
 ---
@@ -646,29 +649,56 @@ File: `DECISIONS.md` → Add ADR-006
    - Return clean DisplayName
    - ~40 lines
 
-### Step 3: Implement Account Validation (Public/Private)
+### Step 3: Implement Account Validation & Result Writing (Public/Private)
 
 9. `Validate-SharedMailboxCandidate.ps1` (PUBLIC)
-   - Central validation function
+   - Central validation function (Pass/Fail only)
    - Calls all validation helpers
-   - Combines check results
-   - Returns detailed validation report with suggested fixes
-   - ~250 lines
+   - Returns: $true/$false + FailureReason
+   - ~150 lines (simplified from original)
 
-### Step 4: Implement Main Functions (Public)
+10. `_WriteSharedMailboxValidationResult.ps1` (PRIVATE)
+    - Write validation result to AD attribute
+    - Format: [SUCCESS]/[FAIL] {details} {timestamp}
+    - Update nethzTask (or custom attribute)
+    - ~80 lines
 
-10. `Get-SharedMailboxCandidates.ps1` (PUBLIC)
+### Step 4: Implement Main Orchestration Functions (Public)
+
+11. `Get-SharedMailboxCandidates.ps1` (PUBLIC)
     - Parameter validation (custom attr logic)
     - LDAP filter building
-    - Ad user queries
+    - AD user queries
     - ~150 lines
 
-11. `Get-SharedMailboxCandidatesWithGroups.ps1` (PUBLIC)
-    - Orchestrates: Get Candidates → Validate Account → Get Group
-    - Combines all results
-    - Determines final ReadinessStatus
-    - Logging integration
-    - ~250 lines
+12. `Get-SharedMailboxCandidatesWithGroups.ps1` (PUBLIC - REVISED)
+    - Orchestrates: Get Candidates → Validate → Write Result → Get Group
+    - For each candidate:
+      ├─ Validate account (Validate-SharedMailboxCandidate)
+      ├─ Write result to AD (only if validation called)
+      ├─ If valid: Validate group (Get-SharedMailboxACLGroup)
+      └─ Combine results
+    - Continues on validation failure (not blocking)
+    - Returns: Array with Valid/Invalid status
+    - ~300 lines
+
+### Step 4b: Downstream Provisioning (Phase Beta - New Phase)
+
+13. `New-SharedMailboxRemote.ps1` (PUBLIC)
+    - Takes: Validated candidates from Phase Alpha
+    - Calls: New-RemoteMailbox in Exchange Online
+    - Updates: ValidationAttribute with [SUCCESS] or [FAIL]
+    - Logging: Full audit trail via Write-Log
+    - Error handling: Log failures, continue to next
+    - ~200 lines
+
+14. `Provision-SharedMailboxBatch.ps1` (SCRIPT)
+    - Orchestration script for full workflow
+    - Step 1: Get-SharedMailboxCandidatesWithGroups
+    - Step 2: Filter for valid candidates only
+    - Step 3: New-SharedMailboxRemote (batch)
+    - Generates: Provisioning report (success/fail counts)
+    - ~150 lines
 
 ### Step 5: Testing
 1. Unit tests for email validation
@@ -919,50 +949,76 @@ Write-Log -Message "Found candidate: $($candidate.SamAccountName) with group $($
 
 ---
 
-## Summary Timeline
+## Summary Timeline (FINAL - Simplified Validation Model)
 
-| Phase | Task | Effort | Days |
-|-------|------|--------|------|
-| 1 | Create ADR-006 | 30 min | 0.5 |
-| 2 | Implement 3 private helpers | 3 hours | 1 |
-| 3 | Implement 2 public functions | 3 hours | 1 |
-| 4 | Write tests (unit + integration) | 3 hours | 1 |
-| 5 | Documentation & examples | 1 hour | 0.5 |
-| 6 | Testing in real environment | 2 hours | 1 |
-| **Total** | | **12.5 hours** | **4-5 days** |
+### Phase Alpha: Candidate Discovery & Validation
+
+| Phase | Task | Functions | Effort | Days |
+|-------|------|-----------|--------|------|
+| 1 | ADR-006 | - | 30 min | 0.5 |
+| 2 | Group validation helpers | 3x | 2.5 hrs | 0.5 |
+| 2b | Data quality helpers | 5x | 3.5 hrs | 0.75 |
+| 3 | Central validation (simplified) | 1x | 1.5 hrs | 0.25 |
+| 3b | Result writing | 1x | 1 hr | 0.25 |
+| 4 | Main orchestration | 2x | 3.5 hrs | 1 |
+| 5 | Testing (unit + integration) | - | 4 hrs | 1 |
+| 6 | Documentation | - | 1.5 hrs | 0.5 |
+| 7 | Real environment testing | - | 2 hrs | 1 |
+| **Phase Alpha Total** | **12 functions** | | **20 hours** | **5-6 days** |
+
+### Phase Beta: Downstream Provisioning (Exchange Online)
+
+| Phase | Task | Functions | Effort | Days |
+|-------|------|-----------|--------|------|
+| 1 | EXO provisioning function | 1x | 3 hrs | 1 |
+| 2 | Batch orchestration script | 1x | 2 hrs | 0.5 |
+| 3 | Testing (EXO integration) | - | 3 hrs | 1 |
+| 4 | Real provisioning test | - | 2 hrs | 1 |
+| **Phase Beta Total** | **2 functions** | | **10 hours** | **3-4 days** |
+
+**Overall Project:** 22 functions, 30 hours / 8-10 days
 
 ---
 
-## Success Criteria (REVISED)
+## Success Criteria (FINAL - Simplified Model)
 
-### Candidate Discovery (Original)
-✅ Get-SharedMailboxCandidates returns eligible users
-✅ Get-SharedMailboxACLGroup validates groups correctly
-✅ Get-SharedMailboxCandidatesWithGroups combines correctly
-✅ Parameter validation strict (custom attr + value rules)
+### Phase Alpha: Discovery & Validation
+✅ Get-SharedMailboxCandidates returns eligible users from AD
+✅ Validate-SharedMailboxCandidate returns Pass/$true or Fail/$false (simple)
+✅ Validation results written to AD attribute (nethzTask default)
+✅ Format: [SUCCESS] Validation passed {timestamp} OR [FAIL] {reason} {timestamp}
+✅ Invalid candidates logged but processing continues (not blocking)
+✅ Get-SharedMailboxACLGroup validates groups correctly ($true/$false)
+✅ Get-SharedMailboxCandidatesWithGroups combines all validations
+✅ Returns: Array with ReadyForProvisioning flag (both valid = true)
 
-### Data Quality Validation (NEW)
-✅ Validate-SharedMailboxCandidate catches all 7 DQ issues:
-   - Missing mail attribute
-   - Duplicate emails (ProxyAddresses collision)
-   - Invalid email format (RFC 5321)
-   - Invalid DisplayName/SamAccountName characters
-   - TargetAddress not empty (should be)
-   - Missing M365 Exchange Online address
-   - ProxyAddresses domains not in AcceptedDomains
+### Data Quality Validation Checks
+✅ All 7 DQ issues caught with simple Pass/Fail:
+   - Missing mail attribute → [FAIL] Mail attribute missing
+   - Duplicate emails → [FAIL] Email already used
+   - Invalid email format → [FAIL] Invalid mail format
+   - Invalid DisplayName chars → [FAIL] Invalid DisplayName characters
+   - TargetAddress set → [FAIL] TargetAddress must be empty
+   - Missing M365 address → [FAIL] Missing Exchange Online address
+   - Domain not accepted → [FAIL] Domain not in AcceptedDomains
 
-✅ Suggested fixes provided for each issue
-✅ Data quality report generation
-✅ Integration with candidate discovery workflow
+### Phase Beta: Provisioning
+✅ New-SharedMailboxRemote provisions valid candidates in Exchange Online
+✅ Uses New-RemoteMailbox with validated account info
+✅ Updates AD attribute: [SUCCESS] Mailbox created {timestamp}
+✅ Updates AD attribute on failure: [FAIL] {reason} {timestamp}
+✅ Provision-SharedMailboxBatch orchestrates full workflow
+✅ Batch continues on errors (resilient)
+✅ Generates: Summary report (X successful, Y failed)
 
 ### Overall Success
-✅ All edge cases handled (DQ issues, missing groups, etc.)
-✅ Unit tests pass (>90% coverage) including DQ test cases
-✅ Integration tests pass with real data quality scenarios
-✅ Documentation complete with troubleshooting guide
+✅ Unit tests pass (>90% coverage)
+✅ Integration tests pass with mock AD data
+✅ Real environment testing (ETHZ AD + Exchange Online)
+✅ All validation results in audit trail (AD attribute + logs)
 ✅ No hard-coded values (all parameterized)
-✅ Logging integration working (all failures logged)
-✅ ReadinessStatus accurate (Candidate valid AND Group valid AND Account valid)
+✅ Error handling resilient (continue on fail)
+✅ Full workflow: AD discovery → Validation → Provisioning
 
 ---
 
