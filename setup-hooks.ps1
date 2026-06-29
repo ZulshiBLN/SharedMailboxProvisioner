@@ -32,9 +32,15 @@ $Info = '[INFO]'
 function Write-Status {
     param([string]$Message, [string]$Type = 'INFO')
     $prefix = switch ($Type) {
-        'OK' { $Success }
-        'ERROR' { $Error }
-        default { $Info }
+        'OK' {
+            $Success
+        }
+        'ERROR' {
+            $Error
+        }
+        default {
+            $Info
+        }
     }
     Write-Output "$prefix $Message"
 }
@@ -43,7 +49,8 @@ if ($Remove) {
     if (Test-Path $PreCommitHook) {
         Remove-Item $PreCommitHook -Force
         Write-Status "Pre-commit hook removed" 'OK'
-    } else {
+    }
+    else {
         Write-Status "Pre-commit hook not found" 'INFO'
     }
     exit 0
