@@ -120,14 +120,17 @@ function New-SharedMailboxRemote {
         # ================================================================
         Write-Verbose "Validating prerequisites..."
 
-        # Check if user account exists in AD
-        $adUser = Get-ADUser -Filter "sAMAccountName -eq '$SamAccountName'" -ErrorAction SilentlyContinue
+        # Check if user account exists in AD (using Get-ADObject for efficiency)
+        $adUser = Get-ADObject -Filter "sAMAccountName -eq '$SamAccountName' -and objectClass -eq 'user'" `
+            -Properties UserPrincipalName, userAccountControl `
+            -ErrorAction SilentlyContinue
 
         if (-not $adUser) {
             throw "User account not found in AD: $SamAccountName"
         }
 
-        if (-not ($adUser.userAccountControl -band 2)) {
+        # Check if account is disabled (userAccountControl bit 2)
+        if ($adUser.userAccountControl -and -not ($adUser.userAccountControl -band 2)) {
             Write-Warning "User account is ENABLED: $SamAccountName (should be disabled)"
         }
 
