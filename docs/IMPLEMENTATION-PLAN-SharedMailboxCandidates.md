@@ -20,12 +20,42 @@ Detailed plan for implementing AD candidate selection for SharedMailbox provisio
 
 ## Progress Status
 
-**Phase Alpha: Tier 1 Complete (2026-06-29)**
-- [x] _ValidateEmailFormat (RFC 5321 validation) - COMPLETE with 16 test cases
-- [x] _ValidateDisplayName (Character validation) - COMPLETE with 19 test cases
-- [ ] Remaining Tier 2-6 functions (10 functions): PLANNED
+**Phase Alpha: Tier 1-4 Complete (2026-06-29)**
+- [x] Tier 1 - Text Parsing (2 functions): _ValidateEmailFormat, _ValidateDisplayName - COMPLETE (43 tests)
+- [x] Tier 2 - Group Validation (3 functions): _ParseSharedMailboxGroupDescription, _ValidateSharedMailboxGroup, Get-SharedMailboxACLGroup - COMPLETE (62 tests)
+- [x] Tier 3 - Data Quality (3 functions): _ValidateDomainInExchangeOnline, _CheckForDuplicateEmails, Validate-SharedMailboxCandidate - COMPLETE (52 tests)
+- [x] Tier 4 - Candidate Discovery (2 functions): Get-SharedMailboxCandidates, Get-SharedMailboxCandidatesWithGroups - COMPLETE (30 tests)
+- [ ] Tier 5-6 functions (2 functions): PLANNED
 
-**Timeline:** 2/12 Phase Alpha functions complete. Tier 1 represents 17% of planned work.
+**Timeline:** 10/12 Phase Alpha functions complete. Tier 1-4 represents 83% of planned work. 201 total tests passing.
+
+**Actual Implementation Plan (Revised):**
+
+Phase Alpha has 3 main tiers:
+- **Tier 1:** Text parsing & validation (2 functions)
+  * _ValidateEmailFormat
+  * _ValidateDisplayName
+
+- **Tier 2:** AD group discovery & validation (3 functions)
+  * _ParseSharedMailboxGroupDescription
+  * _ValidateSharedMailboxGroup
+  * Get-SharedMailboxACLGroup (optimized with Get-ADObject)
+
+- **Tier 3:** Data collision detection & candidate orchestration (3 functions)
+  * _CheckForDuplicateEmails (detect email collisions)
+  * _ValidateDomainInExchangeOnline (EXO domain check)
+  * Validate-SharedMailboxCandidate (central validation - combines all checks)
+
+- **Tier 4:** Candidate discovery & group association (2 functions)
+  * Get-SharedMailboxCandidates (query AD for smbx_* users)
+  * Get-SharedMailboxCandidatesWithGroups (attach ACL groups to candidates)
+
+- **Tier 5:** Provisioning operations (2 functions)
+  * New-SharedMailboxRemote (create remote mailbox in EXO)
+  * Add-GroupToRemoteMailbox (wire ACL group to mailbox)
+
+- **Tier 6:** Batch orchestration & final assembly (1 function)
+  * Invoke-SharedMailboxProvisioning (batch orchestration)
 
 ---
 

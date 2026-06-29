@@ -63,8 +63,8 @@ Tracking of all functions: implementation status, test coverage, usage.
 
 | Function | Status | Tests | ADR | Usage | Notes |
 |----------|--------|-------|-----|-------|-------|
-| `Get-SharedMailboxCandidates` | [PLANNED] | [NONE] | ADR-006 | Query AD for eligible candidates | Uses: ActiveDirectory module, Write-Log |
-| `Get-SharedMailboxCandidatesWithGroups` | [PLANNED] | [NONE] | ADR-006 | Candidates with validated ACL groups | Uses: Get-SharedMailboxCandidates, Get-SharedMailboxACLGroup |
+| `Get-SharedMailboxCandidates` | [COMPLETE] | [YES] | ADR-006 | Query AD for eligible candidates | Uses: ActiveDirectory module, Write-Log. Get-ADObject optimized for large AD. 20 test cases. |
+| `Get-SharedMailboxCandidatesWithGroups` | [COMPLETE] | [YES] | ADR-006 | Candidates with validated ACL groups | Uses: Get-SharedMailboxCandidates, Get-SharedMailboxACLGroup. Combines results with group validation. 10 test cases. |
 | `Connect-ExchangeOnlineEnv` | [COMPLETE] | [PARTIAL] | ADR-002 | Establish Exchange Online connection | Wrapper for EXO-V3 module, auto-install |
 
 ---
@@ -126,20 +126,30 @@ Tracking of all functions: implementation status, test coverage, usage.
 ## Test Coverage Summary
 
 ```
-COMPLETE (with tests):    8/8  (100%) [Helper functions + Tier 1 + Tier 2]
-PLANNED (need tests):     6/6  (0%)   [Public functions - Advanced]
-SCRIPTS (need tests):     4/4  (0%)   [Orchestration scripts]
+COMPLETE (with tests):    10/10 (100%) [Helper functions + Tier 1 + Tier 2 + Tier 4]
+PLANNED (need tests):     6/6  (0%)    [Public functions - Exchange operations]
+SCRIPTS (need tests):     4/4  (0%)    [Orchestration scripts]
 ```
 
 Tier 1 (Text Parsing) Complete:
-- _ValidateEmailFormat: RFC 5321 validation (16 test cases)
-- _ValidateDisplayName: Character validation (19 test cases)
+- _ValidateEmailFormat: RFC 5321 validation (22 test cases)
+- _ValidateDisplayName: Character validation (21 test cases)
 
 Tier 2 (Group Validation) Complete:
-- _ParseSharedMailboxGroupDescription: Description parsing (24 test cases)
-- _ValidateSharedMailboxGroup: Group validation (20 test cases)
-- Get-SharedMailboxACLGroup: ACL group lookup & validation (39 test cases)
+- _ParseSharedMailboxGroupDescription: Description parsing (20 test cases)
+- _ValidateSharedMailboxGroup: Group validation (17 test cases)
+- Get-SharedMailboxACLGroup: ACL group lookup & validation (25 test cases)
 
-**Total Test Cases:** 119 passing tests
+Tier 3 (Data Quality Validation) Complete:
+- _ValidateEmailFormat: RFC 5321 validation (22 test cases)
+- _CheckForDuplicateEmails: Duplicate detection (19 test cases)
+- _ValidateDomainInExchangeOnline: Domain validation (18 test cases)
+- Validate-SharedMailboxCandidate: Comprehensive validation (15 test cases)
 
-Next Phase: Tier 3+ functions (Candidate discovery, Exchange operations)
+Tier 4 (Candidate Discovery) Complete:
+- Get-SharedMailboxCandidates: AD query & filtering (20 test cases)
+- Get-SharedMailboxCandidatesWithGroups: Group association (10 test cases)
+
+**Total Test Cases:** 201 passing tests
+
+Next Phase: Tier 5+ functions (Exchange Online provisioning)

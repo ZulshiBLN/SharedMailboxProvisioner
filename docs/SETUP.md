@@ -241,6 +241,122 @@ PSCustomObject @{
 }
 ```
 
+### Tier 3: Data Quality Validation (IMPLEMENTED)
+
+```powershell
+# Source data quality validation functions
+. .\functions\Private\_CheckForDuplicateEmails.ps1
+. .\functions\Private\_ValidateDomainInExchangeOnline.ps1
+. .\functions\Public\Validate-SharedMailboxCandidate.ps1
+
+# Test duplicate email detection
+$hasDuplicate = _CheckForDuplicateEmails -EmailAddress "user@ethz.ch" -ExcludeUser "smbx_test"
+# Returns: $true if email found in other accounts, $false if unique
+
+# Test domain validation in Exchange Online
+$isValid = _ValidateDomainInExchangeOnline -Domain "ethz.ch" -AcceptedDomains @("ethz.ch", "ethz.onmicrosoft.com")
+# Returns: $true if domain in list, $false if not accepted
+
+# Test comprehensive candidate validation
+$validation = Validate-SharedMailboxCandidate -ADUser $adUserObject -AcceptedDomains @("ethz.ch")
+# Returns: PSCustomObject with IsValid, ValidationErrors, ValidationChecks
+
+# Run Pester tests for Tier 3
+Invoke-Pester tests/Test-CheckForDuplicateEmails.ps1
+Invoke-Pester tests/Test-ValidateDomainInExchangeOnline.ps1
+Invoke-Pester tests/Test-ValidateSharedMailboxCandidate.ps1
+```
+
+**Available Tier 3 Validation Functions:**
+- `_CheckForDuplicateEmails`: Detect duplicate emails in Active Directory
+- `_ValidateDomainInExchangeOnline`: Validate domain against Exchange Online AcceptedDomains
+- `Validate-SharedMailboxCandidate`: Comprehensive validation combining all checks (public function)
+
+### Tier 4: Candidate Discovery (IMPLEMENTED)
+
+```powershell
+# Source candidate discovery functions
+. .\functions\Public\Get-SharedMailboxCandidates.ps1
+. .\functions\Public\Get-SharedMailboxCandidatesWithGroups.ps1
+
+# Example 1: Get all shared mailbox candidates from AD
+$candidates = Get-SharedMailboxCandidates
+Write-Output "Found $($candidates.Count) candidates"
+foreach ($candidate in $candidates) {
+    Write-Output "  - $($candidate.SamAccountName): $($candidate.DisplayName)"
+}
+
+# Example 2: Get candidates with custom search base (specific OU)
+$candidates = Get-SharedMailboxCandidates -SearchBase "OU=SharedMailboxes,DC=ethz,DC=ch"
+Write-Output "Found $($candidates.Count) candidates in OU"
+
+# Example 3: Get candidates with custom naming prefix
+$candidates = Get-SharedMailboxCandidates -SamAccountNamePrefix "smbx_" -SearchBase "OU=SharedMailboxes,DC=ethz,DC=ch"
+
+# Example 4: Get candidates with custom attribute filtering
+$candidates = Get-SharedMailboxCandidates -CustomAttribute "nethzTask" -CustomAttributeValue "Create RemoteMailbox"
+
+# Example 5: Get candidates and filter by account status (enabled vs disabled)
+$enabledCandidates = Get-SharedMailboxCandidates -AccountStatus "Enabled"
+$disabledCandidates = Get-SharedMailboxCandidates -AccountStatus "Disabled"
+$allUsers = Get-SharedMailboxCandidates -AccountStatus "Any"
+
+# Example 6: Get candidates WITH their associated ACL groups (validates groups)
+$candidatesWithGroups = Get-SharedMailboxCandidatesWithGroups
+foreach ($item in $candidatesWithGroups) {
+    Write-Output "Candidate: $($item.SamAccountName)"
+    Write-Output "  ACL Group: $($item.ACLGroupName)"
+    Write-Output "  Valid: $($item.HasValidGroup)"
+    if ($item.HasValidGroup) {
+        Write-Output "  Group Email: $($item.ACLGroupMail)"
+    }
+}
+
+# Example 7: Get candidates but include those without valid groups
+$allCandidates = Get-SharedMailboxCandidatesWithGroups -ValidateAll $false
+$readyToProvision = $allCandidates | Where-Object { $_.HasValidGroup }
+$needsGroupCreation = $allCandidates | Where-Object { -not $_.HasValidGroup }
+Write-Output "Ready: $($readyToProvision.Count), Need Groups: $($needsGroupCreation.Count)"
+
+# Run Pester tests for Tier 4
+Invoke-Pester tests/Test-GetSharedMailboxCandidates.ps1
+Invoke-Pester tests/Test-GetSharedMailboxCandidatesWithGroups.ps1
+```
+
+**Available Tier 4 Discovery Functions:**
+- `Get-SharedMailboxCandidates`: Query Active Directory for eligible shared mailbox candidates
+- `Get-SharedMailboxCandidatesWithGroups`: Get candidates enriched with their associated ACL groups
+
+**Candidate Properties Returned:**
+```powershell
+# Get-SharedMailboxCandidates returns PSCustomObject array with:
+@{
+    SamAccountName      # "smbx_12345678"
+    DisplayName         # "Shared Mailbox 12345678"
+    Mail                # Email address (may be null)
+    Description         # "Shared Mailbox Persona - Purpose"
+    DistinguishedName   # AD distinguished name
+    Enabled             # $true or $false
+    ADUser              # Original AD user object
+}
+```
+
+**Candidate with Groups Properties Returned:**
+```powershell
+# Get-SharedMailboxCandidatesWithGroups returns PSCustomObject array with:
+@{
+    SamAccountName      # Candidate SamAccountName
+    DisplayName         # Candidate display name
+    Mail                # Candidate email
+    ACLGroup            # ACL group object (if found)
+    ACLGroupName        # ACL group name
+    ACLGroupMail        # ACL group email
+    HasValidGroup       # $true if group is valid, $false otherwise
+    Enabled             # Candidate enabled status
+    ADUser              # Original AD user object
+}
+```
+
 ---
 
 ## Step 7: Connect to Exchange Online (Testing)
