@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-Unit tests for Validate-SharedMailboxCandidate function
+Unit tests for Test-SharedMailboxCandidate function
 #>
 
 # Import functions
@@ -9,7 +9,7 @@ $functionPath1 = Join-Path $projectRoot "functions" "Private" "_ValidateEmailFor
 $functionPath2 = Join-Path $projectRoot "functions" "Private" "_ValidateDisplayName.ps1"
 $functionPath3 = Join-Path $projectRoot "functions" "Private" "_CheckForDuplicateEmails.ps1"
 $functionPath4 = Join-Path $projectRoot "functions" "Private" "_ValidateDomainInExchangeOnline.ps1"
-$functionPath5 = Join-Path $projectRoot "functions" "Private" "Validate-SharedMailboxCandidate.ps1"
+$functionPath5 = Join-Path $projectRoot "functions" "Private" "Test-SharedMailboxCandidate.ps1"
 
 . $functionPath1
 . $functionPath2
@@ -34,7 +34,7 @@ Describe "ValidateSharedMailboxCandidate" {
             Mock _CheckForDuplicateEmails { return $false }
             Mock _ValidateDomainInExchangeOnline { return $true }
 
-            $result = Validate-SharedMailboxCandidate -ADUser $mockUser
+            $result = Test-SharedMailboxCandidate -ADUser $mockUser
             $result.IsValid | Should -Be $true
             $result.ValidationErrors.Count | Should -Be 0
         }
@@ -53,7 +53,7 @@ Describe "ValidateSharedMailboxCandidate" {
             Mock _CheckForDuplicateEmails { return $false }
             Mock _ValidateDomainInExchangeOnline { return $true }
 
-            $result = Validate-SharedMailboxCandidate -ADUser $mockUser
+            $result = Test-SharedMailboxCandidate -ADUser $mockUser
             $result.ValidationChecks["MailAttributeExists"] | Should -Be $true
             $result.ValidationChecks["MailFormatValid"] | Should -Be $true
             $result.ValidationChecks["MailNotDuplicated"] | Should -Be $true
@@ -78,7 +78,7 @@ Describe "ValidateSharedMailboxCandidate" {
 
             Mock _ValidateDisplayName { return $true }
 
-            $result = Validate-SharedMailboxCandidate -ADUser $mockUser
+            $result = Test-SharedMailboxCandidate -ADUser $mockUser
             $result.IsValid | Should -Be $false
             $result.ValidationErrors | Should -Contain "Mail attribute is missing or empty"
         }
@@ -95,7 +95,7 @@ Describe "ValidateSharedMailboxCandidate" {
             Mock _ValidateEmailFormat { return $false }
             Mock _ValidateDisplayName { return $true }
 
-            $result = Validate-SharedMailboxCandidate -ADUser $mockUser
+            $result = Test-SharedMailboxCandidate -ADUser $mockUser
             $result.IsValid | Should -Be $false
             $result.ValidationErrors | Should -Contain "Mail address format invalid: invalid-email"
         }
@@ -113,7 +113,7 @@ Describe "ValidateSharedMailboxCandidate" {
             Mock _ValidateDisplayName { return $true }
             Mock _CheckForDuplicateEmails { return $true }
 
-            $result = Validate-SharedMailboxCandidate -ADUser $mockUser
+            $result = Test-SharedMailboxCandidate -ADUser $mockUser
             $result.IsValid | Should -Be $false
             $result.ValidationErrors | Should -Contain "Email already exists in other user account(s)"
         }
@@ -134,7 +134,7 @@ Describe "ValidateSharedMailboxCandidate" {
             Mock _CheckForDuplicateEmails { return $false }
             Mock _ValidateDomainInExchangeOnline { return $true }
 
-            $result = Validate-SharedMailboxCandidate -ADUser $mockUser
+            $result = Test-SharedMailboxCandidate -ADUser $mockUser
             $result.IsValid | Should -Be $false
             $result.ValidationErrors | Should -Contain "DisplayName contains invalid characters or is empty"
         }
@@ -155,7 +155,7 @@ Describe "ValidateSharedMailboxCandidate" {
             Mock _CheckForDuplicateEmails { return $false }
             Mock _ValidateDomainInExchangeOnline { return $true }
 
-            $result = Validate-SharedMailboxCandidate -ADUser $mockUser
+            $result = Test-SharedMailboxCandidate -ADUser $mockUser
             $result.IsValid | Should -Be $false
             $result.ValidationErrors | Should -Contain "SamAccountName contains invalid characters"
         }
@@ -172,7 +172,7 @@ Describe "ValidateSharedMailboxCandidate" {
             Mock _ValidateEmailFormat { return $true }
             Mock _ValidateDisplayName { return $true }
 
-            $result = Validate-SharedMailboxCandidate -ADUser $mockUser
+            $result = Test-SharedMailboxCandidate -ADUser $mockUser
             $result.IsValid | Should -Be $false
             $result.ValidationErrors | Should -Contain "SamAccountName is missing or empty"
         }
@@ -193,7 +193,7 @@ Describe "ValidateSharedMailboxCandidate" {
             Mock _CheckForDuplicateEmails { return $false }
             Mock _ValidateDomainInExchangeOnline { return $true }
 
-            $result = Validate-SharedMailboxCandidate -ADUser $mockUser
+            $result = Test-SharedMailboxCandidate -ADUser $mockUser
             $result.IsValid | Should -Be $false
             $result.ValidationErrors | Should -Contain "TargetAddress must be empty (reserved for Remote Mailbox)"
         }
@@ -214,7 +214,7 @@ Describe "ValidateSharedMailboxCandidate" {
             Mock _CheckForDuplicateEmails { return $false }
             Mock _ValidateDomainInExchangeOnline { return $true }
 
-            $result = Validate-SharedMailboxCandidate -ADUser $mockUser
+            $result = Test-SharedMailboxCandidate -ADUser $mockUser
             $result.IsValid | Should -Be $false
             $result.ValidationErrors | Should -Contain "ProxyAddresses is empty or missing"
         }
@@ -233,7 +233,7 @@ Describe "ValidateSharedMailboxCandidate" {
             Mock _CheckForDuplicateEmails { return $false }
             Mock _ValidateDomainInExchangeOnline { return $true }
 
-            $result = Validate-SharedMailboxCandidate -ADUser $mockUser
+            $result = Test-SharedMailboxCandidate -ADUser $mockUser
             $result.IsValid | Should -Be $false
             $result.ValidationErrors | Should -Contain "ProxyAddresses missing M365 address (@ethz.onmicrosoft.com)"
         }
@@ -254,7 +254,7 @@ Describe "ValidateSharedMailboxCandidate" {
             Mock _CheckForDuplicateEmails { return $false }
             Mock _ValidateDomainInExchangeOnline { return $false }
 
-            $result = Validate-SharedMailboxCandidate -ADUser $mockUser
+            $result = Test-SharedMailboxCandidate -ADUser $mockUser
             $result.IsValid | Should -Be $false
             $result.ValidationErrors | Should -Contain "Email domain not in Exchange Online AcceptedDomains: invalid.ch"
         }
@@ -275,7 +275,7 @@ Describe "ValidateSharedMailboxCandidate" {
             Mock _CheckForDuplicateEmails { return $false }
             Mock _ValidateDomainInExchangeOnline { return $true }
 
-            $result = Validate-SharedMailboxCandidate -ADUser $mockUser
+            $result = Test-SharedMailboxCandidate -ADUser $mockUser
             $result | Should -HaveProperty "SamAccountName"
             $result | Should -HaveProperty "IsValid"
             $result | Should -HaveProperty "ValidationErrors"
@@ -285,7 +285,7 @@ Describe "ValidateSharedMailboxCandidate" {
 
     Context "Null user handling" {
         It "Should return false for null user" {
-            $result = Validate-SharedMailboxCandidate -ADUser $null
+            $result = Test-SharedMailboxCandidate -ADUser $null
             $result | Should -Be $false
         }
     }
@@ -302,7 +302,7 @@ Describe "ValidateSharedMailboxCandidate" {
 
             Mock _ValidateDisplayName { return $false }
 
-            $result = Validate-SharedMailboxCandidate -ADUser $mockUser
+            $result = Test-SharedMailboxCandidate -ADUser $mockUser
             $result.IsValid | Should -Be $false
             $result.ValidationErrors.Count | Should -BeGreaterThan 1
         }

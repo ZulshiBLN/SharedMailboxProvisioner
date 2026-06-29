@@ -53,109 +53,109 @@ function Initialize-ScheduledTaskCredential {
         [string]$OutputPath = "C:\Repos\SharedMailboxProvisioner\data\serviceaccount.clixml"
     )
 
-    Write-Host ""
-    Write-Host "========================================" -ForegroundColor Cyan
-    Write-Host "Initialize Service Account Credential" -ForegroundColor Cyan
-    Write-Host "========================================" -ForegroundColor Cyan
-    Write-Host ""
+    Write-Output ""
+    Write-Output "========================================"
+    Write-Output "Initialize Service Account Credential"
+    Write-Output "========================================"
+    Write-Output ""
 
-    Write-Host "This script must be run as: $UserName" -ForegroundColor Yellow
-    Write-Host "Current user: $env:USERNAME" -ForegroundColor Yellow
+    Write-Output "This script must be run as: $UserName"
+    Write-Output "Current user: $env:USERNAME"
 
     # Verify running as correct user
     $currentUser = [System.Security.Principal.WindowsIdentity]::GetCurrent().Name
     if ($currentUser -notlike "*$UserName*") {
-        Write-Host ""
-        Write-Host "ERROR: You must run this script as the Service Account!" -ForegroundColor Red
-        Write-Host "Current user: $currentUser" -ForegroundColor Red
-        Write-Host "Required user: $UserName" -ForegroundColor Red
-        Write-Host ""
-        Write-Host "To fix:" -ForegroundColor Yellow
-        Write-Host "1. Open PowerShell as Administrator" -ForegroundColor Yellow
-        Write-Host "2. Run: runas /user:$UserName powershell" -ForegroundColor Yellow
-        Write-Host "3. Re-run this script" -ForegroundColor Yellow
+        Write-Output ""
+        Write-Output "ERROR: You must run this script as the Service Account!"
+        Write-Output "Current user: $currentUser"
+        Write-Output "Required user: $UserName"
+        Write-Output ""
+        Write-Output "To fix:"
+        Write-Output "1. Open PowerShell as Administrator"
+        Write-Output "2. Run: runas /user:$UserName powershell"
+        Write-Output "3. Re-run this script"
         return
     }
 
-    Write-Host "✓ User verification: PASS" -ForegroundColor Green
-    Write-Host ""
+    Write-Output "[OK] User verification: PASS"
+    Write-Output ""
 
     # Verify elevated privileges
     $isAdmin = ([System.Security.Principal.WindowsPrincipal] `
-        [System.Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([System.Security.Principal.WindowsBuiltInRole]::Administrator)
+            [System.Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([System.Security.Principal.WindowsBuiltInRole]::Administrator)
 
     if (-not $isAdmin) {
-        Write-Host "ERROR: This script must run with elevated privileges!" -ForegroundColor Red
-        Write-Host "Please run PowerShell as Administrator" -ForegroundColor Red
+        Write-Output "ERROR: This script must run with elevated privileges!"
+        Write-Output "Please run PowerShell as Administrator"
         return
     }
 
-    Write-Host "✓ Admin verification: PASS" -ForegroundColor Green
-    Write-Host ""
+    Write-Output "[OK] Admin verification: PASS"
+    Write-Output ""
 
     # Ensure output directory exists
     $outputDir = Split-Path -Parent $OutputPath
     if (-not (Test-Path -Path $outputDir)) {
-        Write-Host "Creating output directory: $outputDir" -ForegroundColor Cyan
+        Write-Output "Creating output directory: $outputDir"
         New-Item -ItemType Directory -Path $outputDir -Force | Out-Null
     }
 
-    Write-Host "Output directory: $outputDir" -ForegroundColor Cyan
-    Write-Host ""
+    Write-Output "Output directory: $outputDir"
+    Write-Output ""
 
     # Prompt for credential
-    Write-Host "Please provide Service Account credentials:" -ForegroundColor Yellow
-    Write-Host "You will be prompted for password." -ForegroundColor Yellow
-    Write-Host ""
+    Write-Output "Please provide Service Account credentials:"
+    Write-Output "You will be prompted for password."
+    Write-Output ""
 
     $credential = Get-Credential -UserName $UserName `
         -Message "Enter Service Account credentials for on-premises Exchange access"
 
     if (-not $credential) {
-        Write-Host "ERROR: No credential provided!" -ForegroundColor Red
+        Write-Output "ERROR: No credential provided!"
         return
     }
 
-    Write-Host ""
-    Write-Host "Credential received. Encrypting and saving..." -ForegroundColor Cyan
+    Write-Output ""
+    Write-Output "Credential received. Encrypting and saving..."
 
     try {
         # Export credential to encrypted clixml
         $credential | Export-Clixml -Path $OutputPath -Force -ErrorAction Stop
 
-        Write-Host ""
-        Write-Host "✓ Credential file created successfully!" -ForegroundColor Green
-        Write-Host "  Path: $OutputPath" -ForegroundColor Green
-        Write-Host ""
+        Write-Output ""
+        Write-Output "[OK] Credential file created successfully!"
+        Write-Output "  Path: $OutputPath"
+        Write-Output ""
 
         # Verify file was created
         if (Test-Path -Path $OutputPath) {
             $fileInfo = Get-Item -Path $OutputPath
-            Write-Host "File Information:" -ForegroundColor Cyan
-            Write-Host "  Size: $($fileInfo.Length) bytes" -ForegroundColor Cyan
-            Write-Host "  Created: $($fileInfo.CreationTime)" -ForegroundColor Cyan
-            Write-Host "  Owner: $(whoami)" -ForegroundColor Cyan
-            Write-Host ""
+            Write-Output "File Information:"
+            Write-Output "  Size: $($fileInfo.Length) bytes"
+            Write-Output "  Created: $($fileInfo.CreationTime)"
+            Write-Output "  Owner: $(whoami)"
+            Write-Output ""
         }
 
-        Write-Host "Setup Complete!" -ForegroundColor Green
-        Write-Host ""
-        Write-Host "Next steps:" -ForegroundColor Yellow
-        Write-Host "1. Create Windows ScheduledTask with this Service Account" -ForegroundColor Yellow
-        Write-Host "2. Task will use credential from clixml file as fallback" -ForegroundColor Yellow
-        Write-Host "3. Primary method: Current user context (no clixml needed)" -ForegroundColor Yellow
-        Write-Host "4. Fallback: Use clixml if current context unavailable" -ForegroundColor Yellow
-        Write-Host ""
+        Write-Output "Setup Complete!"
+        Write-Output ""
+        Write-Output "Next steps:"
+        Write-Output "1. Create Windows ScheduledTask with this Service Account"
+        Write-Output "2. Task will use credential from clixml file as fallback"
+        Write-Output "3. Primary method: Current user context (no clixml needed)"
+        Write-Output "4. Fallback: Use clixml if current context unavailable"
+        Write-Output ""
 
         Write-Log -Message "Service Account credential file created: $OutputPath" `
             -Level INFO -Operation "Initialize-ScheduledTaskCredential" -Status "SUCCESS"
 
     }
     catch {
-        Write-Host ""
-        Write-Host "ERROR: Failed to create credential file!" -ForegroundColor Red
-        Write-Host "Exception: $($_.Exception.Message)" -ForegroundColor Red
-        Write-Host ""
+        Write-Output ""
+        Write-Output "ERROR: Failed to create credential file!"
+        Write-Output "Exception: $($_.Exception.Message)"
+        Write-Output ""
         Write-Log -Message "Failed to create credential file: $($_.Exception.Message)" `
             -Level ERROR -Operation "Initialize-ScheduledTaskCredential" -Status "ERROR"
     }
