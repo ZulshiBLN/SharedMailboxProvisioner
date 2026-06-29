@@ -119,9 +119,7 @@ function Connect-ExchangeOnlineEnv {
             Connect-ExchangeOnline @connectParams | Out-Null
 
             Write-Output "[OK] Connected to Exchange Online successfully (tenant: $Tenant)"
-            if ($Write-Log) {
-                Write-Log -Message "Connected to Exchange Online" -Level INFO -Operation "Connect-ExchangeOnlineEnv" -Status "SUCCESS"
-            }
+            Write-Log -Message "Connected to Exchange Online" -Level INFO -Operation "Connect-ExchangeOnlineEnv" -Status "SUCCESS"
             return $true
 
         } catch {
@@ -134,9 +132,7 @@ function Connect-ExchangeOnlineEnv {
                 Start-Sleep -Milliseconds $waitMs
             } else {
                 Write-Error "Failed to connect to Exchange Online after $maxRetries attempts: $errorMessage"
-                if ($Write-Log) {
-                    Write-Log -Message "Failed to connect to Exchange Online: $errorMessage" -Level ERROR -Operation "Connect-ExchangeOnlineEnv" -Status "FAILED"
-                }
+                Write-Log -Message "Failed to connect to Exchange Online: $errorMessage" -Level ERROR -Operation "Connect-ExchangeOnlineEnv" -Status "FAILED"
                 return $false
             }
         }
