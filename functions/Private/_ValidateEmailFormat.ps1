@@ -99,8 +99,8 @@ function _ValidateEmailFormat {
 
         Write-Verbose "Email validation passed: $EmailAddress"
         return $true
-
-    } catch {
+    }
+    catch {
         Write-Verbose "Email validation failed with exception: $_"
         return $false
     }
