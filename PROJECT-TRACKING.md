@@ -109,7 +109,16 @@ Reason: Need to read eligible candidates from AD before provisioning in Exchange
    - Effort: ~200 lines
    - Complexity: HIGH (orchestration, combined results)
 
-**Phase Alpha Total:** ~720 lines, 4-5 days
+**Phase Alpha Total (Original):** ~720 lines, 4-5 days
+
+**Phase Alpha Extension: Data Quality Validation** (ADDED)
+- +5 helper functions for email/proxy/domain validation
+- +1 central validation function (Validate-SharedMailboxCandidate)
+- +~600 lines of code
+- +2-3 days effort
+- Tests for 7 DQ scenarios (missing mail, duplicates, format, etc.)
+
+**Phase Alpha Total (REVISED):** ~1320 lines, 6-7 days
 **Documentation:** See docs/IMPLEMENTATION-PLAN-SharedMailboxCandidates.md & ADR-006
 
 ---

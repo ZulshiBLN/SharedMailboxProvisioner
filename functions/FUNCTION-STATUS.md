@@ -18,13 +18,31 @@ Tracking of all functions: implementation status, test coverage, usage.
 
 ---
 
-## Private Functions (Helpers) – AD Candidate Discovery
+## Private Functions (Helpers) – AD Candidate Discovery & Validation
 
+### Group Validation
 | Function | Status | Tests | ADR | Notes |
 |----------|--------|-------|-----|-------|
 | `_ParseSharedMailboxGroupDescription` | [PLANNED] | [NONE] | ADR-006 | Parse ACL group description, extract admin group. |
 | `_ValidateSharedMailboxGroup` | [PLANNED] | [NONE] | ADR-006 | Validate group structure (type, mail, description pattern). |
 | `Get-SharedMailboxACLGroup` | [PLANNED] | [NONE] | ADR-006 | Lookup & validate ACL group for candidate user. |
+
+### Data Quality Validation (NEW)
+| Function | Status | Tests | ADR | Notes |
+|----------|--------|-------|-----|-------|
+| `_ValidateEmailFormat` | [PLANNED] | [NONE] | ADR-006 | RFC 5321 email format validation. |
+| `_ValidateProxyAddresses` | [PLANNED] | [NONE] | ADR-006 | Validate SMTP addresses, check primary, allowed domains. |
+| `_ValidateDomainInExchangeOnline` | [PLANNED] | [NONE] | ADR-006 | Check domain against AcceptedDomains list. |
+| `_CheckForDuplicateEmails` | [PLANNED] | [NONE] | ADR-006 | Detect duplicate emails in AD ProxyAddresses. |
+| `_SanitizeDisplayName` | [PLANNED] | [NONE] | ADR-006 | Remove invalid characters from DisplayName. |
+
+---
+
+## Public Functions (Cmdlets) – Account Validation
+
+| Function | Status | Tests | ADR | Usage | Notes |
+|----------|--------|-------|-----|-------|-------|
+| `Validate-SharedMailboxCandidate` | [PLANNED] | [NONE] | ADR-006 | Validate user for provisioning readiness | Uses: All validation helpers, Write-Log |
 
 ---
 

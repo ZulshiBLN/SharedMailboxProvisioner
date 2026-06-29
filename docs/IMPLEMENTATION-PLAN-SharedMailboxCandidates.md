@@ -417,7 +417,183 @@ Otherwise: IsReadyForProvisioning = false, Status = reason, ReadinessErrors = li
 
 ---
 
-## Phase 4: Implementation Order
+## Phase 3b: Data Quality Validation Strategy
+
+### New Functions for Account Validation
+
+**Critical Discovery:** AD data quality is poor. Need strict validation before provisioning.
+
+#### Function 6: Validate-SharedMailboxCandidate (NEW - HIGH PRIORITY)
+
+**Purpose:** Comprehensive validation of candidate user object for provisioning readiness.
+
+**Validation Checks:**
+
+1. **Mail Attribute Validation**
+   ```
+   ✓ Must exist (not empty/null)
+   ✓ Must be RFC 5321 compliant email format
+   ✓ Must not be duplicated in AD ProxyAddresses
+   ✓ Must be in accepted Exchange Online domains
+   ```
+
+2. **ProxyAddresses Validation**
+   ```
+   ✓ Must contain at least 1 SMTP address
+   ✓ Must include Exchange Online address (@ethz.onmicrosoft.com)
+   ✓ All addresses must be RFC 5321 compliant
+   ✓ No duplicate SMTP addresses across AD
+   ✓ All domains must be in Exchange Online AcceptedDomains
+   ✓ Must have at least 1 primary address (uppercase SMTP:)
+   ```
+
+3. **TargetAddress Validation**
+   ```
+   ✓ Must be EMPTY (null or '')
+   ✗ If set: Error (will be auto-generated during Remote Mailbox creation)
+   ```
+
+4. **DisplayName Validation**
+   ```
+   ✓ No invalid characters: < > @ \ / : ; . , [ ] ( )
+   ✓ Not empty
+   ✓ Max 256 characters (Exchange Online limit)
+   ✓ No leading/trailing whitespace
+   ```
+
+5. **SamAccountName (Alias) Validation**
+   ```
+   ✓ No invalid characters: < > @ \ / : ; . , [ ] ( ) space
+   ✓ Not empty
+   ✓ Max 20 characters (Windows limit)
+   ✓ No leading/trailing whitespace
+   ```
+
+6. **Exchange Online AcceptedDomains Check**
+   ```
+   ✓ Verify domains from ProxyAddresses exist in Exchange Online
+   ✓ Verify primary domain is accepted
+   ✗ If domain missing: Error with context
+   ```
+
+**Returns:**
+
+```powershell
+[PSCustomObject]@{
+  SamAccountName      = "smbx_12345678"
+  IsValid             = $true/$false
+  Status              = "Valid" | "InvalidMail" | "DuplicateMail" | "InvalidDomain" | etc.
+  
+  ValidationChecks    = @{
+    "MailAttributeExists"           = $true/$false
+    "MailFormatValid"               = $true/$false
+    "MailNotDuplicated"             = $true/$false
+    "ProxyAddressesValid"           = $true/$false
+    "ExchangeOnlineAddressPresent"  = $true/$false
+    "DomainsInAcceptedList"         = $true/$false
+    "TargetAddressEmpty"            = $true/$false
+    "DisplayNameValid"              = $true/$false
+    "SamAccountNameValid"           = $true/$false
+  }
+  
+  Errors              = @(
+    "Mail attribute missing",
+    "ProxyAddresses contains invalid domain: invalidomain.local"
+  )
+  
+  Warnings            = @(
+    "DisplayName contains special characters (will be sanitized)"
+  )
+  
+  SuggestedFixes      = @{
+    "Mail"              = $null
+    "ProxyAddresses"    = @("smtp:smbx_12345678@ethz.ch", "SMTP:smbx_12345678@ethz.onmicrosoft.com")
+    "DisplayNameFixed"  = "Shared Mailbox 12345678"
+  }
+}
+```
+
+**Parameters:**
+
+```powershell
+[Parameter(Mandatory=$true)]
+[Microsoft.ActiveDirectory.Management.ADUser]$User
+  # The candidate user to validate
+
+[Parameter(Mandatory=$false)]
+[string[]]$AcceptedDomains = @("ethz.ch", "ethz.onmicrosoft.com")
+  # List of valid domains for email addresses
+  # Default: Common ETHZ domains
+  # Should load from Exchange Online if available
+
+[Parameter(Mandatory=$false)]
+[string]$M365ExchangeOnlineDomain = "@ethz.onmicrosoft.com"
+  # Required domain for Exchange Online address
+  # Default: @ethz.onmicrosoft.com
+
+[Parameter(Mandatory=$false)]
+[switch]$AllowWarnings
+  # If $true: Warnings don't fail validation
+  # If $false: Warnings are collected but don't fail (only errors fail)
+```
+
+**Helper Functions (Private):**
+
+```
+_ValidateEmailFormat (Input: string, Output: bool)
+  ├─ RFC 5321 validation
+  ├─ Basic format: local@domain
+  └─ No invalid special characters
+
+_ValidateProxyAddresses (Input: string[], Output: object)
+  ├─ Check format of each address
+  ├─ Ensure at least 1 SMTP: (primary)
+  ├─ Ensure at least 1 SMTP in allowed domains
+  └─ Return: ValidationResult
+
+_ValidateDomainInExchangeOnline (Input: string, Output: bool)
+  ├─ Check if domain is in AcceptedDomains list
+  └─ Return: bool
+
+_CheckForDuplicateEmails (Input: ADUser, All AD Users, Output: bool)
+  ├─ Query AD for this email in other user's ProxyAddresses
+  ├─ Check own ProxyAddresses for duplicates
+  └─ Return: bool (has duplicates?)
+
+_SanitizeDisplayName (Input: string, Output: string)
+  ├─ Remove invalid characters: < > @ \ / : ; . , [ ]
+  ├─ Trim whitespace
+  └─ Return: Cleaned string
+```
+
+---
+
+#### Updated Function Hierarchy with Validation
+
+```
+Get-SharedMailboxCandidatesWithGroups (Orchestration)
+  ├─ Get-SharedMailboxCandidates
+  │   └─ Returns: Potential candidates
+  │
+  ├─ Get-SharedMailboxACLGroup
+  │   └─ Returns: Group validation
+  │
+  ├─ ✨ NEW: Validate-SharedMailboxCandidate (Per Candidate)
+  │   ├─ _ValidateEmailFormat (Helper)
+  │   ├─ _ValidateProxyAddresses (Helper)
+  │   ├─ _ValidateDomainInExchangeOnline (Helper)
+  │   ├─ _CheckForDuplicateEmails (Helper)
+  │   └─ _SanitizeDisplayName (Helper)
+  │
+  └─ Combine results with ReadinessStatus
+      ├─ ReadyForProvisioning = Group valid AND Account valid
+      ├─ ReadinessErrors = Array of all validation failures
+      └─ SuggestedFixes = How to fix invalid accounts
+```
+
+---
+
+## Phase 4: Implementation Order (REVISED)
 
 ### Step 1: Create ADR-006
 File: `DECISIONS.md` → Add ADR-006
@@ -426,7 +602,7 @@ File: `DECISIONS.md` → Add ADR-006
 - Error handling philosophy
 - Custom attribute mapping
 
-### Step 2: Implement Core Helper (Private Functions)
+### Step 2: Implement Core Helpers – Group Validation (Private Functions)
 1. `_ParseSharedMailboxGroupDescription.ps1`
    - Simplest, no AD calls
    - Regex-heavy, testable in isolation
@@ -443,37 +619,133 @@ File: `DECISIONS.md` → Add ADR-006
    - Error handling for missing groups
    - ~120 lines
 
-### Step 3: Implement Main Function (Public)
-1. `Get-SharedMailboxCandidates.ps1`
-   - Parameter validation (custom attr logic)
-   - LDAP filter building
-   - Ad user queries
-   - ~150 lines
+### Step 2b: Implement Core Helpers – Account Data Quality Validation (Private Functions)
 
-2. `Get-SharedMailboxCandidatesWithGroups.ps1`
-   - Orchestrates all helpers
-   - Combines results
-   - Logging integration
-   - ~200 lines
+4. `_ValidateEmailFormat.ps1` (HELPER)
+   - RFC 5321 email validation
+   - Regex pattern matching
+   - ~50 lines
 
-### Step 4: Testing
-1. Unit tests for parsing logic
-2. Unit tests for validation
-3. Integration tests with mock AD objects
-4. Real AD environment testing
+5. `_ValidateProxyAddresses.ps1` (HELPER)
+   - Check SMTP address format
+   - Ensure primary address present
+   - Check allowed domains
+   - ~100 lines
 
-### Step 5: Documentation
+6. `_ValidateDomainInExchangeOnline.ps1` (HELPER)
+   - Check domain against AcceptedDomains list
+   - ~30 lines
+
+7. `_CheckForDuplicateEmails.ps1` (HELPER)
+   - Query AD for duplicate emails
+   - Check ProxyAddresses collision
+   - ~80 lines
+
+8. `_SanitizeDisplayName.ps1` (HELPER)
+   - Remove invalid characters
+   - Return clean DisplayName
+   - ~40 lines
+
+### Step 3: Implement Account Validation (Public/Private)
+
+9. `Validate-SharedMailboxCandidate.ps1` (PUBLIC)
+   - Central validation function
+   - Calls all validation helpers
+   - Combines check results
+   - Returns detailed validation report with suggested fixes
+   - ~250 lines
+
+### Step 4: Implement Main Functions (Public)
+
+10. `Get-SharedMailboxCandidates.ps1` (PUBLIC)
+    - Parameter validation (custom attr logic)
+    - LDAP filter building
+    - Ad user queries
+    - ~150 lines
+
+11. `Get-SharedMailboxCandidatesWithGroups.ps1` (PUBLIC)
+    - Orchestrates: Get Candidates → Validate Account → Get Group
+    - Combines all results
+    - Determines final ReadinessStatus
+    - Logging integration
+    - ~250 lines
+
+### Step 5: Testing
+1. Unit tests for email validation
+2. Unit tests for proxy address validation
+3. Unit tests for duplicate detection
+4. Unit tests for parsing & group validation
+5. Integration tests with mock AD objects
+6. Real AD environment testing (with real data quality issues)
+
+### Step 6: Documentation
 1. Update FUNCTION-STATUS.md
 2. Add examples to functions
-3. Document AD schema requirements (custom attribute mapping)
+3. Document AD schema requirements
+4. Document AcceptedDomains requirements for Exchange Online
+5. Create troubleshooting guide for common validation failures
 
 ---
 
-## Phase 5: Testing Strategy
+## Phase 3c: Data Quality Validation Testing
+
+### Common DQ Issues to Test
+
+```
+# Test Case 1: Missing Mail Attribute
+User: DisplayName="Test User", Mail=$null, ProxyAddresses=@()
+Expected: IsValid=$false, Error="Mail attribute missing"
+
+# Test Case 2: Duplicate Email
+User1: Mail="test@ethz.ch"
+User2: Mail=$null, ProxyAddresses=@("SMTP:test@ethz.ch")  # Duplicate!
+Expected: IsValid=$false, Error="Email already used by other user"
+
+# Test Case 3: Invalid Email Format
+User: Mail="test@invalid domain.ch"  # Space in domain
+Expected: IsValid=$false, Error="Mail format invalid: space in domain"
+
+# Test Case 4: Missing M365 Address
+User: ProxyAddresses=@("SMTP:test@ethz.ch")  # No @ethz.onmicrosoft.com
+Expected: IsValid=$false, Error="Missing Exchange Online address (@ethz.onmicrosoft.com)"
+
+# Test Case 5: TargetAddress Already Set
+User: TargetAddress="test@domain.onmicrosoft.com"  # Should be empty!
+Expected: IsValid=$false, Error="TargetAddress must be empty"
+
+# Test Case 6: Invalid DisplayName
+User: DisplayName="Test <User>"  # Contains < > 
+Expected: Warning="DisplayName contains invalid chars", SuggestedFix="Test User"
+
+# Test Case 7: Domain Not in Exchange Online AcceptedDomains
+User: ProxyAddresses=@("SMTP:test@invalid-domain.ch")
+Expected: IsValid=$false, Error="Domain invalid-domain.ch not in Exchange Online AcceptedDomains"
+
+# Test Case 8: All Valid
+User: Mail="test@ethz.ch", ProxyAddresses=@("SMTP:test@ethz.ch", "smtp:test@ethz.onmicrosoft.com")
+Expected: IsValid=$true, Status="Valid", SuggestedFixes=$null
+```
+
+---
+
+## Phase 5: Testing Strategy (REVISED)
 
 ### Unit Tests (No AD Required)
 
-**Test 1: _ParseSharedMailboxGroupDescription**
+**Test 1: _ValidateEmailFormat**
+```powershell
+# Valid cases
+_ValidateEmailFormat "user@ethz.ch"          # Expected: $true
+_ValidateEmailFormat "test.user+tag@ethz.ch" # Expected: $true
+
+# Invalid cases
+_ValidateEmailFormat "user@invalid domain.ch" # Expected: $false (space)
+_ValidateEmailFormat "invalid.email"          # Expected: $false (no @)
+_ValidateEmailFormat "@ethz.ch"               # Expected: $false (no local part)
+_ValidateEmailFormat "user@"                  # Expected: $false (no domain)
+```
+
+**Test 2: _ParseSharedMailboxGroupDescription**
 ```powershell
 # Test case 1: Valid description
 "Permission group for shared mailbox user@ethz.ch; Owner; AdminGroup"
@@ -661,19 +933,43 @@ Write-Log -Message "Found candidate: $($candidate.SamAccountName) with group $($
 
 ---
 
-## Success Criteria
+## Success Criteria (REVISED)
 
+### Candidate Discovery (Original)
 ✅ Get-SharedMailboxCandidates returns eligible users
 ✅ Get-SharedMailboxACLGroup validates groups correctly
 ✅ Get-SharedMailboxCandidatesWithGroups combines correctly
-✅ All edge cases handled (missing groups, invalid format, etc.)
-✅ Unit tests pass (>90% coverage)
-✅ Integration tests pass with mock data
-✅ Documentation complete with examples
-✅ No hard-coded values (all parameterized)
-✅ Logging integration working
 ✅ Parameter validation strict (custom attr + value rules)
+
+### Data Quality Validation (NEW)
+✅ Validate-SharedMailboxCandidate catches all 7 DQ issues:
+   - Missing mail attribute
+   - Duplicate emails (ProxyAddresses collision)
+   - Invalid email format (RFC 5321)
+   - Invalid DisplayName/SamAccountName characters
+   - TargetAddress not empty (should be)
+   - Missing M365 Exchange Online address
+   - ProxyAddresses domains not in AcceptedDomains
+
+✅ Suggested fixes provided for each issue
+✅ Data quality report generation
+✅ Integration with candidate discovery workflow
+
+### Overall Success
+✅ All edge cases handled (DQ issues, missing groups, etc.)
+✅ Unit tests pass (>90% coverage) including DQ test cases
+✅ Integration tests pass with real data quality scenarios
+✅ Documentation complete with troubleshooting guide
+✅ No hard-coded values (all parameterized)
+✅ Logging integration working (all failures logged)
+✅ ReadinessStatus accurate (Candidate valid AND Group valid AND Account valid)
 
 ---
 
-**Status:** Plan Complete, Ready for Implementation
+**Status:** Plan Complete (with Data Quality Validation Extension), Ready for Implementation
+
+**Next Steps:**
+1. Create ADR-007 (or extend ADR-006) for Data Quality Validation Strategy
+2. Implement helpers in order (DQ validation before main functions)
+3. Integration tests with real AD data quality issues
+4. Real environment testing with ETHZ tenant
