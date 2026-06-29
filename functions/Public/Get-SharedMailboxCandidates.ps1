@@ -105,11 +105,11 @@ function Get-SharedMailboxCandidates {
             }
         }
 
-        # Combine all filters with AND
-        $ldapFilter = "(&" + ($filterParts -join "") + ")"
+        # Combine all filters with AND, add objectClass=user for efficiency
+        $ldapFilter = "(&(objectClass=user)" + ($filterParts -join "") + ")"
         Write-Verbose "LDAP filter: $ldapFilter"
 
-        # Prepare Get-ADUser parameters
+        # Prepare Get-ADObject parameters (more efficient than Get-ADUser for large directories)
         $getAdParams = @{
             Filter = $ldapFilter
             ErrorAction = 'Stop'
@@ -120,9 +120,9 @@ function Get-SharedMailboxCandidates {
             $getAdParams['SearchBase'] = $SearchBase
         }
 
-        # Query Active Directory
-        Write-Verbose "Executing AD query..."
-        $results = Get-ADUser @getAdParams
+        # Query Active Directory (using Get-ADObject for better performance on large directories)
+        Write-Verbose "Executing AD query with Get-ADObject..."
+        $results = Get-ADObject @getAdParams
 
         if (-not $results) {
             Write-Verbose "No candidates found matching criteria"
