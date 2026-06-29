@@ -175,9 +175,71 @@ Invoke-Pester tests/Test-ValidateEmailFormat.ps1
 Invoke-Pester tests/Test-ValidateDisplayName.ps1
 ```
 
-**Available Validation Functions:**
+**Available Tier 1 Validation Functions:**
 - `_ValidateEmailFormat`: RFC 5321 email format validation (local@domain)
 - `_ValidateDisplayName`: Exchange Online DisplayName character validation
+
+### Tier 2: Group Validation (IMPLEMENTED)
+
+```powershell
+# Source group validation functions
+. .\functions\Private\_ParseSharedMailboxGroupDescription.ps1
+. .\functions\Private\_ValidateSharedMailboxGroup.ps1
+. .\functions\Public\Get-SharedMailboxACLGroup.ps1
+
+# Test group description parsing
+$desc = "Permission group for shared mailbox user@ethz.ch; Owner; AdminGroup"
+$parsed = _ParseSharedMailboxGroupDescription $desc
+# Returns: PSCustomObject with Email, Role, AdminGroup, IsValid
+
+# Test group validation (requires AD group object)
+$result = _ValidateSharedMailboxGroup $adGroupObject
+# Returns: PSCustomObject with IsValid, ValidationErrors, ParsedMetadata
+
+# Test ACL group lookup - Basic usage
+$group = Get-SharedMailboxACLGroup -SamAccountName "smbx_12345678"
+if ($group) {
+    Write-Output "Found group: $($group.Name)"
+    Write-Output "Email: $($group.Mail)"
+    Write-Output "Scope: $($group.GroupScope)"
+}
+
+# Test ACL group lookup - With SearchBase parameter
+$group = Get-SharedMailboxACLGroup -SamAccountName "smbx_12345678" `
+    -SearchBase "OU=Groups,DC=ethz,DC=ch"
+
+# Test error handling - Invalid SAM format
+$group = Get-SharedMailboxACLGroup -SamAccountName "invalid_name"
+# Returns: $null with error logged
+
+# Test error handling - Group not found
+$group = Get-SharedMailboxACLGroup -SamAccountName "smbx_nonexistent"
+# Returns: $null with warning logged
+
+# Run Pester tests for Tier 2
+Invoke-Pester tests/Test-ParseSharedMailboxGroupDescription.ps1
+Invoke-Pester tests/Test-ValidateSharedMailboxGroup.ps1
+Invoke-Pester tests/Test-GetSharedMailboxACLGroup.ps1
+```
+
+**Available Tier 2 Validation Functions:**
+- `_ParseSharedMailboxGroupDescription`: Parse ACL group description format
+- `_ValidateSharedMailboxGroup`: Validate group structure (type, mail, description)
+- `Get-SharedMailboxACLGroup`: Find and validate ACL group for shared mailbox user
+
+**Expected Group Properties:**
+```powershell
+# Get-SharedMailboxACLGroup returns PSCustomObject with:
+PSCustomObject @{
+    ADGroup          # Original AD group object
+    Name             # Group display name
+    SamAccountName   # Group SAM account name
+    Mail             # Group email address
+    GroupScope       # Group scope (should be "Universal")
+    Description      # Group description
+    IsValid          # Validation status ($true if all checks pass)
+}
+```
 
 ---
 

@@ -20,12 +20,12 @@ Tracking of all functions: implementation status, test coverage, usage.
 
 ## Private Functions (Helpers) – AD Candidate Discovery & Validation
 
-### Group Validation
+### Group Validation (Tier 2 - COMPLETE)
 | Function | Status | Tests | ADR | Notes |
 |----------|--------|-------|-----|-------|
-| `_ParseSharedMailboxGroupDescription` | [PLANNED] | [NONE] | ADR-006 | Parse ACL group description, extract admin group. |
-| `_ValidateSharedMailboxGroup` | [PLANNED] | [NONE] | ADR-006 | Validate group structure (type, mail, description pattern). |
-| `Get-SharedMailboxACLGroup` | [PLANNED] | [NONE] | ADR-006 | Lookup & validate ACL group for candidate user. |
+| `_ParseSharedMailboxGroupDescription` | [COMPLETE] | [YES] | ADR-006 | Parse ACL group description, extract admin group. Tier 2 complete. |
+| `_ValidateSharedMailboxGroup` | [COMPLETE] | [YES] | ADR-006 | Validate group structure (type, mail, description pattern). Tier 2 complete. |
+| `Get-SharedMailboxACLGroup` | [COMPLETE] | [YES] | ADR-006 | Lookup & validate ACL group for candidate user. Tier 2 complete. Performance optimized with Get-ADObject. |
 
 ### Data Quality Validation (NEW)
 | Function | Status | Tests | ADR | Notes |
@@ -126,8 +126,8 @@ Tracking of all functions: implementation status, test coverage, usage.
 ## Test Coverage Summary
 
 ```
-COMPLETE (with tests):    5/5  (100%) [Helper functions + Tier 1 Validation]
-PLANNED (need tests):     7/7  (0%)   [Public functions]
+COMPLETE (with tests):    8/8  (100%) [Helper functions + Tier 1 + Tier 2]
+PLANNED (need tests):     6/6  (0%)   [Public functions - Advanced]
 SCRIPTS (need tests):     4/4  (0%)   [Orchestration scripts]
 ```
 
@@ -135,4 +135,11 @@ Tier 1 (Text Parsing) Complete:
 - _ValidateEmailFormat: RFC 5321 validation (16 test cases)
 - _ValidateDisplayName: Character validation (19 test cases)
 
-Next Phase: Tier 2+ functions (AD queries, Exchange operations)
+Tier 2 (Group Validation) Complete:
+- _ParseSharedMailboxGroupDescription: Description parsing (24 test cases)
+- _ValidateSharedMailboxGroup: Group validation (20 test cases)
+- Get-SharedMailboxACLGroup: ACL group lookup & validation (39 test cases)
+
+**Total Test Cases:** 119 passing tests
+
+Next Phase: Tier 3+ functions (Candidate discovery, Exchange operations)
