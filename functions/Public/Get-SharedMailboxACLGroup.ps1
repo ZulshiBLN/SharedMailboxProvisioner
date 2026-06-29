@@ -64,6 +64,7 @@ function Get-SharedMailboxACLGroup {
         $getAdParams = @{
             Filter = $ldapFilter
             ErrorAction = 'Stop'
+            Properties = @('mail', 'Description', 'GroupScope')
         }
 
         if (-not [string]::IsNullOrWhiteSpace($SearchBase)) {
@@ -80,8 +81,40 @@ function Get-SharedMailboxACLGroup {
             return $null
         }
 
-        Write-Verbose "ACL group found: $($adGroup.Name) (SamAccountName: $($adGroup.SamAccountName))"
-        Write-Log -Message "ACL group found: $($adGroup.Name)" `
+        Write-Verbose "ACL group found: $($adGroup.Name)"
+
+        # Validate group attributes
+        $validationErrors = @()
+
+        # Check 1: Group must be Universal Security Group
+        if ($adGroup.GroupScope -ne "Universal") {
+            $validationErrors += "Group scope is '$($adGroup.GroupScope)' (required: Universal)"
+        }
+
+        # Check 2: Group must have email attribute
+        if ([string]::IsNullOrWhiteSpace($adGroup.mail)) {
+            $validationErrors += "Group has no email (mail) attribute"
+        }
+
+        # Check 3: Description must start with "Permission group for shared mailbox"
+        if ([string]::IsNullOrWhiteSpace($adGroup.Description)) {
+            $validationErrors += "Group has no description"
+        }
+        elseif (-not $adGroup.Description.StartsWith("Permission group for shared mailbox")) {
+            $validationErrors += "Group description does not start with 'Permission group for shared mailbox'"
+        }
+
+        # If validation failed
+        if ($validationErrors.Count -gt 0) {
+            $errorMessage = $validationErrors -join "; "
+            Write-Verbose "ACL group validation failed: $errorMessage"
+            Write-Log -Message "ACL group validation failed for $($adGroup.Name): $errorMessage" `
+                -Level WARN -Operation "Get-SharedMailboxACLGroup" -Status "VALIDATION_FAILED"
+            return $null
+        }
+
+        Write-Verbose "ACL group validation passed: $($adGroup.Name)"
+        Write-Log -Message "ACL group found and validated: $($adGroup.Name)" `
             -Level INFO -Operation "Get-SharedMailboxACLGroup" -Status "SUCCESS"
 
         # Return group object
@@ -89,7 +122,10 @@ function Get-SharedMailboxACLGroup {
             ADGroup = $adGroup
             Name = $adGroup.Name
             SamAccountName = $adGroup.SamAccountName
-            Found = $true
+            Mail = $adGroup.mail
+            GroupScope = $adGroup.GroupScope
+            Description = $adGroup.Description
+            IsValid = $true
         }
 
     }

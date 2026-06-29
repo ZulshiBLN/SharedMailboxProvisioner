@@ -12,11 +12,14 @@ $functionPath3 = Join-Path $projectRoot "functions" "Public" "Get-SharedMailboxA
 Describe "GetSharedMailboxACLGroup" {
 
     Context "Successful group retrieval" {
-        It "Should find and return group for smbx user" {
+        It "Should find and return valid group for smbx user" {
             Mock Get-ADGroup {
                 return [PSCustomObject]@{
                     Name = "smbx_acl_12345678"
                     SamAccountName = "smbx_acl_12345678"
+                    mail = "group@ethz.ch"
+                    GroupScope = "Universal"
+                    Description = "Permission group for shared mailbox smbx@ethz.ch; Owner; AdminGroup"
                 }
             }
 
@@ -24,7 +27,7 @@ Describe "GetSharedMailboxACLGroup" {
 
             $result | Should -Not -BeNullOrEmpty
             $result.Name | Should -Be "smbx_acl_12345678"
-            $result.Found | Should -Be $true
+            $result.IsValid | Should -Be $true
 
             Assert-MockCalled Get-ADGroup -Times 1
         }
@@ -34,11 +37,15 @@ Describe "GetSharedMailboxACLGroup" {
                 return [PSCustomObject]@{
                     Name = "smbx_acl_test99"
                     SamAccountName = "smbx_acl_test99"
+                    mail = "group@ethz.ch"
+                    GroupScope = "Universal"
+                    Description = "Permission group for shared mailbox smbx@ethz.ch; Owner; AdminGroup"
                 }
             }
 
             $result = Get-SharedMailboxACLGroup -SamAccountName "smbx_test99"
             $result.Name | Should -Be "smbx_acl_test99"
+            $result.IsValid | Should -Be $true
         }
 
         It "Should handle different suffix formats" {
@@ -46,11 +53,15 @@ Describe "GetSharedMailboxACLGroup" {
                 return [PSCustomObject]@{
                     Name = "smbx_acl_user_2024_001"
                     SamAccountName = "smbx_acl_user_2024_001"
+                    mail = "group@ethz.ch"
+                    GroupScope = "Universal"
+                    Description = "Permission group for shared mailbox smbx@ethz.ch; Owner; AdminGroup"
                 }
             }
 
             $result = Get-SharedMailboxACLGroup -SamAccountName "smbx_user_2024_001"
             $result | Should -Not -BeNullOrEmpty
+            $result.IsValid | Should -Be $true
         }
     }
 
@@ -71,6 +82,118 @@ Describe "GetSharedMailboxACLGroup" {
 
             $result = Get-SharedMailboxACLGroup -SamAccountName "smbx_empty"
             $result | Should -BeNullOrEmpty
+        }
+    }
+
+    Context "Group validation failures - GroupScope" {
+        It "Should reject group if not Universal scope" {
+            Mock Get-ADGroup {
+                return [PSCustomObject]@{
+                    Name = "smbx_acl_12345678"
+                    SamAccountName = "smbx_acl_12345678"
+                    mail = "group@ethz.ch"
+                    GroupScope = "Global"
+                    Description = "Permission group for shared mailbox smbx@ethz.ch; Owner; AdminGroup"
+                }
+            }
+
+            $result = Get-SharedMailboxACLGroup -SamAccountName "smbx_12345678"
+            $result | Should -BeNullOrEmpty
+        }
+
+        It "Should reject group if DomainLocal scope" {
+            Mock Get-ADGroup {
+                return [PSCustomObject]@{
+                    Name = "smbx_acl_12345678"
+                    SamAccountName = "smbx_acl_12345678"
+                    mail = "group@ethz.ch"
+                    GroupScope = "DomainLocal"
+                    Description = "Permission group for shared mailbox smbx@ethz.ch; Owner; AdminGroup"
+                }
+            }
+
+            $result = Get-SharedMailboxACLGroup -SamAccountName "smbx_12345678"
+            $result | Should -BeNullOrEmpty
+        }
+    }
+
+    Context "Group validation failures - Mail attribute" {
+        It "Should reject group without mail attribute" {
+            Mock Get-ADGroup {
+                return [PSCustomObject]@{
+                    Name = "smbx_acl_12345678"
+                    SamAccountName = "smbx_acl_12345678"
+                    mail = ""
+                    GroupScope = "Universal"
+                    Description = "Permission group for shared mailbox smbx@ethz.ch; Owner; AdminGroup"
+                }
+            }
+
+            $result = Get-SharedMailboxACLGroup -SamAccountName "smbx_12345678"
+            $result | Should -BeNullOrEmpty
+        }
+
+        It "Should reject group with null mail" {
+            Mock Get-ADGroup {
+                return [PSCustomObject]@{
+                    Name = "smbx_acl_12345678"
+                    SamAccountName = "smbx_acl_12345678"
+                    mail = $null
+                    GroupScope = "Universal"
+                    Description = "Permission group for shared mailbox smbx@ethz.ch; Owner; AdminGroup"
+                }
+            }
+
+            $result = Get-SharedMailboxACLGroup -SamAccountName "smbx_12345678"
+            $result | Should -BeNullOrEmpty
+        }
+    }
+
+    Context "Group validation failures - Description" {
+        It "Should reject group without description" {
+            Mock Get-ADGroup {
+                return [PSCustomObject]@{
+                    Name = "smbx_acl_12345678"
+                    SamAccountName = "smbx_acl_12345678"
+                    mail = "group@ethz.ch"
+                    GroupScope = "Universal"
+                    Description = ""
+                }
+            }
+
+            $result = Get-SharedMailboxACLGroup -SamAccountName "smbx_12345678"
+            $result | Should -BeNullOrEmpty
+        }
+
+        It "Should reject group with wrong description prefix" {
+            Mock Get-ADGroup {
+                return [PSCustomObject]@{
+                    Name = "smbx_acl_12345678"
+                    SamAccountName = "smbx_acl_12345678"
+                    mail = "group@ethz.ch"
+                    GroupScope = "Universal"
+                    Description = "This is some other group description"
+                }
+            }
+
+            $result = Get-SharedMailboxACLGroup -SamAccountName "smbx_12345678"
+            $result | Should -BeNullOrEmpty
+        }
+
+        It "Should accept description starting with 'Permission group for shared mailbox'" {
+            Mock Get-ADGroup {
+                return [PSCustomObject]@{
+                    Name = "smbx_acl_12345678"
+                    SamAccountName = "smbx_acl_12345678"
+                    mail = "group@ethz.ch"
+                    GroupScope = "Universal"
+                    Description = "Permission group for shared mailbox anything after this"
+                }
+            }
+
+            $result = Get-SharedMailboxACLGroup -SamAccountName "smbx_12345678"
+            $result | Should -Not -BeNullOrEmpty
+            $result.IsValid | Should -Be $true
         }
     }
 
@@ -97,6 +220,9 @@ Describe "GetSharedMailboxACLGroup" {
                 return [PSCustomObject]@{
                     Name = "smbx_acl_12345678"
                     SamAccountName = "smbx_acl_12345678"
+                    mail = "group@ethz.ch"
+                    GroupScope = "Universal"
+                    Description = "Permission group for shared mailbox smbx@ethz.ch; Owner; AdminGroup"
                 }
             }
 
@@ -113,6 +239,9 @@ Describe "GetSharedMailboxACLGroup" {
                 return [PSCustomObject]@{
                     Name = "smbx_acl_12345678"
                     SamAccountName = "smbx_acl_12345678"
+                    mail = "group@ethz.ch"
+                    GroupScope = "Universal"
+                    Description = "Permission group for shared mailbox smbx@ethz.ch; Owner; AdminGroup"
                 }
             }
 
@@ -142,11 +271,14 @@ Describe "GetSharedMailboxACLGroup" {
     }
 
     Context "Return object structure" {
-        It "Should return object with expected properties" {
+        It "Should return object with all expected properties" {
             Mock Get-ADGroup {
                 return [PSCustomObject]@{
                     Name = "smbx_acl_12345678"
                     SamAccountName = "smbx_acl_12345678"
+                    mail = "group@ethz.ch"
+                    GroupScope = "Universal"
+                    Description = "Permission group for shared mailbox smbx@ethz.ch; Owner; AdminGroup"
                 }
             }
 
@@ -155,7 +287,10 @@ Describe "GetSharedMailboxACLGroup" {
             $result | Should -HaveProperty "ADGroup"
             $result | Should -HaveProperty "Name"
             $result | Should -HaveProperty "SamAccountName"
-            $result | Should -HaveProperty "Found"
+            $result | Should -HaveProperty "Mail"
+            $result | Should -HaveProperty "GroupScope"
+            $result | Should -HaveProperty "Description"
+            $result | Should -HaveProperty "IsValid"
         }
 
         It "Should include AD group object in result" {
@@ -163,27 +298,46 @@ Describe "GetSharedMailboxACLGroup" {
                 return [PSCustomObject]@{
                     Name = "smbx_acl_12345678"
                     SamAccountName = "smbx_acl_12345678"
+                    mail = "group@ethz.ch"
+                    GroupScope = "Universal"
+                    Description = "Permission group for shared mailbox smbx@ethz.ch; Owner; AdminGroup"
                 }
             }
 
             $result = Get-SharedMailboxACLGroup -SamAccountName "smbx_12345678"
             $result.ADGroup | Should -Not -BeNullOrEmpty
             $result.ADGroup.SamAccountName | Should -Be "smbx_acl_12345678"
+            $result.IsValid | Should -Be $true
+        }
+
+        It "Should include all group properties in result" {
+            Mock Get-ADGroup {
+                return [PSCustomObject]@{
+                    Name = "smbx_acl_12345678"
+                    SamAccountName = "smbx_acl_12345678"
+                    mail = "group@ethz.ch"
+                    GroupScope = "Universal"
+                    Description = "Permission group for shared mailbox smbx@ethz.ch; Owner; AdminGroup"
+                }
+            }
+
+            $result = Get-SharedMailboxACLGroup -SamAccountName "smbx_12345678"
+            $result.Mail | Should -Be "group@ethz.ch"
+            $result.GroupScope | Should -Be "Universal"
+            $result.Description | Should -Match "Permission group for shared mailbox"
         }
     }
 
     Context "Suffix extraction" {
         It "Should correctly extract suffix from smbx_ prefix" {
             Mock Get-ADGroup {
-                param($Filter)
-                # Verify correct LDAP filter was used
-                if ($Filter -match "smbx_acl_abc123") {
-                    return [PSCustomObject]@{
-                        Name = "smbx_acl_abc123"
-                        SamAccountName = "smbx_acl_abc123"
-                    }
+                return [PSCustomObject]@{
+                    Name = "smbx_acl_abc123"
+                    SamAccountName = "smbx_acl_abc123"
+                    mail = "group@ethz.ch"
+                    GroupScope = "Universal"
+                    Description = "Permission group for shared mailbox smbx@ethz.ch; Owner; AdminGroup"
                 }
-                return $null
             }
 
             $result = Get-SharedMailboxACLGroup -SamAccountName "smbx_abc123"
@@ -195,6 +349,9 @@ Describe "GetSharedMailboxACLGroup" {
                 return [PSCustomObject]@{
                     Name = "smbx_acl_99999"
                     SamAccountName = "smbx_acl_99999"
+                    mail = "group@ethz.ch"
+                    GroupScope = "Universal"
+                    Description = "Permission group for shared mailbox smbx@ethz.ch; Owner; AdminGroup"
                 }
             }
 
@@ -207,6 +364,9 @@ Describe "GetSharedMailboxACLGroup" {
                 return [PSCustomObject]@{
                     Name = "smbx_acl_user_test_123"
                     SamAccountName = "smbx_acl_user_test_123"
+                    mail = "group@ethz.ch"
+                    GroupScope = "Universal"
+                    Description = "Permission group for shared mailbox smbx@ethz.ch; Owner; AdminGroup"
                 }
             }
 
