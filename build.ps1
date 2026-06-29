@@ -51,10 +51,18 @@ $Info = '[INFO]'
 function Write-Status {
     param([string]$Message, [string]$Type = 'INFO')
     $prefix = switch ($Type) {
-        'OK' { $Success }
-        'ERROR' { $Error }
-        'WARN' { $Warning }
-        default { $Info }
+        'OK' {
+            $Success
+        }
+        'ERROR' {
+            $Error
+        }
+        'WARN' {
+            $Warning
+        }
+        default {
+            $Info
+        }
     }
     Write-Output "$prefix $Message"
 }
