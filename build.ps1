@@ -119,11 +119,13 @@ function Test-PSScriptAnalyzer {
                 Write-Output "    File: $($issue.ScriptPath)"
             }
             return $false
-        } else {
+        }
+        else {
             Write-Status "All files passed PSScriptAnalyzer checks" 'OK'
             return $true
         }
-    } catch {
+    }
+    catch {
         Write-Status "PSScriptAnalyzer error: $_" 'ERROR'
         return $false
     }
@@ -171,7 +173,8 @@ function Test-Indentation {
     if ($issues -gt 0) {
         Write-Status "Found $issues indentation error(s)" 'ERROR'
         return $false
-    } else {
+    }
+    else {
         Write-Status "Indentation check passed" 'OK'
         return $true
     }
@@ -194,10 +197,17 @@ function Test-BOM {
 
         if (-not $hasBOM) {
             Write-Status "File missing UTF-8 BOM: $($file.Name)" 'WARN'
+            $issues++
         }
     }
 
-    Write-Status "BOM check completed" 'OK'
+    if ($issues -gt 0) {
+        Write-Status "Found $issues file(s) missing UTF-8 BOM" 'WARN'
+    }
+    else {
+        Write-Status "All files have UTF-8 BOM" 'OK'
+    }
+
     return $true
 }
 
@@ -232,7 +242,8 @@ function Test-Bracing {
 
     if ($issues -gt 0) {
         Write-Status "Found $issues bracing issue(s)" 'WARN'
-    } else {
+    }
+    else {
         Write-Status "Bracing check passed" 'OK'
     }
 
@@ -247,11 +258,19 @@ if ($Validate) {
 
     $allPassed = $true
 
-    if (-not (Test-PSScriptAnalyzer)) { $allPassed = $false }
+    if (-not (Test-PSScriptAnalyzer)) {
+        $allPassed = $false
+    }
     if (-not $AnalyzeOnly) {
-        if (-not (Test-Indentation)) { $allPassed = $false }
-        if (-not (Test-Bracing)) { $allPassed = $false }
-        if (-not (Test-BOM)) { $allPassed = $false }
+        if (-not (Test-Indentation)) {
+            $allPassed = $false
+        }
+        if (-not (Test-Bracing)) {
+            $allPassed = $false
+        }
+        if (-not (Test-BOM)) {
+            $allPassed = $false
+        }
     }
 
     Write-Output "`n======================================"
@@ -259,22 +278,26 @@ if ($Validate) {
         Write-Status "Build validation PASSED" 'OK'
         Write-Output "======================================"
         exit 0
-    } else {
+    }
+    else {
         Write-Status "Build validation FAILED" 'ERROR'
         Write-Output "======================================"
         exit 1
     }
-} elseif ($AnalyzeOnly) {
+}
+elseif ($AnalyzeOnly) {
     Write-Output "======================================"
     Write-Output "PSScriptAnalyzer Linting Only"
     Write-Output "======================================"
 
     if (Test-PSScriptAnalyzer) {
         exit 0
-    } else {
+    }
+    else {
         exit 1
     }
-} else {
+}
+else {
     Write-Output "Build script for SharedMailboxProvisioner"
     Write-Output ""
     Write-Output "Usage:"
