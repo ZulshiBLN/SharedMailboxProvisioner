@@ -29,7 +29,8 @@ function Get-Configuration {
     if (-not $ConfigPath) {
         if (-not (Test-Path $PSScriptRoot)) {
             $ConfigPath = Join-Path (Get-Location) "config" "config.$Environment.json"
-        } else {
+        }
+        else {
             $ConfigPath = Join-Path $PSScriptRoot ".." ".." "config" "config.$Environment.json"
         }
     }
@@ -59,11 +60,13 @@ function Get-Configuration {
                 }
                 Write-Verbose "Loaded configuration from: $ConfigPath"
             }
-        } catch {
+        }
+        catch {
             Write-Error "Failed to load configuration from $ConfigPath : $_"
             return $null
         }
-    } else {
+    }
+    else {
         Write-Verbose "Configuration file not found: $ConfigPath (using defaults)"
     }
 
@@ -104,7 +107,8 @@ function _ValidateGuid {
     try {
         $guid = [guid]::Parse($Value)
         return $true
-    } catch {
+    }
+    catch {
         return $false
     }
 }
@@ -140,7 +144,8 @@ function Get-ServiceAccountCredential {
                 return $azkvSecret.SecretValue
             }
         }
-    } catch {
+    }
+    catch {
         Write-Verbose "Azure Key Vault not available or no secret found"
     }
 
@@ -153,7 +158,8 @@ function Get-ServiceAccountCredential {
                 return $stored
             }
         }
-    } catch {
+    }
+    catch {
         Write-Verbose "Windows Credential Manager not available"
     }
 

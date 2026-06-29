@@ -47,7 +47,8 @@ function Write-Log {
         if (-not (Test-Path $dir)) {
             try {
                 New-Item -ItemType Directory -Path $dir -Force -ErrorAction Stop | Out-Null
-            } catch {
+            }
+            catch {
                 Write-Error "Failed to create log directory $dir : $_"
                 return
             }
@@ -78,7 +79,8 @@ function Write-Log {
     $auditLogFile = Join-Path $auditDir "audit-$dateYmd.log"
     try {
         Add-Content -Path $auditLogFile -Value $logEntry -Encoding UTF8 -ErrorAction Stop
-    } catch {
+    }
+    catch {
         Write-Error "Failed to write audit log: $_"
     }
 
@@ -87,16 +89,23 @@ function Write-Log {
         $errorLogFile = Join-Path $errorDir "errors-$dateYmd.log"
         try {
             Add-Content -Path $errorLogFile -Value $logEntry -Encoding UTF8 -ErrorAction Stop
-        } catch {
+        }
+        catch {
             Write-Error "Failed to write error log: $_"
         }
     }
 
     # Also write to console (for immediate feedback)
     $consolePrefix = switch ($Level) {
-        'INFO' { '[INFO]' }
-        'WARN' { '[WARN]' }
-        'ERROR' { '[ERROR]' }
+        'INFO' {
+            '[INFO]'
+        }
+        'WARN' {
+            '[WARN]'
+        }
+        'ERROR' {
+            '[ERROR]'
+        }
     }
 
     Write-Output "$consolePrefix $Message"

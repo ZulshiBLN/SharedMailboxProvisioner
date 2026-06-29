@@ -59,7 +59,8 @@ function Connect-ExchangeOnlineEnv {
             Install-Module -Name ExchangeOnlineManagement -Force -Scope CurrentUser -ErrorAction Stop
             Write-Output "[OK] ExchangeOnlineManagement installed"
             $eoxModule = Get-Module -Name ExchangeOnlineManagement -ListAvailable | Sort-Object Version -Descending | Select-Object -First 1
-        } catch {
+        }
+        catch {
             Write-Error "Failed to install ExchangeOnlineManagement: $_"
             return $false
         }
@@ -81,7 +82,8 @@ function Connect-ExchangeOnlineEnv {
                 Write-Output "[OK] Already connected to Exchange Online (tenant: $($currentConnection.Organization))"
                 return $true
             }
-        } catch {
+        }
+        catch {
             Write-Verbose "No existing connection found"
         }
     }
@@ -90,7 +92,8 @@ function Connect-ExchangeOnlineEnv {
     try {
         Disconnect-ExchangeOnline -Confirm:$false -ErrorAction SilentlyContinue | Out-Null
         Start-Sleep -Milliseconds 500
-    } catch {
+    }
+    catch {
         Write-Verbose "No previous connection to disconnect"
     }
 
@@ -121,8 +124,8 @@ function Connect-ExchangeOnlineEnv {
             Write-Output "[OK] Connected to Exchange Online successfully (tenant: $Tenant)"
             Write-Log -Message "Connected to Exchange Online" -Level INFO -Operation "Connect-ExchangeOnlineEnv" -Status "SUCCESS"
             return $true
-
-        } catch {
+        }
+        catch {
             $lastError = $_
             $errorMessage = $_.Exception.Message
 
@@ -130,7 +133,8 @@ function Connect-ExchangeOnlineEnv {
                 $waitMs = [Math]::Pow(2, $attempt - 1) * 1000
                 Write-Output "[WARN] Connection failed: $errorMessage. Retrying in ${waitMs}ms..."
                 Start-Sleep -Milliseconds $waitMs
-            } else {
+            }
+            else {
                 Write-Error "Failed to connect to Exchange Online after $maxRetries attempts: $errorMessage"
                 Write-Log -Message "Failed to connect to Exchange Online: $errorMessage" -Level ERROR -Operation "Connect-ExchangeOnlineEnv" -Status "FAILED"
                 return $false
