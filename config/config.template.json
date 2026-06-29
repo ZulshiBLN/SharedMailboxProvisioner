@@ -1,0 +1,11 @@
+{
+  "TenantId": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
+  "OrganizationName": "Contoso",
+  "PrimarySmtpDomain": "contoso.com",
+  "DefaultMailboxQuota": "50GB",
+  "ComplianceLabels": ["Internal", "Confidential"],
+  "DelegatedAdministration": true,
+  "LogRetentionDays": 90,
+  "MaxRetries": 3,
+  "InitialBackoffMs": 100
+}
