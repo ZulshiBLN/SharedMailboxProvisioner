@@ -14,13 +14,7 @@ Describe "InvokeMailboxPermissionQueue" {
         It "Should process pending mailbox successfully" {
             $mockBacklog = @{
                 version = "1.0"
-                metadata = @{
-                    lastUpdated = "2026-06-29T10:00:00Z"
-                    totalEntries = 1
-                    pendingEntries = 1
-                    completedEntries = 0
-                    failedEntries = 0
-                }
+                metadata = @{ lastUpdated = "2026-06-29T10:00:00Z"; totalEntries = 1; pendingEntries = 1; completedEntries = 0; failedEntries = 0 }
                 entries = @(
                     @{
                         id = "smbx_123456"
@@ -41,14 +35,8 @@ Describe "InvokeMailboxPermissionQueue" {
                 )
             }
 
-            Mock Get-Content {
-                return ($mockBacklog | ConvertTo-Json -Depth 10)
-            }
-
-            Mock Test-Path {
-                return $true
-            }
-
+            Mock Get-Content { return ($mockBacklog | ConvertTo-Json -Depth 10) }
+            Mock Test-Path { return $true }
             Mock Add-MailboxPermission { }
             Mock Add-RecipientPermission { }
             Mock Get-PSSession { return $null }
@@ -68,11 +56,7 @@ Describe "InvokeMailboxPermissionQueue" {
         It "Should handle multiple pending mailboxes" {
             $mockBacklog = @{
                 version = "1.0"
-                metadata = @{
-                    lastUpdated = "2026-06-29T10:00:00Z"
-                    totalEntries = 2
-                    pendingEntries = 2
-                }
+                metadata = @{ lastUpdated = "2026-06-29T10:00:00Z"; totalEntries = 2; pendingEntries = 2 }
                 entries = @(
                     @{
                         id = "smbx_111111"
@@ -109,10 +93,7 @@ Describe "InvokeMailboxPermissionQueue" {
                 )
             }
 
-            Mock Get-Content {
-                return ($mockBacklog | ConvertTo-Json -Depth 10)
-            }
-
+            Mock Get-Content { return ($mockBacklog | ConvertTo-Json -Depth 10) }
             Mock Test-Path { return $true }
             Mock Add-MailboxPermission { }
             Mock Add-RecipientPermission { }
@@ -134,11 +115,7 @@ Describe "InvokeMailboxPermissionQueue" {
         It "Should retry when mailbox not found" {
             $mockBacklog = @{
                 version = "1.0"
-                metadata = @{
-                    lastUpdated = "2026-06-29T10:00:00Z"
-                    totalEntries = 1
-                    pendingEntries = 1
-                }
+                metadata = @{ lastUpdated = "2026-06-29T10:00:00Z"; totalEntries = 1; pendingEntries = 1 }
                 entries = @(
                     @{
                         id = "smbx_123456"
@@ -159,14 +136,9 @@ Describe "InvokeMailboxPermissionQueue" {
                 )
             }
 
-            Mock Get-Content {
-                return ($mockBacklog | ConvertTo-Json -Depth 10)
-            }
-
+            Mock Get-Content { return ($mockBacklog | ConvertTo-Json -Depth 10) }
             Mock Test-Path { return $true }
-            Mock Add-MailboxPermission {
-                throw [System.Exception]"object must exist before it can be modified"
-            }
+            Mock Add-MailboxPermission { throw [System.Exception]"object must exist before it can be modified" }
             Mock Get-PSSession { return $null }
             Mock Connect-ExchangeOnline { }
             Mock Get-ADUser { }
@@ -182,11 +154,7 @@ Describe "InvokeMailboxPermissionQueue" {
         It "Should fail after max retries exceeded" {
             $mockBacklog = @{
                 version = "1.0"
-                metadata = @{
-                    lastUpdated = "2026-06-29T10:00:00Z"
-                    totalEntries = 1
-                    pendingEntries = 1
-                }
+                metadata = @{ lastUpdated = "2026-06-29T10:00:00Z"; totalEntries = 1; pendingEntries = 1 }
                 entries = @(
                     @{
                         id = "smbx_123456"
@@ -201,16 +169,13 @@ Describe "InvokeMailboxPermissionQueue" {
                         retryCount = 5
                         maxRetries = 5
                         completedAt = $null
-                        errors = @(@{timestamp = "2026-06-29T10:45:00Z"; errorCode = "MailboxNotFound"; errorMessage = "Not found"})
+                        errors = @(@{ timestamp = "2026-06-29T10:45:00Z"; errorCode = "MailboxNotFound"; errorMessage = "Not found" })
                         notes = ""
                     }
                 )
             }
 
-            Mock Get-Content {
-                return ($mockBacklog | ConvertTo-Json -Depth 10)
-            }
-
+            Mock Get-Content { return ($mockBacklog | ConvertTo-Json -Depth 10) }
             Mock Test-Path { return $true }
             Mock Get-ADUser { }
             Mock Set-Content { }
@@ -228,18 +193,9 @@ Describe "InvokeMailboxPermissionQueue" {
                 return @{
                     version = "1.0"
                     metadata = @{ lastUpdated = "2026-06-29T10:00:00Z" }
-                    entries = @(@{
-                        id = "smbx_123"
-                        aclGroup = "smbx_acl_123"
-                        adminGroup = "Admins"
-                        mailboxName = "Test"
-                        status = "MAILBOX_CREATED_AWAITING_PERMISSIONS"
-                        retryCount = 0
-                        errors = @()
-                    })
+                    entries = @(@{ id = "smbx_123"; aclGroup = "smbx_acl_123"; adminGroup = "Admins"; mailboxName = "Test"; status = "MAILBOX_CREATED_AWAITING_PERMISSIONS"; retryCount = 0; errors = @() })
                 } | ConvertTo-Json -Depth 10
             }
-
             Mock Test-Path { return $true }
             Mock Add-MailboxPermission { }
             Mock Add-RecipientPermission { }
@@ -260,18 +216,9 @@ Describe "InvokeMailboxPermissionQueue" {
                 return @{
                     version = "1.0"
                     metadata = @{ lastUpdated = "2026-06-29T10:00:00Z" }
-                    entries = @(@{
-                        id = "smbx_123"
-                        aclGroup = "smbx_acl_123"
-                        adminGroup = "Admins"
-                        mailboxName = "Test"
-                        status = "MAILBOX_CREATED_AWAITING_PERMISSIONS"
-                        retryCount = 0
-                        errors = @()
-                    })
+                    entries = @(@{ id = "smbx_123"; aclGroup = "smbx_acl_123"; adminGroup = "Admins"; mailboxName = "Test"; status = "MAILBOX_CREATED_AWAITING_PERMISSIONS"; retryCount = 0; errors = @() })
                 } | ConvertTo-Json -Depth 10
             }
-
             Mock Test-Path { return $true }
             Mock Add-MailboxPermission { }
             Mock Add-RecipientPermission { }
@@ -283,7 +230,6 @@ Describe "InvokeMailboxPermissionQueue" {
 
             Invoke-MailboxPermissionQueue -BacklogPath "C:\test\backlog.json"
 
-            # 2x Add-MailboxPermission: 1 for ACL group, 1 for Admin group
             Assert-MockCalled Add-MailboxPermission -Times 2
         }
     }
@@ -302,17 +248,10 @@ Describe "InvokeMailboxPermissionQueue" {
             $mockBacklog = @{
                 version = "1.0"
                 metadata = @{ lastUpdated = "2026-06-29T10:00:00Z" }
-                entries = @(@{
-                    id = "smbx_123"
-                    status = "PERMISSIONS_SET"
-                    completedAt = "2026-06-29T11:00:00Z"
-                })
+                entries = @(@{ id = "smbx_123"; status = "PERMISSIONS_SET"; completedAt = "2026-06-29T11:00:00Z" })
             }
 
-            Mock Get-Content {
-                return ($mockBacklog | ConvertTo-Json -Depth 10)
-            }
-
+            Mock Get-Content { return ($mockBacklog | ConvertTo-Json -Depth 10) }
             Mock Test-Path { return $true }
             Mock Set-Content { }
             Mock Export-Csv { }
@@ -330,28 +269,16 @@ Describe "InvokeMailboxPermissionQueue" {
                 version = "1.0"
                 metadata = @{ lastUpdated = "2026-06-29T10:00:00Z" }
                 entries = @(
-                    @{
-                        id = "smbx_old"
-                        status = "PERMISSIONS_SET"
-                        completedAt = "2026-05-01T10:00:00Z"
-                    },
-                    @{
-                        id = "smbx_new"
-                        status = "PERMISSIONS_SET"
-                        completedAt = "2026-06-29T10:00:00Z"
-                    }
+                    @{ id = "smbx_old"; status = "PERMISSIONS_SET"; completedAt = "2026-05-01T10:00:00Z" },
+                    @{ id = "smbx_new"; status = "PERMISSIONS_SET"; completedAt = "2026-06-29T10:00:00Z" }
                 )
             }
 
-            Mock Get-Content {
-                return ($mockBacklog | ConvertTo-Json -Depth 10)
-            }
-
+            Mock Get-Content { return ($mockBacklog | ConvertTo-Json -Depth 10) }
             Mock Test-Path { return $true }
             Mock Set-Content { }
             Mock Export-Csv { }
 
-            # With 30-day cleanup window in June, May entries should be deleted
             Invoke-MailboxPermissionQueue -BacklogPath "C:\test\backlog.json" -CleanupDaysOld 30
 
             Assert-MockCalled Set-Content -Times 1
@@ -363,26 +290,10 @@ Describe "InvokeMailboxPermissionQueue" {
             $mockBacklog = @{
                 version = "1.0"
                 metadata = @{ lastUpdated = "2026-06-29T10:00:00Z" }
-                entries = @(@{
-                    id = "smbx_123"
-                    samAccountName = "smbx_123"
-                    aclGroup = "smbx_acl_123"
-                    adminGroup = "Admins"
-                    mailboxName = "Test"
-                    primarySmtpAddress = "test@ethz.ch"
-                    status = "PERMISSIONS_SET"
-                    createdAt = "2026-06-29T10:00:00Z"
-                    completedAt = "2026-06-29T11:00:00Z"
-                    retryCount = 0
-                    errors = @()
-                    notes = ""
-                })
+                entries = @(@{ id = "smbx_123"; samAccountName = "smbx_123"; aclGroup = "smbx_acl_123"; adminGroup = "Admins"; mailboxName = "Test"; primarySmtpAddress = "test@ethz.ch"; status = "PERMISSIONS_SET"; createdAt = "2026-06-29T10:00:00Z"; completedAt = "2026-06-29T11:00:00Z"; retryCount = 0; errors = @(); notes = "" })
             }
 
-            Mock Get-Content {
-                return ($mockBacklog | ConvertTo-Json -Depth 10)
-            }
-
+            Mock Get-Content { return ($mockBacklog | ConvertTo-Json -Depth 10) }
             Mock Test-Path { return $true }
             Mock Set-Content { }
             Mock Export-Csv { }
@@ -401,10 +312,7 @@ Describe "InvokeMailboxPermissionQueue" {
                 entries = @()
             }
 
-            Mock Get-Content {
-                return ($mockBacklog | ConvertTo-Json -Depth 10)
-            }
-
+            Mock Get-Content { return ($mockBacklog | ConvertTo-Json -Depth 10) }
             Mock Test-Path { return $true }
 
             $result = Invoke-MailboxPermissionQueue -BacklogPath "C:\test\backlog.json"
