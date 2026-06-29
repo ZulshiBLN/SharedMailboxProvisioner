@@ -79,12 +79,12 @@ function Get-Configuration {
     }
 
     # Validate format of required fields
-    if (-not _ValidateGuid $config.TenantId) {
+    if (-not (_ValidateGuid -Value $config.TenantId)) {
         Write-Error "Configuration error: TenantId must be a valid GUID (got: $($config.TenantId))"
         return $null
     }
 
-    if (-not _ValidateDomain $config.PrimarySmtpDomain) {
+    if (-not (_ValidateDomain -Value $config.PrimarySmtpDomain)) {
         Write-Error "Configuration error: PrimarySmtpDomain must be a valid domain (got: $($config.PrimarySmtpDomain))"
         return $null
     }
@@ -158,7 +158,8 @@ function Get-ServiceAccountCredential {
     }
 
     # Last resort: Environment variable (not recommended for production)
-    $envCred = $env:$("SHARED_MAILBOX_CRED_$EnvironmentName")
+    $envVarName = "SHARED_MAILBOX_CRED_$EnvironmentName"
+    $envCred = [System.Environment]::GetEnvironmentVariable($envVarName)
     if ($envCred) {
         Write-Verbose "Loaded credential from environment variable (not recommended)"
         return $envCred
@@ -169,4 +170,3 @@ function Get-ServiceAccountCredential {
     return $null
 }
 
-Export-ModuleMember -Function Get-Configuration, Get-ServiceAccountCredential

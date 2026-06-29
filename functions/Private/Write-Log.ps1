@@ -137,4 +137,3 @@ function Remove-OldLogs {
     }
 }
 
-Export-ModuleMember -Function Write-Log, Remove-OldLogs

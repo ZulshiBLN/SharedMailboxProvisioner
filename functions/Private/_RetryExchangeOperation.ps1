@@ -37,7 +37,7 @@ function _RetryExchangeOperation {
     while ($attempt -lt $MaxRetries) {
         try {
             $attempt++
-            Write-Verbose "[Retry] Attempt $attempt of $MaxRetries: $OperationName"
+            Write-Verbose "[Retry] Attempt $attempt of $MaxRetries - $OperationName"
 
             $result = & $ScriptBlock
             return $result
@@ -61,7 +61,7 @@ function _RetryExchangeOperation {
             $jitterMs = Get-Random -Minimum 0 -Maximum [int]($backoffMs * 0.1)
             $totalWait = $backoffMs + $jitterMs
 
-            Write-Verbose "[$OperationName] Retryable error. Waiting ${totalWait}ms before retry $($attempt + 1)/$MaxRetries"
+            Write-Verbose "[$OperationName] Retryable error. Waiting ${totalWait}ms before retry attempt $($attempt + 1) of $MaxRetries"
             Write-Verbose "  Error: $errorMessage"
 
             Start-Sleep -Milliseconds $totalWait
@@ -147,5 +147,3 @@ function _IsRetryableError {
     return $false
 }
 
-# Export for use in other functions
-Export-ModuleMember -Function _RetryExchangeOperation
