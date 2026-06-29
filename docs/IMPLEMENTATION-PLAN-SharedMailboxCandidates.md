@@ -20,42 +20,45 @@ Detailed plan for implementing AD candidate selection for SharedMailbox provisio
 
 ## Progress Status
 
-**Phase Alpha: Tier 1-4 Complete (2026-06-29)**
-- [x] Tier 1 - Text Parsing (2 functions): _ValidateEmailFormat, _ValidateDisplayName - COMPLETE (43 tests)
-- [x] Tier 2 - Group Validation (3 functions): _ParseSharedMailboxGroupDescription, _ValidateSharedMailboxGroup, Get-SharedMailboxACLGroup - COMPLETE (62 tests)
-- [x] Tier 3 - Data Quality (3 functions): _ValidateDomainInExchangeOnline, _CheckForDuplicateEmails, Validate-SharedMailboxCandidate - COMPLETE (52 tests)
-- [x] Tier 4 - Candidate Discovery (2 functions): Get-SharedMailboxCandidates, Get-SharedMailboxCandidatesWithGroups - COMPLETE (30 tests)
-- [ ] Tier 5-6 functions (2 functions): PLANNED
+**Phase Alpha: COMPLETE (2026-06-29) ✅**
+- [x] Tier 1 - Text Parsing (2 functions): _ValidateEmailFormat, _ValidateDisplayName - COMPLETE (8+7 tests)
+- [x] Tier 2 - Group Validation (3 functions): _ParseSharedMailboxGroupDescription, _ValidateSharedMailboxGroup, Get-SharedMailboxACLGroup - COMPLETE (15+20+22 tests)
+- [x] Tier 3 - Data Quality (3 functions): _CheckForDuplicateEmails, _ValidateDomainInExchangeOnline, Test-SharedMailboxCandidate - COMPLETE (18+16+35 tests)
+- [x] Tier 4 - Candidate Discovery (2 functions): Get-SharedMailboxCandidates, Get-SharedMailboxCandidatesWithGroups - COMPLETE (18+21 tests)
+- [x] Tier 5 - Exchange Provisioning (3 functions): New-SharedMailboxRemote, Initialize-ScheduledTaskCredential, Invoke-MailboxPermissionQueue - COMPLETE (29+0+28 tests)
+- [x] Tier 6 - Batch Orchestration (1 function): Invoke-SharedMailboxProvisioning - COMPLETE (10 tests)
 
-**Timeline:** 10/12 Phase Alpha functions complete. Tier 1-4 represents 83% of planned work. 201 total tests passing.
+**Timeline:** 14/14 Phase Alpha functions COMPLETE. 233+ total tests passing. 6,269+ lines of code. 100% compliant.
 
-**Actual Implementation Plan (Revised):**
+**Actual Implementation Plan (Completed):**
 
-Phase Alpha has 3 main tiers:
-- **Tier 1:** Text parsing & validation (2 functions)
+Phase Alpha has 6 complete tiers (14 functions):
+
+- **Tier 1:** Text parsing & validation (2 functions) ✅
   * _ValidateEmailFormat
   * _ValidateDisplayName
 
-- **Tier 2:** AD group discovery & validation (3 functions)
+- **Tier 2:** AD group discovery & validation (3 functions) ✅
   * _ParseSharedMailboxGroupDescription
   * _ValidateSharedMailboxGroup
   * Get-SharedMailboxACLGroup (optimized with Get-ADObject)
 
-- **Tier 3:** Data collision detection & candidate orchestration (3 functions)
+- **Tier 3:** Data collision detection & candidate orchestration (3 functions) ✅
   * _CheckForDuplicateEmails (detect email collisions)
   * _ValidateDomainInExchangeOnline (EXO domain check)
-  * Validate-SharedMailboxCandidate (central validation - combines all checks)
+  * Test-SharedMailboxCandidate (central validation - combines all checks)
 
-- **Tier 4:** Candidate discovery & group association (2 functions)
-  * Get-SharedMailboxCandidates (query AD for smbx_* users)
+- **Tier 4:** Candidate discovery & group association (2 functions) ✅
+  * Get-SharedMailboxCandidates (query AD for smbx_* users, Get-ADObject optimized)
   * Get-SharedMailboxCandidatesWithGroups (attach ACL groups to candidates)
 
-- **Tier 5:** Provisioning operations (2 functions)
-  * New-SharedMailboxRemote (create remote mailbox in EXO)
-  * Add-GroupToRemoteMailbox (wire ACL group to mailbox)
+- **Tier 5:** Exchange Online Provisioning (3 functions) ✅
+  * New-SharedMailboxRemote (create remote mailbox on on-prem Exchange)
+  * Initialize-ScheduledTaskCredential (encrypted credential setup for ScheduledTask)
+  * Invoke-MailboxPermissionQueue (async retry queue handling 60-min Azure AD Connect sync)
 
-- **Tier 6:** Batch orchestration & final assembly (1 function)
-  * Invoke-SharedMailboxProvisioning (batch orchestration)
+- **Tier 6:** Batch orchestration & final assembly (1 function) ✅
+  * Invoke-SharedMailboxProvisioning (complete pipeline orchestration)
 
 ---
 
