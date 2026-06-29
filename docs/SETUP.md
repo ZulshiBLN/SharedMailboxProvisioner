@@ -153,7 +153,35 @@ Write-Output "Tenant: $($config.TenantId)"
 
 ---
 
-## Step 6: Connect to Exchange Online (Testing)
+## Step 6: Test Validation Functions
+
+### Tier 1: Email & DisplayName Validation (IMPLEMENTED)
+
+```powershell
+# Source validation functions
+. .\functions\Private\_ValidateEmailFormat.ps1
+. .\functions\Private\_ValidateDisplayName.ps1
+
+# Test email validation (RFC 5321)
+_ValidateEmailFormat "user@ethz.ch"           # Returns: $true
+_ValidateEmailFormat "invalid email"          # Returns: $false
+
+# Test DisplayName validation
+_ValidateDisplayName "Shared Mailbox"         # Returns: $true
+_ValidateDisplayName "Shared <Mailbox>"       # Returns: $false (invalid char)
+
+# Run Pester tests
+Invoke-Pester tests/Test-ValidateEmailFormat.ps1
+Invoke-Pester tests/Test-ValidateDisplayName.ps1
+```
+
+**Available Validation Functions:**
+- `_ValidateEmailFormat`: RFC 5321 email format validation (local@domain)
+- `_ValidateDisplayName`: Exchange Online DisplayName character validation
+
+---
+
+## Step 7: Connect to Exchange Online (Testing)
 
 ```powershell
 # Source the connect function
@@ -206,6 +234,9 @@ Before committing:
 ✅ Tests pass: Invoke-Pester tests/
 ✅ Build passes: .\build.ps1 -Validate
 ✅ No secrets in code or config
+✅ ASCII-only output (no Unicode symbols per ADR-010)
+✅ K&R bracing (opening brace on same line, closing on own)
+✅ 4-space indentation (never tabs)
 ```
 
 ---
@@ -233,7 +264,9 @@ SharedMailboxProvisioner/
 ├── tests/                          # Unit tests
 │   ├── Test-RetryExchangeOperation.ps1
 │   ├── Test-WriteLog.ps1
-│   └── Test-GetConfiguration.ps1
+│   ├── Test-GetConfiguration.ps1
+│   ├── Test-ValidateEmailFormat.ps1        # RFC 5321 validation tests
+│   └── Test-ValidateDisplayName.ps1        # DisplayName validation tests
 │
 ├── scripts/                        # Orchestration scripts (future)
 │   └── (placeholder)

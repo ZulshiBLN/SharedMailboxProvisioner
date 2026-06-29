@@ -30,11 +30,11 @@ Tracking of all functions: implementation status, test coverage, usage.
 ### Data Quality Validation (NEW)
 | Function | Status | Tests | ADR | Notes |
 |----------|--------|-------|-----|-------|
-| `_ValidateEmailFormat` | [PLANNED] | [NONE] | ADR-006 | RFC 5321 email format validation. |
+| `_ValidateEmailFormat` | [COMPLETE] | [YES] | ADR-006 | RFC 5321 email format validation. Tier 1 - Text Parsing |
+| `_ValidateDisplayName` | [COMPLETE] | [YES] | ADR-006 | DisplayName character validation. Tier 1 - Text Parsing |
 | `_ValidateProxyAddresses` | [PLANNED] | [NONE] | ADR-006 | Validate SMTP addresses, check primary, allowed domains. |
 | `_ValidateDomainInExchangeOnline` | [PLANNED] | [NONE] | ADR-006 | Check domain against AcceptedDomains list. |
 | `_CheckForDuplicateEmails` | [PLANNED] | [NONE] | ADR-006 | Detect duplicate emails in AD ProxyAddresses. |
-| `_SanitizeDisplayName` | [PLANNED] | [NONE] | ADR-006 | Remove invalid characters from DisplayName. |
 
 ---
 
@@ -126,9 +126,13 @@ Tracking of all functions: implementation status, test coverage, usage.
 ## Test Coverage Summary
 
 ```
-COMPLETE (with tests):    3/3  (100%) [Helper functions]
+COMPLETE (with tests):    5/5  (100%) [Helper functions + Tier 1 Validation]
 PLANNED (need tests):     7/7  (0%)   [Public functions]
 SCRIPTS (need tests):     4/4  (0%)   [Orchestration scripts]
 ```
 
-Current focus: Building public cmdlets on top of tested helpers.
+Tier 1 (Text Parsing) Complete:
+- _ValidateEmailFormat: RFC 5321 validation (16 test cases)
+- _ValidateDisplayName: Character validation (19 test cases)
+
+Next Phase: Tier 2+ functions (AD queries, Exchange operations)
