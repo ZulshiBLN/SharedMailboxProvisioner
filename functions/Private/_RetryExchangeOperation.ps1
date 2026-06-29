@@ -41,8 +41,8 @@ function _RetryExchangeOperation {
 
             $result = & $ScriptBlock
             return $result
-
-        } catch {
+        }
+        catch {
             $lastException = $_
             $errorMessage = $_.Exception.Message
             $errorType = $_.Exception.GetType().Name
