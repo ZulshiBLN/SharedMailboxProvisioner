@@ -15,6 +15,7 @@ PowerShell Automation für Exchange Online SharedMailbox Provisioning & Manageme
 - [RULES] **[STRUCTURE.md](STRUCTURE.md)** – Konkrete Implementierungs-Regeln (HOW)
 - [ADR] **[DECISIONS.md](DECISIONS.md)** – Architektur-Entscheidungen & Begründungen (WHY)
 - [COLLAB] **[CLAUDE.md](CLAUDE.md)** (dieses Dokument) – Collaboration Rules & Best Practices
+- [TRACK] **[PROJECT-TRACKING.md](PROJECT-TRACKING.md)** – Active project status & roadmap
 
 ➡️ **Lese-Reihenfolge:** DECISIONS.md (Kontext) → STRUCTURE.md (Regeln) → CLAUDE.md (Collaboration)
 
