@@ -325,7 +325,12 @@ function _AddToMailboxProvisioningBacklog {
         id = $SamAccountName
         samAccountName = $SamAccountName
         aclGroup = $ACLGroupName
-        adminGroup = if ([string]::IsNullOrWhiteSpace($AdminGroupName)) { $null } else { $AdminGroupName }
+        adminGroup = if ([string]::IsNullOrWhiteSpace($AdminGroupName)) {
+            $null
+        }
+        else {
+            $AdminGroupName
+        }
         mailboxName = $MailboxName
         primarySmtpAddress = $PrimarySmtpAddress
         status = "MAILBOX_CREATED_AWAITING_PERMISSIONS"
@@ -368,22 +373,34 @@ function _ExportBacklogToCSV {
 
     $csvPath = $BacklogPath -replace '\.json$', '.csv'
 
-    $backlog.entries | Select-Object `
-        @{Name="SamAccountName"; Expression={$_.samAccountName}},
-        @{Name="ACLGroup"; Expression={$_.aclGroup}},
-        @{Name="AdminGroup"; Expression={$_.adminGroup}},
-        @{Name="MailboxName"; Expression={$_.mailboxName}},
-        @{Name="PrimarySmtp"; Expression={$_.primarySmtpAddress}},
-        @{Name="Status"; Expression={$_.status}},
-        @{Name="CreatedAt"; Expression={$_.createdAt}},
-        @{Name="LastAttemptAt"; Expression={$_.lastAttemptAt}},
-        @{Name="RetryCount"; Expression={$_.retryCount}},
-        @{Name="MaxRetries"; Expression={$_.maxRetries}},
-        @{Name="CompletedAt"; Expression={$_.completedAt}},
-        @{Name="ErrorCount"; Expression={$_.errors.Count}},
-        @{Name="LastError"; Expression={if ($_.errors.Count -gt 0) { $_.errors[-1].errorMessage } else { "" }}},
-        @{Name="Notes"; Expression={$_.notes}} |
-        Export-Csv -Path $csvPath -NoTypeInformation -Force
+    $exportData = $backlog.entries | Select-Object -Property @(
+        "samAccountName"
+        "aclGroup"
+        "adminGroup"
+        "mailboxName"
+        "primarySmtpAddress"
+        "status"
+        "createdAt"
+        "lastAttemptAt"
+        "retryCount"
+        "maxRetries"
+        "completedAt"
+        @{Name = "ErrorCount"; Expression = { $_.errors.Count } },
+        @{
+            Name = "LastError"
+            Expression = {
+                if ($_.errors.Count -gt 0) {
+                    $_.errors[-1].errorMessage
+                }
+                else {
+                    ""
+                }
+            }
+        },
+        @{Name = "Notes"; Expression = { $_.notes } }
+    )
+
+    $exportData | Export-Csv -Path $csvPath -NoTypeInformation -Force
 
     Write-Verbose "Backlog exported to CSV: $csvPath"
 }
