@@ -1,41 +1,34 @@
 <#
 .SYNOPSIS
-Get and validate shared mailbox ACL group from Active Directory
+Get shared mailbox ACL group from Active Directory
 
 .DESCRIPTION
 Searches Active Directory for a group matching the shared mailbox naming convention.
-Expected naming pattern: SG-Smbx-{email-part} (e.g., SG-Smbx-User12345678)
+Expected naming pattern: smbx_acl_{suffix} (derived from user's smbx_{suffix})
 
-Validates the group using _ValidateSharedMailboxGroup before returning.
-Returns group object or $null if not found/invalid.
+For user with SamAccountName "smbx_12345678", searches for group "smbx_acl_12345678"
+Returns group object or $null if not found.
+
+.PARAMETER SamAccountName
+Shared mailbox user SAM account name (e.g., "smbx_12345678")
+Group name derived: smbx_acl_{suffix from smbx_account}
 
 .PARAMETER SearchBase
 LDAP search base (e.g., "OU=Groups,DC=ethz,DC=ch")
 If not provided, searches entire domain.
 
-.PARAMETER NamingPattern
-Shared mailbox group naming pattern (default: "SG-Smbx-*")
-Used for LDAP filter construction.
-
-.PARAMETER ValidationAttribute
-AD attribute for validation results (default: "nethzTask")
-Results written here if group found.
+.EXAMPLE
+$group = Get-SharedMailboxACLGroup -SamAccountName "smbx_12345678"
+Returns the smbx_acl_12345678 group if found
 
 .EXAMPLE
-$group = Get-SharedMailboxACLGroup -SamAccountName "User12345678"
-Returns the SG-Smbx-User12345678 group if found and valid
-
-.EXAMPLE
-$group = Get-SharedMailboxACLGroup -SamAccountName "Test" -SearchBase "OU=Groups,DC=ethz,DC=ch"
+$group = Get-SharedMailboxACLGroup -SamAccountName "smbx_12345678" -SearchBase "OU=Groups,DC=ethz,DC=ch"
 Searches only in specific OU
 
 .NOTES
 Per ADR-006: Active Directory Integration & Candidate Selection
 Requires ActiveDirectory PowerShell module
-
-.PARAMETER SamAccountName
-User SAM account name (without "SG-Smbx-" prefix)
-Full group name searched: SG-Smbx-{SamAccountName}
+Group must exist; no additional validation performed.
 #>
 
 function Get-SharedMailboxACLGroup {
@@ -45,23 +38,26 @@ function Get-SharedMailboxACLGroup {
         [string]$SamAccountName,
 
         [Parameter(Mandatory = $false)]
-        [string]$SearchBase = "",
-
-        [Parameter(Mandatory = $false)]
-        [string]$NamingPattern = "SG-Smbx-*",
-
-        [Parameter(Mandatory = $false)]
-        [string]$ValidationAttribute = "nethzTask"
+        [string]$SearchBase = ""
     )
 
-    # Construct expected group name
-    $expectedGroupName = "SG-Smbx-$SamAccountName"
+    # Extract suffix from smbx_{suffix} format
+    # Input: "smbx_12345678" → suffix: "12345678" → search: "smbx_acl_12345678"
+    if (-not $SamAccountName.StartsWith("smbx_")) {
+        Write-Error "SamAccountName must start with 'smbx_' (got: $SamAccountName)"
+        Write-Log -Message "Invalid SamAccountName format: $SamAccountName (must be smbx_*)" `
+            -Level ERROR -Operation "Get-SharedMailboxACLGroup" -Status "INVALID_FORMAT"
+        return $null
+    }
 
-    Write-Verbose "Searching for ACL group: $expectedGroupName"
+    $suffix = $SamAccountName.Substring(5)  # Remove "smbx_" prefix
+    $expectedGroupName = "smbx_acl_$suffix"
+
+    Write-Verbose "Searching for ACL group: $expectedGroupName (from user: $SamAccountName)"
 
     try {
         # Build LDAP filter
-        $ldapFilter = "(name=$expectedGroupName)"
+        $ldapFilter = "(sAMAccountName=$expectedGroupName)"
         Write-Verbose "LDAP filter: $ldapFilter"
 
         # Prepare Get-ADGroup parameters
@@ -75,7 +71,7 @@ function Get-SharedMailboxACLGroup {
         }
 
         # Search for group
-        $adGroup = Get-ADGroup @getAdParams -Properties mail, Description
+        $adGroup = Get-ADGroup @getAdParams
 
         if (-not $adGroup) {
             Write-Verbose "ACL group not found: $expectedGroupName"
@@ -84,30 +80,16 @@ function Get-SharedMailboxACLGroup {
             return $null
         }
 
-        Write-Verbose "ACL group found: $($adGroup.Name)"
-
-        # Validate the group
-        $validation = _ValidateSharedMailboxGroup -ADGroup $adGroup
-
-        if (-not $validation.IsValid) {
-            Write-Verbose "ACL group validation failed: $($validation.ValidationErrors -join '; ')"
-            Write-Log -Message "ACL group validation failed for $($adGroup.Name): $($validation.ValidationErrors -join '; ')" `
-                -Level WARN -Operation "Get-SharedMailboxACLGroup" -Status "VALIDATION_FAILED"
-            return $null
-        }
-
-        Write-Verbose "ACL group validation passed: $($adGroup.Name)"
-        Write-Log -Message "ACL group found and validated: $($adGroup.Name)" `
+        Write-Verbose "ACL group found: $($adGroup.Name) (SamAccountName: $($adGroup.SamAccountName))"
+        Write-Log -Message "ACL group found: $($adGroup.Name)" `
             -Level INFO -Operation "Get-SharedMailboxACLGroup" -Status "SUCCESS"
 
-        # Return group with validation metadata
+        # Return group object
         return [PSCustomObject]@{
             ADGroup = $adGroup
             Name = $adGroup.Name
-            Mail = $adGroup.mail
-            IsValid = $validation.IsValid
-            ParsedMetadata = $validation.ParsedMetadata
-            ValidationErrors = $validation.ValidationErrors
+            SamAccountName = $adGroup.SamAccountName
+            Found = $true
         }
 
     }
