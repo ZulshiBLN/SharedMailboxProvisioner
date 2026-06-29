@@ -4,7 +4,7 @@ Tracking of all functions: implementation status, test coverage, usage.
 
 ---
 
-## Private Functions (Helpers)
+## Private Functions (Helpers) – Core Infrastructure
 
 | Function | Status | Tests | ADR | Notes |
 |----------|--------|-------|-----|-------|
@@ -18,17 +18,36 @@ Tracking of all functions: implementation status, test coverage, usage.
 
 ---
 
-## Public Functions (Cmdlets)
+## Private Functions (Helpers) – AD Candidate Discovery
+
+| Function | Status | Tests | ADR | Notes |
+|----------|--------|-------|-----|-------|
+| `_ParseSharedMailboxGroupDescription` | [PLANNED] | [NONE] | ADR-006 | Parse ACL group description, extract admin group. |
+| `_ValidateSharedMailboxGroup` | [PLANNED] | [NONE] | ADR-006 | Validate group structure (type, mail, description pattern). |
+| `Get-SharedMailboxACLGroup` | [PLANNED] | [NONE] | ADR-006 | Lookup & validate ACL group for candidate user. |
+
+---
+
+## Public Functions (Cmdlets) – Exchange Online
 
 | Function | Status | Tests | ADR | Usage | Notes |
 |----------|--------|-------|-----|-------|-------|
-| `New-SharedMailbox` | [PLANNED] | [NONE] | ADR-001 | Create a new shared mailbox | Uses: _RetryExchangeOperation, Write-Log |
+| `New-SharedMailbox` | [PLANNED] | [NONE] | ADR-001 | Create a new shared mailbox | Uses: _RetryExchangeOperation, Write-Log, Get-Configuration |
 | `Add-SharedMailboxMember` | [PLANNED] | [NONE] | ADR-001 | Add members to shared mailbox | Uses: _RetryExchangeOperation, Write-Log |
 | `Remove-SharedMailboxMember` | [PLANNED] | [NONE] | ADR-001 | Remove members from shared mailbox | Uses: _RetryExchangeOperation, Write-Log |
-| `Get-SharedMailbox` | [PLANNED] | [NONE] | ADR-001 | Retrieve shared mailbox(es) | Uses: _RetryExchangeOperation, Write-Log |
+| `Get-SharedMailbox` | [PLANNED] | [NONE] | ADR-001 | Retrieve shared mailbox(es) | Uses: _RetryExchangeOperation, Connect-ExchangeOnlineEnv |
 | `Remove-SharedMailbox` | [PLANNED] | [NONE] | ADR-001 | Delete a shared mailbox | Uses: _RetryExchangeOperation, Write-Log |
 | `Grant-SharedMailboxAccess` | [PLANNED] | [NONE] | ADR-001 | Grant delegated access | Uses: _RetryExchangeOperation, Write-Log |
-| `Connect-ExchangeOnline` | [PLANNED] | [NONE] | ADR-002 | Establish Exchange Online connection | Wrapper for EXO-V3 module |
+
+---
+
+## Public Functions (Cmdlets) – Active Directory Candidate Discovery
+
+| Function | Status | Tests | ADR | Usage | Notes |
+|----------|--------|-------|-----|-------|-------|
+| `Get-SharedMailboxCandidates` | [PLANNED] | [NONE] | ADR-006 | Query AD for eligible candidates | Uses: ActiveDirectory module, Write-Log |
+| `Get-SharedMailboxCandidatesWithGroups` | [PLANNED] | [NONE] | ADR-006 | Candidates with validated ACL groups | Uses: Get-SharedMailboxCandidates, Get-SharedMailboxACLGroup |
+| `Connect-ExchangeOnlineEnv` | [COMPLETE] | [PARTIAL] | ADR-002 | Establish Exchange Online connection | Wrapper for EXO-V3 module, auto-install |
 
 ---
 

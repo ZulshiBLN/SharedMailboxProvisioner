@@ -62,7 +62,59 @@ All critical blockers fixed. Project ready for public function implementation.
 
 ## 📋 IN-PROGRESS (Current Phase)
 
-### Public Function Implementation (Ready to Start)
+### Phase Alpha: AD Candidate Discovery (Ready to Start)
+
+**Next 5 functions to implement (in order):**
+
+**Phase Alpha Priority:** Start AD candidate discovery BEFORE Exchange Online operations.
+Reason: Need to read eligible candidates from AD before provisioning in Exchange.
+
+1. **_ParseSharedMailboxGroupDescription.ps1** (Private)
+   - Status: PLANNED – Ready to start
+   - Purpose: Extract admin group from ACL group description string
+   - Dependencies: None (pure text parsing)
+   - Test file: tests/Test-ParseSharedMailboxGroupDescription.ps1
+   - Effort: ~100 lines
+   - Complexity: LOW
+
+2. **_ValidateSharedMailboxGroup.ps1** (Private)
+   - Status: PLANNED – Ready to start (after #1)
+   - Purpose: Validate ACL group (type, mail, description pattern)
+   - Dependencies: _ParseSharedMailboxGroupDescription
+   - Test file: tests/Test-ValidateSharedMailboxGroup.ps1
+   - Effort: ~120 lines
+   - Complexity: LOW
+
+3. **Get-SharedMailboxACLGroup.ps1** (Private)
+   - Status: PLANNED – Ready to start (after #1, #2)
+   - Purpose: Lookup & validate ACL group for candidate
+   - Dependencies: ActiveDirectory module, _ValidateSharedMailboxGroup
+   - Test file: tests/Test-GetSharedMailboxACLGroup.ps1
+   - Effort: ~150 lines
+   - Complexity: MEDIUM
+
+4. **Get-SharedMailboxCandidates.ps1** (Public)
+   - Status: PLANNED – Ready to start
+   - Purpose: Query AD for eligible candidates (disabled, prefix, custom attr)
+   - Dependencies: ActiveDirectory module, Write-Log
+   - Test file: tests/Test-GetSharedMailboxCandidates.ps1
+   - Effort: ~150 lines
+   - Complexity: MEDIUM (LDAP filtering, parameter validation)
+
+5. **Get-SharedMailboxCandidatesWithGroups.ps1** (Public)
+   - Status: PLANNED – Ready to start (after #3, #4)
+   - Purpose: Combine candidates with validated ACL groups
+   - Dependencies: Get-SharedMailboxCandidates, Get-SharedMailboxACLGroup, Write-Log
+   - Test file: tests/Test-GetSharedMailboxCandidatesWithGroups.ps1
+   - Effort: ~200 lines
+   - Complexity: HIGH (orchestration, combined results)
+
+**Phase Alpha Total:** ~720 lines, 4-5 days
+**Documentation:** See docs/IMPLEMENTATION-PLAN-SharedMailboxCandidates.md & ADR-006
+
+---
+
+### Phase Beta: Exchange Online Operations (After Phase Alpha)
 
 **Next 4 functions to implement (in order):**
 

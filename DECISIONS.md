@@ -395,11 +395,87 @@ Zwei-Schichten-Konfiguration:
 
 ---
 
+---
+
+### ADR-006: Active Directory Integration & Candidate Selection
+
+**Status:** [PENDING]
+
+**Context:**
+SharedMailbox provisioning starts with identifying eligible candidates in Active Directory:
+- Candidates are disabled user accounts with specific naming patterns
+- Each candidate has metadata (custom attributes, descriptions)
+- Associated ACL groups must exist and meet specific criteria
+- Discovery is complex: multiple criteria, validation, error handling
+
+**Challenge:** How to efficiently query, validate, and combine AD user & group data?
+
+**Decision:**
+
+1. **Query Strategy: Server-Side LDAP Filtering (Not PowerShell Filtering)**
+   - Use `Get-ADUser -Filter` with LDAP syntax (server-side evaluation)
+   - NOT: `Get-ADUser -Filter * | Where-Object {condition}` (client-side, inefficient)
+   - Reason: Scales better, reduces network traffic, faster on large directories
+
+2. **Candidate Query Criteria (Get-SharedMailboxCandidates)**
+   - **SamAccountName Prefix:** Configurable, default "smbx_" (user filter)
+   - **Account Status:** Must be disabled (userAccountControl=2)
+   - **Description Pattern:** Starts with "Shared Mailbox Persona" (configurable)
+   - **Custom Attribute:** Name & value both configurable, defaults "nethzTask" = "Create RemoteMailbox"
+   - **Constraint:** If using non-default custom attribute, value MUST be explicitly specified (no default fallback)
+
+3. **ACL Group Discovery & Validation (Get-SharedMailboxACLGroup)**
+   - **Naming Convention:** `{prefix}acl_{userid_suffix}` (e.g., smbx_12345678 → smbx_acl_12345678)
+   - **Group Requirements:**
+     - Universal Security Group (type -2147483640)
+     - Must have mail attribute (not empty)
+     - Description pattern: "Permission group for shared mailbox {email}; {owner}; {admingroup}"
+   - **Admin Group Extraction:** Parse description to extract admin group name
+
+4. **Error Handling Philosophy: Strict Validation**
+   - Fail early on configuration errors (invalid parameters)
+   - Warn on transient issues (missing groups)
+   - Skip candidates that don't meet criteria (don't error)
+   - All failures logged via Write-Log with context
+
+5. **Caching:** No caching for MVP
+   - Always query fresh AD data
+   - Defer caching to v1.1 if performance becomes issue
+   - Reason: Candidate status (disabled/enabled) can change frequently
+
+6. **Parallelization:** Single-threaded for MVP
+   - Sequential group lookup for each candidate
+   - Defer to ForEach-Object -Parallel in v1.1 if >1000 candidates
+   - Reason: AD connection complexity, not needed yet
+
+**Consequences:**
+- (+) Efficient queries (server-side filtering)
+- (+) Strict parameter validation (fewer silent failures)
+- (+) Clear error context (all logged with operation name)
+- (+) Configurable criteria (flexible across orgs)
+- (-) Complex parameter logic (custom attr value requirement)
+- (-) AD module required (Windows dependency)
+- (-) Schema knowledge required (custom attribute mapping)
+
+**Alternatives:**
+- **[REJECTED] Client-Side Filtering:** Get all users, filter in PowerShell → unscalable for large directories
+- **[REJECTED] Graph API:** More modern, but requires cloud identity setup, overkill for on-prem AD
+- **[REJECTED] Caching:** Adds complexity, candidates change frequently (disable/enable status)
+- **[CONSIDERED] Lazy Loading:** Load group details only if needed → can defer if performance not issue
+
+**Implementation:**
+- See [IMPLEMENTATION-PLAN-SharedMailboxCandidates.md](docs/IMPLEMENTATION-PLAN-SharedMailboxCandidates.md) for detailed specs
+- 5 functions: Get-SharedMailboxCandidates, Get-SharedMailboxCandidatesWithGroups, Get-SharedMailboxACLGroup, _ValidateSharedMailboxGroup, _ParseSharedMailboxGroupDescription
+- ~800-1000 lines of code
+- Full test coverage with mock AD objects
+- Effort: 4-5 days
+
+---
+
 ## Zukünftige ADRs (TBD)
 
-- ADR-006: Pagination & Bulk Operations
-- ADR-007: Mail-Flow & Automation Policies
-- ADR-008: Delegated Access & Permissions
-- ADR-009: Testing Strategy (Unit/Integration/E2E)
-- ADR-010: Output Handling (ASCII-only per ADR-010 in WinHarden)
+- ADR-007: Pagination & Bulk Operations
+- ADR-008: Mail-Flow & Automation Policies
+- ADR-009: Delegated Access & Permissions
+- ADR-010: Testing Strategy (Unit/Integration/E2E)
 
