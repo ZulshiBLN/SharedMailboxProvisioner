@@ -139,7 +139,7 @@ Use [API-REFERENCE.md](API-REFERENCE.md) for complete reference:
 4. Assigns permissions from ACL groups
 5. Logs all operations
 
-**Read:** [USER-GUIDE.md#workflow-1-automatic-discovery](USER-GUIDE.md#workflow-1-automatic-discovery)
+**Read:** [USER-GUIDE.md#workflow-1-automatic-discovery-scheduled](USER-GUIDE.md#workflow-1-automatic-discovery-scheduled)
 
 ---
 
@@ -153,7 +153,7 @@ Use [API-REFERENCE.md](API-REFERENCE.md) for complete reference:
 3. Run `Import-MailboxCandidatesFromCSV` to provision
 4. Check status with `Get-MailboxProvisioningStatus`
 
-**Read:** [USER-GUIDE.md#workflow-2-manual-bulk-import](USER-GUIDE.md#workflow-2-manual-bulk-import)
+**Read:** [USER-GUIDE.md#workflow-2-manual-bulk-import-csv](USER-GUIDE.md#workflow-2-manual-bulk-import-csv)
 
 ---
 
