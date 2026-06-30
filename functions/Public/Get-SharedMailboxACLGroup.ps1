@@ -42,7 +42,7 @@ function Get-SharedMailboxACLGroup {
     )
 
     # Extract suffix from smbx_{suffix} format
-    # Input: "smbx_12345678" → suffix: "12345678" → search: "smbx_acl_12345678"
+    # Input: "smbx_12345678" -> suffix: "12345678" -> search: "smbx_acl_12345678"
     if (-not $SamAccountName.StartsWith("smbx_")) {
         Write-Error "SamAccountName must start with 'smbx_' (got: $SamAccountName)"
         Write-Log -Message "Invalid SamAccountName format: $SamAccountName (must be smbx_*)" `

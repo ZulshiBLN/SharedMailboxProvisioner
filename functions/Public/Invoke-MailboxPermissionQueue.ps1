@@ -404,7 +404,7 @@ function _ExportBacklogToCSV {
     Write-Verbose "Backlog exported to CSV: $csvPath"
 }
 
-function Convert-ToArray {
+function _EnsureArray {
     param($InputObject)
     if ($InputObject -is [System.Collections.IEnumerable] -and $InputObject -isnot [string]) {
         return @($InputObject)

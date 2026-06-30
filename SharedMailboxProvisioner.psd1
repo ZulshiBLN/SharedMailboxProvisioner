@@ -14,14 +14,11 @@
         'Connect-ExchangeOnlineEnv'
         # Tier 2: Group Discovery
         'Get-SharedMailboxACLGroup'
-        # Tier 3: Validation
-        'Test-SharedMailboxCandidate'
         # Tier 4: Candidate Discovery
         'Get-SharedMailboxCandidates'
         'Get-SharedMailboxCandidatesWithGroups'
         # Tier 5: Exchange Provisioning
         'New-SharedMailboxRemote'
-        'Initialize-ScheduledTaskCredential'
         'Invoke-MailboxPermissionQueue'
         # Tier 6: Orchestration
         'Invoke-SharedMailboxProvisioning'
