@@ -472,10 +472,90 @@ SharedMailbox provisioning starts with identifying eligible candidates in Active
 
 ---
 
-## Zukünftige ADRs (TBD)
+### ADR-010: Output Handling – ASCII-only Strings
 
-- ADR-007: Pagination & Bulk Operations
-- ADR-008: Mail-Flow & Automation Policies
-- ADR-009: Delegated Access & Permissions
-- ADR-010: Testing Strategy (Unit/Integration/E2E)
+**Status:** [ACCEPTED]
+
+**Context:**
+PowerShell 5.1 on Windows Server has UTF-8 encoding quirks:
+- Unicode characters (→, ✓, ✗, •, █) cause rendering corruption
+- Emoji in output corrupts when written to logs
+- Box-drawing characters (╔═╝║╚) display incorrectly in some terminals
+- Exchange Online / Windows Server environments often have legacy encoding settings
+
+Users expect clean, readable output in all scenarios:
+- Console display
+- Log files
+- Remote sessions
+- Task Scheduler execution
+- Redirected output (files, pipes)
+
+**Decision:**
+All output strings use **ASCII-only characters** exclusively.
+
+1. **Output Text:**
+   - Replace `→` with `>` (arrow)
+   - Replace `✓/✗` with `[OK]/[ERROR]`
+   - Replace emoji with `[INFO]`, `[WARN]`, `[ERROR]`, `[WAIT]`
+   - Use ASCII boxes: `+---+` instead of `╔═══╗`
+   - Use `*`, `-`, `#`, `=` for visual separation
+
+2. **Status Values:**
+   - Use descriptive text: `SUCCESS`, `FAILED`, `PENDING`, `RETRYING`
+   - No Unicode status indicators
+
+3. **Application:**
+   - All Write-Output, Write-Verbose, Write-Error strings
+   - All log entries (Write-Log)
+   - All test output
+   - All user-facing messages
+
+4. **Enforcement:**
+   - Automated check in PSScriptAnalyzer (custom rule)
+   - Code review verification
+   - Tests check for ASCII-only in output
+
+**Consequences:**
+- (+) Consistent output across all PowerShell versions
+- (+) No encoding issues in logs or remote sessions
+- (+) Works reliably in Task Scheduler / automation
+- (+) Professional appearance without corruption
+- (+) Backward compatible with legacy Windows systems
+- (-) Less visually rich output (no emoji/unicode)
+- (-) Longer status strings (e.g., `[OK]` vs `✓`)
+
+**Alternatives:**
+- **[REJECTED] UTF-8 Only:** Breaks on PS 5.1, unreliable in Task Scheduler
+- **[REJECTED] Mixed UTF-8/ASCII:** Inconsistent and confusing
+- **[REJECTED] Version-Specific Output:** Too complex, maintenance nightmare
+- **[CONSIDERED] Encoding Detection:** Check runtime version and encode accordingly → added complexity, not worth it
+
+**Implementation:**
+- See [STRUCTURE.md](STRUCTURE.md) Rule 3.1a (ADR-010 Output Handling)
+- All public functions updated: Tiers 1-8, 10-11
+- PSScriptAnalyzer configured to enforce
+- 100% compliance verified in Phase Beta
+
+---
+
+## ADR Status Summary
+
+**Documented (ACCEPTED):**
+- ✅ ADR-001: Modulare PowerShell-Architektur
+- ✅ ADR-002: PowerShell-Version & Exchange Online Compatibility
+- ✅ ADR-003: Retry & Backoff Strategy
+- ✅ ADR-004: Logging & Audit Trail
+- ✅ ADR-005: Credential Management
+- ✅ ADR-006: Active Directory Integration
+- ✅ ADR-010: Output Handling (ASCII-only)
+
+**Future ADRs (TBD - Not Yet Needed):**
+- ADR-007: Pagination & Bulk Operations *(Defer to v1.1 if >1000 candidates)*
+- ADR-008: Mail-Flow & Automation Policies *(Out of scope for MVP)*
+- ADR-009: Delegated Access & Permissions *(Depends on v2.0 feature scope)*
+
+**Rationale for Future ADRs:**
+- Phase Beta (v0.8.2) focuses on core provisioning
+- Pagination, automation, and delegation are future enhancements
+- Will be addressed in Phase Gamma (v1.0+) based on production feedback
 
