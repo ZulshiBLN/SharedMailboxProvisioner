@@ -3,7 +3,7 @@
 Transform CSV row into normalized candidate PSCustomObject.
 #>
 
-function _ConvertTo-MailboxCandidateObject {
+function _BuildMailboxCandidateObject {
     param(
         [Parameter(Mandatory = $true)]
         [PSCustomObject]$CSVRow,

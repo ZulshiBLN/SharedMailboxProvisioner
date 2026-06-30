@@ -77,6 +77,7 @@
 
         PSUseApprovedVerbs = @{
             Enable = $true
+            ExportedOnly = $true
         }
     }
 }
