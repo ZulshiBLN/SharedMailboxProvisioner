@@ -2,7 +2,14 @@
 
 Zentrale Dokumentation für Architektur-Entscheidungen, die das Projekt massgeblich beeinflussen.
 
+**Alle ADRs:** ADR-001 bis ADR-007 ([ACCEPTED])  
 **Konkrete Implementierungs-Regeln:** Siehe [STRUCTURE.md](STRUCTURE.md)
+
+**Logische Progression:**
+1. **Foundation (ADR-001-002):** Architektur & Umgebung
+2. **Resilience (ADR-003-004):** Error-Handling & Observability
+3. **Operations (ADR-005-006):** Configuration & AD Integration
+4. **Output (ADR-007):** User-Facing Standards
 
 ---
 
@@ -395,8 +402,6 @@ Zwei-Schichten-Konfiguration:
 
 ---
 
----
-
 ### ADR-006: Active Directory Integration & Candidate Selection
 
 **Status:** [PENDING]
@@ -472,7 +477,7 @@ SharedMailbox provisioning starts with identifying eligible candidates in Active
 
 ---
 
-### ADR-010: Output Handling – ASCII-only Strings
+### ADR-007: Output Handling – ASCII-only Strings
 
 **Status:** [ACCEPTED]
 
@@ -531,7 +536,7 @@ All output strings use **ASCII-only characters** exclusively.
 - **[CONSIDERED] Encoding Detection:** Check runtime version and encode accordingly → added complexity, not worth it
 
 **Implementation:**
-- See [STRUCTURE.md](STRUCTURE.md) Rule 3.1a (ADR-010 Output Handling)
+- See [STRUCTURE.md](STRUCTURE.md) Rule 3.1a (ADR-007 Output Handling)
 - All public functions updated: Tiers 1-8, 10-11
 - PSScriptAnalyzer configured to enforce
 - 100% compliance verified in Phase Beta
@@ -540,22 +545,20 @@ All output strings use **ASCII-only characters** exclusively.
 
 ## ADR Status Summary
 
-**Documented (ACCEPTED):**
+**Implemented (ACCEPTED):**
 - ✅ ADR-001: Modulare PowerShell-Architektur
 - ✅ ADR-002: PowerShell-Version & Exchange Online Compatibility
-- ✅ ADR-003: Retry & Backoff Strategy
+- ✅ ADR-003: Error Handling & Robustness
 - ✅ ADR-004: Logging & Audit Trail
-- ✅ ADR-005: Credential Management
-- ✅ ADR-006: Active Directory Integration
-- ✅ ADR-010: Output Handling (ASCII-only)
+- ✅ ADR-005: Configuration Management
+- ✅ ADR-006: Active Directory Integration & Candidate Selection
+- ✅ ADR-007: Output Handling (ASCII-only)
 
 **Future ADRs (TBD - Not Yet Needed):**
-- ADR-007: Pagination & Bulk Operations *(Defer to v1.1 if >1000 candidates)*
-- ADR-008: Mail-Flow & Automation Policies *(Out of scope for MVP)*
-- ADR-009: Delegated Access & Permissions *(Depends on v2.0 feature scope)*
+- ADR-008: Pagination & Bulk Operations *(Defer to v1.1 if >1000 candidates)*
+- ADR-009: Mail-Flow & Automation Policies *(Out of scope for MVP)*
 
 **Rationale for Future ADRs:**
 - Phase Beta (v0.8.2) focuses on core provisioning
-- Pagination, automation, and delegation are future enhancements
+- Pagination and automation policies are future enhancements
 - Will be addressed in Phase Gamma (v1.0+) based on production feedback
-
