@@ -172,10 +172,10 @@ function Test-MailboxBulkImport {
                 $result.ConflictingCandidates_List += $candidate
 
                 # Add each error as separate issue
-                foreach ($error in $validation.Errors) {
+                foreach ($validationError in $validation.Errors) {
                     $result.Issues += @{
                         SamAccountName = $candidate.SamAccountName
-                        Issue = $error
+                        Issue = $validationError
                         Severity = "ERROR"
                     }
                 }
@@ -215,7 +215,12 @@ function Test-MailboxBulkImport {
         # STEP 6: Log validation result
         # ================================================================
         $logMsg = "Bulk import validation: $($result.ValidCandidates.Count) valid, $($result.ConflictingCandidates) conflicts, can proceed: $($result.CanProceed)"
-        $logLevel = if ($result.CanProceed) { "INFO" } else { "WARN" }
+        $logLevel = if ($result.CanProceed) {
+            "INFO"
+        }
+        else {
+            "WARN"
+        }
         Write-Log -Message $logMsg -Level $logLevel -Operation "Test-MailboxBulkImport" -Status "VALIDATION_COMPLETE"
 
         Write-Output "Bulk Import Validation Summary:"
@@ -241,8 +246,7 @@ function Test-MailboxBulkImport {
 
 function _GenerateBulkImportPreviewReport {
     param(
-        [PSCustomObject]$Result,
-        [PSCustomObject[]]$Candidates
+        [PSCustomObject]$Result
     )
 
     $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
@@ -295,11 +299,23 @@ function _GenerateBulkImportPreviewReport {
 "@
         foreach ($issue in $Result.Issues) {
             $severityClass = switch ($issue.Severity) {
-                "ERROR" { "error" }
-                "WARNING" { "warning" }
-                default { "" }
+                "ERROR" {
+                    "error"
+                }
+                "WARNING" {
+                    "warning"
+                }
+                default {
+                    ""
+                }
             }
-            $sam = if ([string]::IsNullOrWhiteSpace($issue.SamAccountName)) { "-" } else { $issue.SamAccountName }
+
+            $sam = if ([string]::IsNullOrWhiteSpace($issue.SamAccountName)) {
+                "-"
+            }
+            else {
+                $issue.SamAccountName
+            }
             $html += @"
         <tr>
             <td>$sam</td>
@@ -326,7 +342,12 @@ function _GenerateBulkImportPreviewReport {
 "@
 
     foreach ($candidate in $Result.ValidCandidates) {
-        $adminGroup = if ([string]::IsNullOrWhiteSpace($candidate.AdminGroup)) { "-" } else { $candidate.AdminGroup }
+        $adminGroup = if ([string]::IsNullOrWhiteSpace($candidate.AdminGroup)) {
+            "-"
+        }
+        else {
+            $candidate.AdminGroup
+        }
         $html += @"
         <tr>
             <td>$($candidate.SamAccountName)</td>
