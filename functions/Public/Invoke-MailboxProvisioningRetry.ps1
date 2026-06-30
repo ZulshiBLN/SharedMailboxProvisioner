@@ -97,12 +97,19 @@ function Invoke-MailboxProvisioningRetry {
             $maxRetries = if ($entry.MaxRetries) { $entry.MaxRetries } else { 5 }
 
             if ($retryCount -ge $maxRetries -and -not $Force) {
-                Write-Warning "Skipping $($entry.SamAccountName): Max retries ($maxRetries) reached"
+                Write-Verbose "Skipping $($entry.SamAccountName): Max retries ($maxRetries) reached"
                 $skipped++
                 continue
             }
 
             # Update entry
+            if (-not ($entry | Get-Member -Name "RetryCount")) {
+                $entry | Add-Member -MemberType NoteProperty -Name "RetryCount" -Value 0
+            }
+            if (-not ($entry | Get-Member -Name "LastRetryAt")) {
+                $entry | Add-Member -MemberType NoteProperty -Name "LastRetryAt" -Value $null
+            }
+
             $entry.RetryCount = $retryCount + 1
             $entry.LastRetryAt = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
             $entry.Status = "PENDING_RETRY"
