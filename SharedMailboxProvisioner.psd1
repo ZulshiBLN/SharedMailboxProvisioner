@@ -28,6 +28,10 @@
         # Tier 7: Manual Bulk Import
         'Import-MailboxCandidatesFromCSV'
         'Test-MailboxBulkImport'
+        # Tier 8: Reporting & Audit
+        'Get-MailboxProvisioningReport'
+        'Export-MailboxAuditLog'
+        'Get-MailboxProvisioningMetrics'
     )
     CmdletsToExport = @()
     VariablesToExport = @()
