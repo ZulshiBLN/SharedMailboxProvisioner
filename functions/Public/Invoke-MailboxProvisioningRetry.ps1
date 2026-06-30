@@ -93,8 +93,19 @@ function Invoke-MailboxProvisioningRetry {
         $skipped = 0
 
         foreach ($entry in $toRetry) {
-            $retryCount = if ($entry.RetryCount) { $entry.RetryCount } else { 0 }
-            $maxRetries = if ($entry.MaxRetries) { $entry.MaxRetries } else { 5 }
+            $retryCount = if ($entry.RetryCount) {
+                $entry.RetryCount
+            }
+            else {
+                0
+            }
+
+            $maxRetries = if ($entry.MaxRetries) {
+                $entry.MaxRetries
+            }
+            else {
+                5
+            }
 
             if ($retryCount -ge $maxRetries -and -not $Force) {
                 Write-Verbose "Skipping $($entry.SamAccountName): Max retries ($maxRetries) reached"
