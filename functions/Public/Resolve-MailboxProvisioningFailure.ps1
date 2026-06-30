@@ -95,13 +95,28 @@ function Resolve-MailboxProvisioningFailure {
         foreach ($entry in $failedEntries) {
             $remediation = _DiagnoseFailure -Entry $entry
 
+            # Calculate property values
+            $retryCount = if ($entry.RetryCount) {
+                $entry.RetryCount
+            }
+            else {
+                0
+            }
+
+            $maxRetries = if ($entry.MaxRetries) {
+                $entry.MaxRetries
+            }
+            else {
+                5
+            }
+
             $diagnostics += [PSCustomObject]@{
                 SamAccountName = $entry.SamAccountName
                 DisplayName = $entry.DisplayName
                 ErrorCode = $entry.ErrorCode
                 ErrorMessage = $entry.ErrorMessage
-                RetryCount = if ($entry.RetryCount) { $entry.RetryCount } else { 0 }
-                MaxRetries = if ($entry.MaxRetries) { $entry.MaxRetries } else { 5 }
+                RetryCount = $retryCount
+                MaxRetries = $maxRetries
                 CanRetry = $remediation.CanRetry
                 RecommendedAction = $remediation.Action
                 Details = $remediation.Details
@@ -125,8 +140,19 @@ function _DiagnoseFailure {
     param($Entry)
 
     $errorCode = $Entry.ErrorCode
-    $retryCount = if ($Entry.RetryCount) { $Entry.RetryCount } else { 0 }
-    $maxRetries = if ($Entry.MaxRetries) { $Entry.MaxRetries } else { 5 }
+    $retryCount = if ($Entry.RetryCount) {
+        $Entry.RetryCount
+    }
+    else {
+        0
+    }
+
+    $maxRetries = if ($Entry.MaxRetries) {
+        $Entry.MaxRetries
+    }
+    else {
+        5
+    }
 
     # Diagnose by error code
     $diagnosis = switch ($errorCode) {
@@ -171,9 +197,23 @@ function _DiagnoseFailure {
         }
 
         default {
+            $canRetry = if ($retryCount -lt $maxRetries) {
+                $true
+            }
+            else {
+                $false
+            }
+
+            $action = if ($retryCount -lt $maxRetries) {
+                "RETRY: Automatic retry available"
+            }
+            else {
+                "ESCALATE: Max retries reached, manual intervention required"
+            }
+
             @{
-                CanRetry = if ($retryCount -lt $maxRetries) { $true } else { $false }
-                Action = if ($retryCount -lt $maxRetries) { "RETRY: Automatic retry available" } else { "ESCALATE: Max retries reached, manual intervention required" }
+                CanRetry = $canRetry
+                Action = $action
                 Details = "Unknown error. Check logs for detailed message"
             }
         }
