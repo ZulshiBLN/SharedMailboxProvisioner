@@ -6,8 +6,8 @@ PowerShell Automation für Exchange Online SharedMailbox Provisioning & Manageme
 
 ## Projekt-Kontext
 
-**Version:** v0.1.0  
-**Status:** [INIT] Project Setup – Infrastructure Phase  
+**Version:** v0.8.2  
+**Status:** [COMPLETE] Phase Beta Complete – Pre-Release-Ready  
 **Sprache:** PowerShell 5.1+ (Exchange Online)  
 **Ziel:** Sichere, performante, tokensparende Zusammenarbeit mit Claude
 

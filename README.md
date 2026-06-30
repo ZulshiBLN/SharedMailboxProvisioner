@@ -43,8 +43,8 @@ Add-SharedMailboxMember -Identity "sales@contoso.com" -Members @("user1@contoso.
 
 ## Project Status
 
-**Version:** v0.1.0 (Beta Development)  
-**Status:** Phase Beta Tier 7 - Manual Bulk Import COMPLETE (2026-06-30)
+**Version:** v0.8.2 (Beta-Phase-Complete, Pre-Release-Ready)  
+**Status:** Phase Beta COMPLETE (2026-06-30) – Ready for UAT
 
 ### Implementation Progress
 

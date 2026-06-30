@@ -1,6 +1,6 @@
 # SharedMailboxProvisioner - Operations Runbook
 
-**Version:** 1.12.0 | **Status:** Production Ready  
+**Version:** v0.8.2 | **Status:** Beta-Phase-Complete, Pre-Release-Ready  
 **Last Updated:** 2026-06-30
 
 ---

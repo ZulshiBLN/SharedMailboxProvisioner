@@ -1,6 +1,6 @@
 @{
     RootModule = 'SharedMailboxProvisioner.psm1'
-    ModuleVersion = '0.1.0'
+    ModuleVersion = '0.8.2'
     GUID = '50f777da-b442-4736-a21a-d05fc91849f5'
     Author = 'Michel Brosche'
     CompanyName = 'Cloud Operations'

@@ -1,6 +1,6 @@
 # SharedMailboxProvisioner Documentation
 
-**Version:** 1.12.0 | **Status:** Production Ready  
+**Version:** v0.8.2 | **Status:** Beta-Phase-Complete, Pre-Release-Ready  
 **Last Updated:** 2026-06-30
 
 ---
@@ -339,7 +339,7 @@ Documentation is maintained alongside code. Updates happen:
 
 ---
 
-**Documentation Version:** 1.0 | **Module Version:** 1.12.0 | **Status:** Production Ready
+**Documentation Version:** 0.8.2 | **Module Version:** v0.8.2 | **Status:** Beta-Phase-Complete, Pre-Release-Ready
 
 ---
 
