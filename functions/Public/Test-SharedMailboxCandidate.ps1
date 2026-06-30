@@ -20,7 +20,7 @@ Also writes validation result to specified AD attribute
 Per ADR-006: Active Directory Integration & Candidate Selection
 #>
 
-function _TestSharedMailboxCandidate {
+function Test-SharedMailboxCandidate {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory = $true)]

@@ -14,6 +14,8 @@
         'Connect-ExchangeOnlineEnv'
         # Tier 2: Group Discovery
         'Get-SharedMailboxACLGroup'
+        # Tier 3: Validation
+        'Test-SharedMailboxCandidate'
         # Tier 4: Candidate Discovery
         'Get-SharedMailboxCandidates'
         'Get-SharedMailboxCandidatesWithGroups'

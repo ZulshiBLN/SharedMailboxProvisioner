@@ -118,8 +118,8 @@ function Import-MailboxCandidatesFromCSV {
         # ================================================================
         # STEP 2: Validate column headers
         # ================================================================
-        $requiredColumns = @("SamAccountName", "DisplayName", "Email", "ACLGroup")
-        $optionalColumns = @("AdminGroup", "Description", "CustomAttribute")
+        $requiredColumns = @("SamAccountName", "DisplayName", "Email")
+        $optionalColumns = @("ACLGroup", "AdminGroup", "Description", "CustomAttribute")
 
         if ($csvData -is [System.Collections.IEnumerable] -and $csvData -isnot [string]) {
             $firstRow = $csvData[0]
@@ -170,13 +170,13 @@ function Import-MailboxCandidatesFromCSV {
 
             try {
                 # Convert row to candidate object
-                $candidate = ConvertTo-MailboxCandidateObject -CSVRow $row -RowNumber $rowNumber
+                $candidate = _ConvertTo-MailboxCandidateObject -CSVRow $row -RowNumber $rowNumber
 
                 if (-not $candidate) {
                     $result.FailureCount++
                     $result.FailedRows += @{
                         RowNumber = $rowNumber
-                        Error = "ConvertTo-MailboxCandidateObject returned null"
+                        Error = "_ConvertTo-MailboxCandidateObject returned null"
                     }
                     continue
                 }
