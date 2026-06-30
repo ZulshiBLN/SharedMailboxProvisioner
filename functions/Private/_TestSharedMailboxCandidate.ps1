@@ -20,7 +20,7 @@ Also writes validation result to specified AD attribute
 Per ADR-006: Active Directory Integration & Candidate Selection
 #>
 
-function Validate-SharedMailboxCandidate {
+function _TestSharedMailboxCandidate {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory = $true)]
@@ -155,12 +155,12 @@ function Validate-SharedMailboxCandidate {
     if ($isValid) {
         Write-Verbose "Validation passed: $($ADUser.sAMAccountName)"
         Write-Log -Message "Candidate validation passed: $($ADUser.sAMAccountName) - $($ADUser.mail)" `
-            -Level INFO -Operation "Validate-SharedMailboxCandidate" -Status "VALID"
+            -Level INFO -Operation "_TestSharedMailboxCandidate" -Status "VALID"
     }
     else {
         Write-Verbose "Validation failed for $($ADUser.sAMAccountName): $($validationErrors -join '; ')"
         Write-Log -Message "Candidate validation failed for $($ADUser.sAMAccountName): $($validationErrors -join '; ')" `
-            -Level WARN -Operation "Validate-SharedMailboxCandidate" -Status "INVALID"
+            -Level WARN -Operation "_TestSharedMailboxCandidate" -Status "INVALID"
     }
 
     return [PSCustomObject]@{
