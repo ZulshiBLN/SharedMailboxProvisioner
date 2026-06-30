@@ -13,20 +13,59 @@
 Phase Beta adds bulk operations, reporting, integration testing, and operational tooling on top of Phase Alpha's core provisioning engine. Goal: transition from MVP to production-grade system with day-to-day operational capabilities.
 
 **Phase Alpha:** 14 functions, 233+ tests, 6,269+ lines  
-**Phase Beta:** +15 functions, +100+ tests, +2,000+ lines  
-**Total Post-Beta:** 29 functions, 330+ tests, 8,000+ lines
+**Phase Beta:** +15 functions, +1 script (manual admin tool), +100+ tests, +2,200+ lines  
+**Total Post-Beta:** 29 functions, 1 script, 330+ tests, 8,200+ lines
 
 ---
 
-## Tier 7: Bulk Import & Data Processing
+## Automation Architecture Overview
+
+### Two Provisioning Paths
+
+| Path | Type | Trigger | Used For |
+|------|------|---------|----------|
+| **Path A: Auto-Provisioning** | Scheduled Task | ScheduledTask (daily/4h) | Production automation, discover & provision candidates automatically |
+| **Path B: Manual Bulk Import** | Manual Script | Admin runs manually | Testing, one-off migrations, bulk corrections, special cases |
+
+### Path A: Automatic Discovery & Provisioning (Phase Alpha)
+```
+ScheduledTask (e.g., daily at 2am)
+  └─ Invoke-SharedMailboxProvisioning.ps1
+     ├─ Discover candidates (Get-SharedMailboxCandidatesWithGroups)
+     ├─ Create mailboxes (New-SharedMailboxRemote)
+     └─ Process queue (Invoke-MailboxPermissionQueue)
+```
+**Status:** Phase Alpha ready, awaiting ScheduledTask deployment
+
+### Path B: Manual Bulk Import (Phase Beta Tier 7)
+```
+Admin manually invokes:
+  └─ Provision-BulkMailboxesFromCSV.ps1
+     ├─ Read CSV (Import-MailboxCandidatesFromCSV)
+     ├─ Dry-run preview (Test-MailboxBulkImport)
+     ├─ Confirm with admin
+     └─ Provision each (calls same functions as Path A)
+```
+**Status:** Phase Beta Tier 7 implementation
+
+---
+
+## Tier 7: Manual Bulk Import & Data Processing (ADMIN TOOL ONLY)
 
 **Timeline:** Week 1-3 (3 weeks)  
-**Effort:** 3 functions, ~400 lines code, 30+ tests  
-**Risk Level:** MEDIUM (CSV parsing, data validation)
+**Effort:** 3 functions + 1 script, ~500 lines code, 30+ tests  
+**Risk Level:** MEDIUM (CSV parsing, data validation)  
+**Automation:** ❌ NONE – This is a manual admin tool, never runs as scheduled task or automation
+
+**Purpose:** Enable administrators to bulk import & provision shared mailboxes from CSV files.  
+Ideal for: Testing, one-off migrations, special cases, bulk corrections.  
+NOT for: Production automation (use `Invoke-SharedMailboxProvisioning` via ScheduledTask instead)
 
 ### Tier 7.0: Import-MailboxCandidatesFromCSV.ps1 (PUBLIC)
 
-**Purpose:** Read and validate CSV file with bulk candidate data
+**Purpose:** Read and validate CSV file with bulk candidate data  
+**Called By:** Manual script `Provision-BulkMailboxesFromCSV.ps1` (admin invokes manually)  
+**Automation:** ❌ NOT scheduled, manual only
 
 **Function Signature:**
 ```powershell
@@ -58,6 +97,7 @@ function Import-MailboxCandidatesFromCSV {
    - Validate using Test-SharedMailboxCandidate (Tier 3 helper)
    - Optional: Cross-reference with AD
 5. Return: @(PSCustomObject[]) with validated candidates + metadata
+6. **Audit:** Log import source file + hash for compliance
 
 **Return Object:**
 ```powershell
@@ -105,6 +145,12 @@ function Import-MailboxCandidatesFromCSV {
 - AD lookup integration
 - Validation pipeline
 - Error reporting format
+
+**Usage Example (Manual Only):**
+```powershell
+# Admin manually invokes script (NOT scheduled, not automated)
+.\Provision-BulkMailboxesFromCSV.ps1 -CsvPath "C:\imports\bulk-mailboxes.csv" -DryRun $true
+```
 
 ---
 
@@ -156,7 +202,9 @@ function ConvertTo-MailboxCandidateObject {
 
 ### Tier 7.2: Test-MailboxBulkImport.ps1 (PUBLIC)
 
-**Purpose:** Dry-run validation before bulk provisioning
+**Purpose:** Dry-run validation before bulk provisioning (MANUAL admin tool)  
+**When Used:** Admin runs preview before executing bulk import  
+**Automation:** ❌ NOT scheduled – manual admin decision point
 
 **Function Signature:**
 ```powershell
@@ -220,6 +268,49 @@ function Test-MailboxBulkImport {
 - Report generation (HTML, text)
 - Large batch performance
 - Conflict severity ranking
+
+### Tier 7.3: Provision-BulkMailboxesFromCSV.ps1 (SCRIPT – MANUAL ADMIN TOOL)
+
+**Purpose:** CLI entry point for manual bulk mailbox provisioning  
+**Location:** `scripts/Provision-BulkMailboxesFromCSV.ps1`  
+**Invocation:** Manual (admin runs from PowerShell)  
+**Frequency:** On-demand, never scheduled  
+
+**Script Workflow:**
+1. Parse command-line parameters
+2. Import candidates from CSV via `Import-MailboxCandidatesFromCSV`
+3. Run dry-run preview via `Test-MailboxBulkImport` (if `-DryRun $true`)
+4. Display impact analysis to admin
+5. Ask for confirmation before proceeding
+6. Provision each candidate via `Invoke-SharedMailboxProvisioning` parameters
+7. Log all imports with audit trail
+
+**Usage Examples:**
+```powershell
+# Dry-run: show what would happen (no provisioning)
+.\Provision-BulkMailboxesFromCSV.ps1 -CsvPath "bulk-mailboxes.csv" -DryRun $true
+
+# Actual provisioning: requires confirmation
+.\Provision-BulkMailboxesFromCSV.ps1 -CsvPath "bulk-mailboxes.csv" -DryRun $false
+
+# Verbose: show detailed output
+.\Provision-BulkMailboxesFromCSV.ps1 -CsvPath "bulk-mailboxes.csv" -Verbose
+```
+
+**Parameters:**
+- `-CsvPath` (Required): Path to CSV file
+- `-DryRun` (Optional, default: $true): Preview mode (don't provision)
+- `-Confirm` (Optional): Require explicit yes/no before provisioning
+- `-Verbose` (Optional): Show detailed output
+- `-SearchBase` (Optional): AD search base for validation
+
+**Key Characteristics (MANUAL TOOL):**
+- ❌ **NOT** part of automation
+- ❌ **NOT** triggered by ScheduledTask
+- ✅ **ONLY** invoked manually by administrator
+- ✅ **Requires** explicit confirmation
+- ✅ **Supports** dry-run preview before real action
+- ✅ **Logs** all actions for audit trail
 
 ---
 
@@ -669,26 +760,35 @@ function Get-MailboxProvisioningHealth {
 
 ## Implementation Timeline & Milestones
 
-### Week 1-3: Tier 7 (Bulk Import)
+### Week 1-3: Tier 7 (Manual Bulk Import Tool)
 
 **Milestone 1.1:** Import-MailboxCandidatesFromCSV complete (Day 5)
 - Function complete + tests
 - CSV parsing + validation working
 - Error handling solid
+- Audit logging for source file
 
 **Milestone 1.2:** ConvertTo-MailboxCandidateObject complete (Day 8)
 - Data normalization
 - Integration with Tier 3 validators
 
 **Milestone 1.3:** Test-MailboxBulkImport complete (Day 12)
-- Dry-run validation
-- Impact analysis
+- Dry-run validation (NO PROVISIONING in preview mode)
+- Impact analysis (conflicts, duplicates)
 - Preview reporting
 
-**Milestone 1.4:** Tier 7 testing & integration (Day 15-21)
-- Unit tests: 30+
-- Bulk import workflow proven
+**Milestone 1.4:** Provision-BulkMailboxesFromCSV.ps1 (CLI Script) complete (Day 15)
+- Manual admin script (NOT scheduled)
+- Dry-run support (admin preview before actual provisioning)
+- Confirmation workflow (require explicit yes/no)
 - CSV format finalized
+
+**Milestone 1.5:** Tier 7 testing & documentation (Day 16-21)
+- Unit tests: 30+
+- Manual bulk import workflow proven
+- CSV format documented
+- Usage examples created
+- ⚠️ **CRITICAL:** Document that this is MANUAL ONLY, never automated
 
 ### Week 3-5: Tier 8 (Reporting)
 

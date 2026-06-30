@@ -9,7 +9,26 @@
     RequiredModules = @(
         @{ ModuleName = 'ExchangeOnlineManagement'; ModuleVersion = '3.1.0' }
     )
-    FunctionsToExport = @()
+    FunctionsToExport = @(
+        # Tier 0: Connection
+        'Connect-ExchangeOnlineEnv'
+        # Tier 2: Group Discovery
+        'Get-SharedMailboxACLGroup'
+        # Tier 3: Validation
+        'Test-SharedMailboxCandidate'
+        # Tier 4: Candidate Discovery
+        'Get-SharedMailboxCandidates'
+        'Get-SharedMailboxCandidatesWithGroups'
+        # Tier 5: Exchange Provisioning
+        'New-SharedMailboxRemote'
+        'Initialize-ScheduledTaskCredential'
+        'Invoke-MailboxPermissionQueue'
+        # Tier 6: Orchestration
+        'Invoke-SharedMailboxProvisioning'
+        # Tier 7: Manual Bulk Import
+        'Import-MailboxCandidatesFromCSV'
+        'Test-MailboxBulkImport'
+    )
     CmdletsToExport = @()
     VariablesToExport = @()
     AliasesToExport = @()
