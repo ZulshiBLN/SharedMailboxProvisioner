@@ -116,27 +116,26 @@ Tracking of all functions: implementation status, test coverage, usage.
 
 ## Next Steps (Priority Order - Phase Beta)
 
-### Phase Beta Tier 8-11 (Planned)
+### Phase Beta Tier 8, 10-11 (Remaining)
 
-1. **Tier 8: Reporting & Audit (Q3 2026)**
-   - [ ] `Get-MailboxProvisioningReport.ps1` – Metrics & timeline
-   - [ ] `Export-MailboxAuditLog.ps1` – HTML/CSV/Text export
-   - [ ] `Get-MailboxProvisioningMetrics.ps1` – KPIs & bottleneck analysis
-   - [ ] `ConvertTo-MailboxReportFormat.ps1` – Format helper (private)
+1. **Tier 8: Reporting & Audit (COMPLETE ✅ 2026-06-30)**
+   - [x] `Get-MailboxProvisioningReport.ps1` – Metrics & timeline
+   - [x] `Export-MailboxAuditLog.ps1` – HTML/CSV/Text export
+   - [x] `Get-MailboxProvisioningMetrics.ps1` – KPIs & bottleneck analysis
+   - [x] `ConvertTo-MailboxReportFormat.ps1` – Format helper (private)
 
-2. **Tier 9: Integration Testing (Q3 2026)**
-   - [ ] Integration-Exchange-ADConnect.ps1 – Real EXO/AD sync testing
-   - [ ] Integration-FullPipeline.ps1 – End-to-end workflow testing
-   - [ ] Integration-BulkOperations.ps1 – Performance benchmarking
+2. **Tier 9: Integration Testing (REMOVED - Not applicable)**
+   - Rationale: Accounts created only via IT-Shop, no direct AD creation, no non-prod OU
+   - Alternative: Mock-based testing (Tier 8), Post-launch UAT with real accounts
 
-3. **Tier 10: Operational Tooling (Q3 2026)**
+3. **Tier 10: Operational Tooling (IN PROGRESS)**
    - [ ] `Get-MailboxProvisioningStatus.ps1` – Query mailbox status
    - [ ] `Resolve-MailboxProvisioningFailure.ps1` – Diagnostics
    - [ ] `Invoke-MailboxProvisioningRetry.ps1` – Manual retry
    - [ ] `Set-MailboxProvisioningSchedule.ps1` – ScheduledTask config
    - [ ] `Get-MailboxProvisioningHealth.ps1` – System health check
 
-4. **Tier 11: Documentation (Q3 2026)**
+4. **Tier 11: Documentation (PLANNED)**
    - [ ] USER-GUIDE.md – Getting started + use cases
    - [ ] ADMIN-GUIDE.md – Architecture & configuration
    - [ ] OPERATIONS-RUNBOOK.md – Daily operations & failure handling

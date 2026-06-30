@@ -1,14 +1,14 @@
 # Phase Beta – Extended Features & Production Hardening
 
-**Target Timeline:** Q3 2026 (estimated 6-8 weeks)  
-**Status:** Tier 7 COMPLETE, Tier 8-11 Planned  
+**Target Timeline:** Q3 2026 (estimated 5-7 weeks)  
+**Status:** Tier 7-8 COMPLETE, Tier 10-11 In Progress  
 **Prerequisite:** Phase Alpha ✅ COMPLETE (2026-06-30)
 
 ---
 
 ## Overview
 
-Phase Beta extends Phase Alpha's core provisioning with advanced features, operational tooling, and production hardening. Focus areas: bulk operations, reporting, integration testing, and operational readiness.
+Phase Beta extends Phase Alpha's core provisioning with advanced features and operational tooling. Focus areas: bulk operations, reporting, operational readiness, and comprehensive documentation. Integration testing (Tier 9) removed due to infrastructure constraints (IAM-controlled account creation, no non-prod OU).
 
 ---
 
@@ -89,38 +89,19 @@ Phase Beta extends Phase Alpha's core provisioning with advanced features, opera
 
 ---
 
-## Tier 9: Integration Testing & Validation (NEW)
+## Tier 9: (REMOVED - Not applicable with current constraints)
 
-**Goal:** End-to-end tests with real Exchange & AD environments  
-**Effort:** 3 test suites, ~600 lines tests, 2 weeks
+**Rationale for Removal:**
+- Accounts created only via IT-Shop, no direct AD/IAM account creation
+- Many AD attributes IAM-controlled (resets manual changes)
+- No Non-Production OU available for test candidates
+- Testing with mock/test accounts is sufficient
+- Real user-acceptance testing will occur post-launch with actual new accounts
 
-### Test Suites to Implement
-
-1. **Integration-Exchange-ADConnect.ps1**
-   - Real on-premises Exchange Server
-   - Test mailbox creation, sync cycle
-   - Verify EXO visibility after sync
-   - Clean up test mailboxes
-   - **Tests:** 8+
-
-2. **Integration-FullPipeline.ps1**
-   - End-to-end: candidate discovery → mailbox creation → permissions
-   - Real AD, real Exchange, real permission assignment
-   - Test retry logic with actual sync delays
-   - Verify audit trail
-   - **Tests:** 6+
-
-3. **Integration-BulkOperations.ps1**
-   - Bulk CSV import with multiple candidates
-   - Concurrent provisioning
-   - Performance benchmarks (batches of 10, 50, 100)
-   - **Tests:** 5+
-
-### Key Features
-- Test data: Non-production OU with test candidates
-- Cleanup: Automatic rollback of test mailboxes
-- Metrics: Performance, concurrency, timing
-- Documentation: Step-by-step test execution guide
+**Validation Strategy:**
+- Unit/Mock testing in Tiers 1-8 covers logic validation
+- Tier 10 Operational Tooling tested with existing test data
+- Post-Launch UAT with real production accounts (via IT-Shop)
 
 ---
 
@@ -246,12 +227,7 @@ Phase Beta extends Phase Alpha's core provisioning with advanced features, opera
 - ✅ Report templates & formats
 - ✅ Scheduled report generation
 
-### Milestone 3: Testing & Hardening (Week 5-7)
-- ✅ Tier 9 complete (integration tests)
-- ✅ Performance benchmarks
-- ✅ Failure mode analysis
-
-### Milestone 4: Operations & Documentation (Week 7-8)
+### Milestone 3: Operations & Documentation (Week 5-7)
 - ✅ Tier 10 complete (operational tools)
 - ✅ Tier 11 complete (documentation)
 - ✅ Operational runbook finalized
@@ -263,9 +239,9 @@ Phase Beta extends Phase Alpha's core provisioning with advanced features, opera
 
 | Criteria | Target | Status |
 |----------|--------|--------|
-| Functions Implemented | 17 (Tier 7-11) | Pending |
-| Unit Tests | 100+ | Pending |
-| Integration Tests | 19+ | Pending |
+| Functions Implemented | 14 (Tier 7-8, 10-11) | Pending |
+| Unit Tests | 90+ | Pending |
+| Mock-based Tests | 50+ | Pending |
 | Code Coverage | 90%+ | Pending |
 | Documentation | 130+ pages | Pending |
 | Performance (single) | <30 sec | Pending |
@@ -279,31 +255,31 @@ Phase Beta extends Phase Alpha's core provisioning with advanced features, opera
 
 | Role | Effort | Notes |
 |------|--------|-------|
-| Developer | 6-8 weeks | Implementation of Tiers 7-11 |
-| QA | 3-4 weeks | Integration & performance testing |
+| Developer | 5-7 weeks | Implementation of Tiers 7-8, 10-11 (Tier 9 removed) |
+| QA | 2-3 weeks | Unit/Mock testing (no integration testing) |
 | Technical Writer | 2-3 weeks | Documentation |
 | Security | 1 week | Code & architecture review |
 | Operations | 1 week | Runbook & operational setup |
 
-**Total: ~13-17 person-weeks**
+**Total: ~11-15 person-weeks** (reduced from 13-17 due to Tier 9 removal)
 
 ---
 
 ## Risk Assessment
 
 ### High Risks
-- **Real AD/Exchange interaction:** Potential data loss if tests fail
-- **Mitigation:** Dedicated test OU, automatic cleanup, dry-run mode
-
 - **Performance at scale:** 100+ concurrent mailboxes may timeout
-- **Mitigation:** Early performance testing, batch size optimization
+- **Mitigation:** Early performance testing, batch size optimization, load testing in Tier 10
 
 ### Medium Risks
 - **Bulk import data quality:** CSV parsing errors or invalid data
 - **Mitigation:** Strict CSV validation, preview mode, error reporting
 
-- **Integration test flakiness:** Azure AD Connect sync timing
-- **Mitigation:** Retry logic, longer test timeouts, test environment isolation
+- **IAM attribute synchronization:** Manual AD changes reset by IAM system
+- **Mitigation:** Document IAM constraints, design around them, test with test accounts only
+
+### Low Risks (Reduced)
+- **No integration test environment risks** (Tier 9 removed - not performing real account testing)
 
 ### Low Risks
 - **Documentation lag:** docs fall behind feature changes
