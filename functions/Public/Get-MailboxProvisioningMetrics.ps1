@@ -160,10 +160,15 @@ function Get-MailboxProvisioningMetrics {
             foreach ($errorGroup in $errorGroups | Select-Object -First 5) {
                 $errorCount = $errorGroup.Count
                 $errorPercentage = [math]::Round(($errorCount / $failedEntries.Count) * 100, 1)
-                $impact = switch {
-                    { $errorPercentage -gt 50 } { "HIGH" }
-                    { $errorPercentage -gt 20 } { "MEDIUM" }
-                    default { "LOW" }
+
+                if ($errorPercentage -gt 50) {
+                    $impact = "HIGH"
+                }
+                elseif ($errorPercentage -gt 20) {
+                    $impact = "MEDIUM"
+                }
+                else {
+                    $impact = "LOW"
                 }
 
                 $result.Bottlenecks += @{
@@ -246,11 +251,20 @@ function Get-MailboxProvisioningMetrics {
 
         foreach ($hour in ($hourlyStats.Keys | Sort-Object)) {
             $stats = $hourlyStats[$hour]
-            $avgTime = "00:00:00"  # Would need to calculate from durations, simplified here
+            $avgTime = "00:00:00"
+            $hourFormatted = "{0:00}" -f $hour
+
+            if ($stats.Count -gt 0) {
+                $successRate = [math]::Round(($stats.Success / $stats.Count) * 100, 0)
+            }
+            else {
+                $successRate = 0
+            }
+
             $result.PeakHours += @{
-                Hour = "$($hour.ToString('00')):00"
+                Hour = "$hourFormatted`:00"
                 Throughput = $stats.Count
-                SuccessRate = "$([math]::Round(($stats.Success / $stats.Count) * 100, 0))%"
+                SuccessRate = "$successRate%"
                 AvgTime = $avgTime
             }
         }

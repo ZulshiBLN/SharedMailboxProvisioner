@@ -199,10 +199,18 @@ function Get-MailboxProvisioningReport {
             $daySuccessCount = @($dayGroup.Group | Where-Object { $_.Status -eq "PERMISSIONS_SET" }).Count
             $dayFailedCount = @($dayGroup.Group | Where-Object { $_.Status -eq "FAILED_PERMISSIONS" }).Count
             $dayTotal = $dayGroup.Group.Count
-            $dayRate = if ($dayTotal -gt 0) { [math]::Round(($daySuccessCount / $dayTotal) * 100, 1) } else { 0 }
+
+            if ($dayTotal -gt 0) {
+                $dayRate = [math]::Round(($daySuccessCount / $dayTotal) * 100, 1)
+            }
+            else {
+                $dayRate = 0
+            }
+
+            $dateFormatted = "{0:yyyy-MM-dd}" -f $dayGroup.Name
 
             $result.Timeline += @{
-                Date = $dayGroup.Name.ToString("yyyy-MM-dd")
+                Date = $dateFormatted
                 Provisioned = $daySuccessCount
                 Failed = $dayFailedCount
                 Total = $dayTotal
