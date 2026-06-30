@@ -190,16 +190,19 @@ function Get-MailboxProvisioningMetrics {
 
         foreach ($period in $trendPeriods) {
             $cutoffDate = (Get-Date).AddDays(-$period.Days)
-            $periodEntries = @($backlogData | Where-Object {
+            $periodEntries = @()
+
+            foreach ($entry in $backlogData) {
                 try {
-                    $entryDate = [DateTime]::Parse($_.CreatedAt)
-                    $entryDate -ge $cutoffDate
+                    $entryDate = [DateTime]::Parse($entry.CreatedAt)
+                    if ($entryDate -ge $cutoffDate) {
+                        $periodEntries += $entry
+                    }
                 }
                 catch {
                     Write-Verbose "Failed to parse date in trend analysis: $_"
-                    $false
                 }
-            })
+            }
 
             if ($periodEntries.Count -gt 0) {
                 $periodSuccess = @($periodEntries | Where-Object { $_.Status -eq "PERMISSIONS_SET" }).Count
