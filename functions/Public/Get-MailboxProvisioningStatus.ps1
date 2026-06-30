@@ -131,7 +131,7 @@ function Get-MailboxProvisioningStatus {
                     $timeline += "[COMPLETED] $($entry.CompletedAt)"
                 }
 
-                $statusObj | Add-Member -MemberType NoteProperty -Name Timeline -Value ($timeline -join " → ")
+                $statusObj | Add-Member -MemberType NoteProperty -Name Timeline -Value ($timeline -join " > ")
             }
 
             $results += $statusObj

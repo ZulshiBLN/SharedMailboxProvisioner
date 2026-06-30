@@ -160,5 +160,3 @@ function Initialize-ScheduledTaskCredential {
             -Level ERROR -Operation "Initialize-ScheduledTaskCredential" -Status "ERROR"
     }
 }
-
-Export-ModuleMember -Function Initialize-ScheduledTaskCredential
