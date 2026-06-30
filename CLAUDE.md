@@ -6,10 +6,13 @@ PowerShell Automation für Exchange Online SharedMailbox Provisioning & Manageme
 
 ## Projekt-Kontext
 
-**Version:** v0.8.2  
-**Status:** [COMPLETE] Phase Beta Complete – Pre-Release-Ready  
+**Version:** v0.9.0-beta.1  
+**Status:** [ACTIVE] Pre-Release Phase – Real-World Testing & Validation  
 **Sprache:** PowerShell 5.1+ (Exchange Online)  
 **Ziel:** Sichere, performante, tokensparende Zusammenarbeit mit Claude
+
+**Timeline:** July 1 - July 21, 2026 (3 weeks)  
+**Next Milestone:** v0.9.0 stable release (Week 3), then v1.0.0 launch prep
 
 **Wichtige Dokumente:**
 - [RULES] **[STRUCTURE.md](STRUCTURE.md)** – Konkrete Implementierungs-Regeln (HOW)

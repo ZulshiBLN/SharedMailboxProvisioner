@@ -2,6 +2,12 @@
 
 PowerShell Automation für Exchange Online SharedMailbox Provisioning & Management.
 
+**Status:** 🔄 Pre-Release Phase Active (v0.9.0-beta.1)  
+**Timeline:** July 1 - July 21, 2026 (Real-world testing & validation)  
+**Next:** v0.9.0 release (Week 3), then v1.0.0 launch prep
+
+---
+
 ## Overview
 
 SharedMailboxProvisioner bietet automatisierte Provisioning-Operationen für Exchange Online SharedMailboxes:
