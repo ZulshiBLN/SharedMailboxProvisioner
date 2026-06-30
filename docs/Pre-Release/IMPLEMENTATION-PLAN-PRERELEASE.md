@@ -4,545 +4,498 @@
 **Project:** SharedMailboxProvisioner  
 **Phase:** Pre-Release (v0.9.x)  
 **Status:** READY TO EXECUTE  
-**Version Target:** v0.9.0 (Pre-Release Final)
+**Duration:** 3 weeks (July 1-21)  
+**Total Effort:** ~64 person-hours
 
 ---
 
 ## Executive Summary
 
-This document provides a detailed, step-by-step implementation plan for the Pre-Release Phase. It covers all activities, owners, dependencies, and success criteria needed to move from v0.8.2 (Beta-Phase-Complete) to v1.0.0 (Full Production Release).
+Focused, pragmatic Pre-Release Phase to validate code in real-world conditions and prepare v0.9.0 for v1.0.0 launch. Three weeks with 7 clearly-defined work packages.
 
-**Estimated Duration:** 4-6 weeks  
-**Key Deliverables:** v0.9.0-rc.1, v0.9.0, Launch Readiness Report  
-**Go/No-Go Decision:** Week 5 (mid-August)
+**Key Deliverables:** v0.9.0 (stable pre-release), Release Process Documentation, v1.0.0 Launch Plan
 
 ---
 
-## Phase Execution Overview
+## Work Packages Overview
 
-```
-v0.8.2 (Beta Phase Complete)
-    ↓
-[Week 1] Staging Deployment → v0.9.0-beta.1
-    ↓
-[Week 2-3] UAT & Performance Testing → Issues identified
-    ↓
-[Week 3-4] Fixes & Validation → v0.9.0-rc.1
-    ↓
-[Week 4-5] Final Testing & Go/No-Go → v0.9.0
-    ↓
-v1.0.0 (Full Production Release) 🚀
-```
+| WP | Name | Duration | Owner | Effort |
+|----|------|----------|-------|--------|
+| **1** | Real-World Deployment | Days 1-2 | DevOps | 12h |
+| **2** | Manual Testing (10 Candidates) | Day 3 | QA | 8h |
+| **3** | Performance Baseline | Day 4 | DevOps | 8h |
+| **4** | Upgrade Path Validation | Day 5 | DevOps | 4h |
+| **5** | Documentation Updates | Days 6-9 | Tech Writer | 12h |
+| **6** | Release Process & Publication | Days 10-15 | Release Mgr | 8h |
+| **7** | v0.9.0 Release Ready | Days 16-21 | All | 12h |
 
 ---
 
-## Work Packages
+## WP-1: Real-World Deployment (Days 1-2, 12 hours)
 
-### WP-1: Staging Environment Setup (Week 1, Day 1-2)
-
-**Objective:** Deploy v0.8.2 to staging with real EXO/AD integration
+**Objective:** Deploy v0.8.2 to staging environment with real EXO/AD integration
 
 **Tasks:**
-1. **Prepare Staging Infrastructure**
-   - [ ] Provision staging servers (same spec as prod)
-   - [ ] Configure network isolation (no cross-contamination)
-   - [ ] Setup logging/monitoring (same as prod)
-   - [ ] Validate EXO connectivity
-   - [ ] Validate AD connectivity
-   - **Owner:** DevOps | **Effort:** 8 hours | **Due:** July 1
 
-2. **Deploy v0.8.2 Module**
-   - [ ] Install PowerShell 5.1+ on staging servers
-   - [ ] Deploy module to staging PowerShell modules directory
-   - [ ] Verify all functions accessible
-   - [ ] Run smoke tests (all public functions callable)
-   - **Owner:** DevOps | **Effort:** 4 hours | **Due:** July 1
+### 1.1 Prepare Staging Infrastructure (Monday, Day 1)
+- [ ] Provision staging servers (PowerShell 5.1+, same spec as planned prod)
+- [ ] Configure network isolation (no cross-contamination with prod)
+- [ ] Setup logging & monitoring (audit logs, performance monitoring)
+- [ ] Validate Exchange Online connectivity
+- [ ] Validate Active Directory connectivity
+- [ ] Document infrastructure configuration
 
-3. **Staging Configuration**
-   - [ ] Load staging config (config.staging.json)
-   - [ ] Setup service account credentials (Credential Manager or KV)
-   - [ ] Initialize logging directories
-   - [ ] Configure ScheduledTask for auto-provisioning
-   - **Owner:** DevOps | **Effort:** 4 hours | **Due:** July 2
-
-4. **Baseline Testing**
-   - [ ] Run 5 test mailbox provisions manually
-   - [ ] Verify audit logs captured
-   - [ ] Verify all functions work end-to-end
-   - [ ] Document any issues found
-   - **Owner:** QA | **Effort:** 6 hours | **Due:** July 2
+**Owner:** DevOps | **Effort:** 8 hours | **Due:** July 1, 5 PM
 
 **Success Criteria:**
-- ✅ All 25+ functions callable
-- ✅ 5 mailboxes provisioned successfully
-- ✅ No critical blockers found
+- ✅ Staging servers ready
+- ✅ EXO connectivity verified
+- ✅ AD connectivity verified
 - ✅ Logging functional
+
+---
+
+### 1.2 Deploy & Baseline v0.8.2 (Monday-Tuesday, Day 1-2)
+- [ ] Deploy v0.8.2 module to staging
+- [ ] Verify all 25+ functions are accessible
+- [ ] Run smoke tests (basic connectivity)
+- [ ] Provision 2-3 test mailboxes for validation
+- [ ] Verify audit logs capturing correctly
+- [ ] Document any issues found
+
+**Owner:** DevOps/QA | **Effort:** 4 hours | **Due:** July 2, 12 PM
+
+**Success Criteria:**
+- ✅ All functions callable
+- ✅ 2-3 test mailboxes provisioned
+- ✅ No critical blockers
 
 **Deliverable:** Staging Deployment Report
 
 ---
 
-### WP-2: PowerShell Gallery Publication (Week 1, Day 3-4)
+## WP-2: Manual Testing of Critical Workflows (Day 3, 8 hours)
 
-**Objective:** Publish v0.9.0-beta.1 to PowerShell Gallery for community testing
+**Objective:** Validate all critical workflows with 10 real candidates
 
-**Tasks:**
-1. **Pre-Publication Validation**
-   - [ ] Verify module metadata in PSD1
-   - [ ] Run PSScriptAnalyzer one final time (0 violations)
-   - [ ] Verify all function exports correct
-   - [ ] Update module version: v0.8.2 → v0.9.0-beta.1
-   - **Owner:** Release Manager | **Effort:** 2 hours | **Due:** July 3
+**Test Candidates:**
+- 10 accounts prepared via IT-Shop (pre-ordered, ready to use)
+- All accounts follow IT-Shop specifications exactly
+- Accounts ready in AD by July 2
 
-2. **Publish to PowerShell Gallery**
-   - [ ] Login to PowerShell Gallery (PSGallery API key)
-   - [ ] Run `Publish-Module` with pre-release tag
-   - [ ] Verify published (search on PowerShell Gallery)
-   - [ ] Create gallery announcement
-   - **Owner:** Release Manager | **Effort:** 1 hour | **Due:** July 3
+**Critical Workflows to Test:**
 
-3. **Community Communication**
-   - [ ] Post announcement: "v0.9.0-beta.1 available for testing"
-   - [ ] Share link in relevant channels (Slack, Teams, etc.)
-   - [ ] Request early adopter feedback
-   - [ ] Setup feedback collection channel/form
-   - **Owner:** Product Manager | **Effort:** 3 hours | **Due:** July 4
+### 2.1 Find & Validate Candidates (Morning, 1.5 hours)
+**Test 1: Find Candidates & Groups**
+- [ ] Run `Get-SharedMailboxCandidates` 
+- [ ] Verify all 10 accounts found
+- [ ] Verify candidate attributes correct
+- [ ] Find associated ACL groups for each
+- [ ] Verify all groups present and valid
 
-4. **Monitor Early Adoption**
-   - [ ] Track gallery downloads/installs
-   - [ ] Monitor feedback channel
-   - [ ] Triage critical issues immediately
-   - **Owner:** Support | **Effort:** 5 hours (ongoing) | **Due:** July 4+
-
-**Success Criteria:**
-- ✅ Published to PSGallery
-- ✅ Installable via `Install-Module`
-- ✅ 10+ downloads in first week
-- ✅ Initial feedback collected
-
-**Deliverable:** v0.9.0-beta.1 Published
+**Expected Result:** All 10 candidates found with correct groups
 
 ---
 
-### WP-3: Early Adopter Recruitment (Week 1, Day 4-5)
+### 2.2 Validate Candidates (Morning, 1.5 hours)
+**Test 2: Candidate Validation**
+- [ ] Run `Get-SharedMailboxCandidatesWithGroups`
+- [ ] Verify each candidate fully validated
+- [ ] Verify all groups are correct type (Universal Security Group)
+- [ ] Verify no errors in validation
+- [ ] Document validation results
 
-**Objective:** Identify and onboard 3+ organizations for UAT
-
-**Tasks:**
-1. **Identify Candidates**
-   - [ ] List 5-10 potential early adopter organizations
-   - [ ] Contact selection: Mix of small/medium/enterprise
-   - [ ] Evaluate: Tech readiness, willingness, feedback quality
-   - **Owner:** Product Manager | **Effort:** 4 hours | **Due:** July 4
-
-2. **Onboard Early Adopters**
-   - [ ] Send NDA if required
-   - [ ] Schedule kickoff calls (3x 1-hour calls)
-   - [ ] Provide UAT guide and expectations
-   - [ ] Share support contact info
-   - [ ] Setup feedback collection (survey, Slack channel, etc.)
-   - **Owner:** Product Manager | **Effort:** 8 hours | **Due:** July 5
-
-3. **UAT Kickoff Meeting**
-   - [ ] Explain objectives (validate workflows, find issues, gather feedback)
-   - [ ] Walk through test scenarios
-   - [ ] Demonstrate each critical workflow
-   - [ ] Set expectations: 2-3 week commitment, daily contact
-   - **Owner:** Product Manager | **Effort:** 3 hours (3 calls) | **Due:** July 5
-
-**Success Criteria:**
-- ✅ 3+ organizations committed to UAT
-- ✅ Kickoff calls completed
-- ✅ UAT materials distributed
-- ✅ Feedback channel established
-
-**Deliverable:** Early Adopter Commitments
+**Expected Result:** All 10 candidates pass validation
 
 ---
 
-### WP-4: User Acceptance Testing (UAT) (Week 2-3)
+### 2.3 Test Provisioning (Late Morning, 2 hours)
+**Test 3: Provision Mailboxes**
+- [ ] Provision all 10 mailboxes via `New-SharedMailbox`
+- [ ] Verify all 10 created in EXO
+- [ ] Verify naming conventions correct
+- [ ] Check provisioning time per mailbox
+- [ ] Verify no throttling errors
+- [ ] Document any issues (if IT-Shop account malformed)
 
-**Objective:** Validate all critical workflows with real users
-
-**Key UAT Scenarios:**
-
-**Scenario 1: Standard Mailbox Provisioning**
-- [ ] Provision 10 mailboxes from CSV
-- [ ] Verify all mailboxes created in EXO
-- [ ] Verify all users added to correct groups
-- [ ] Verify audit logs captured
-- **Expected Time:** 2-3 hours per org
-
-**Scenario 2: Failure Recovery**
-- [ ] Trigger a "Throttling" error (429)
-- [ ] Verify auto-retry mechanism activates
-- [ ] Verify mailbox eventually created
-- [ ] Verify error logged
-- **Expected Time:** 1-2 hours per org
-
-**Scenario 3: Bulk Reporting**
-- [ ] Run provisioning report (Get-MailboxProvisioningReport)
-- [ ] Export audit log to CSV
-- [ ] Verify metrics accuracy
-- [ ] Generate HTML report
-- **Expected Time:** 1 hour per org
-
-**Scenario 4: Manual Retry**
-- [ ] Mark a failed mailbox for retry
-- [ ] Use Invoke-MailboxProvisioningRetry
-- [ ] Verify retry successful
-- **Expected Time:** 30 min per org
-
-**Scenario 5: Health Checks**
-- [ ] Run Get-MailboxProvisioningHealth
-- [ ] Verify EXO connectivity checked
-- [ ] Verify AD connectivity checked
-- [ ] Verify ScheduledTask status checked
-- **Expected Time:** 30 min per org
-
-**Tasks (Ongoing Week 2-3):**
-1. **Daily Issue Triage**
-   - [ ] Review issue submissions from early adopters
-   - [ ] Classify: P0 (blocker), P1 (high), P2 (medium)
-   - [ ] Assign to developer for immediate P0s
-   - [ ] Document P1/P2s for next sprint
-   - **Owner:** QA Lead | **Effort:** 5 hours/day | **Due:** Daily
-
-2. **Issue Resolution**
-   - [ ] Fix P0 issues immediately
-   - [ ] Publish v0.9.0-beta.2 with fixes
-   - [ ] Notify early adopters of updates
-   - **Owner:** Developer | **Effort:** Variable | **Due:** As needed
-
-3. **UAT Feedback Collection**
-   - [ ] Daily check-ins with 3 orgs
-   - [ ] Weekly survey: "On a scale of 1-10, how ready for prod?"
-   - [ ] Collect feature requests (defer to v1.1)
-   - [ ] Gather performance observations
-   - **Owner:** Product Manager | **Effort:** 10 hours/week | **Due:** Daily
-
-4. **Progress Tracking**
-   - [ ] Update UAT dashboard with completion %
-   - [ ] Publish weekly status report
-   - [ ] Flag any go/no-go risks early
-   - **Owner:** Project Manager | **Effort:** 5 hours/week | **Due:** Weekly
-
-**Success Criteria:**
-- ✅ All 5 scenarios validated by all 3 orgs
-- ✅ 50+ mailboxes provisioned
-- ✅ All P0 issues resolved
-- ✅ 80% of P1 issues resolved
-- ✅ User satisfaction ≥ 8/10
-
-**Deliverable:** UAT Report (issues, findings, recommendations)
+**Expected Result:** All 10 mailboxes successfully provisioned
 
 ---
 
-### WP-5: Performance Baseline Testing (Week 2-3)
+### 2.4 Test Permission Assignment (Early Afternoon, 1.5 hours)
+**Test 4: Permission Assignment**
+- [ ] Verify all 10 mailboxes have correct permissions
+- [ ] Verify correct groups assigned as Full Access
+- [ ] Verify correct groups assigned as Send-As
+- [ ] Verify audit logs show permission assignments
+- [ ] Spot-check 2-3 mailboxes in EXO for verification
 
-**Objective:** Establish performance metrics and identify bottlenecks
+**Expected Result:** All permissions correctly assigned
+
+---
+
+### 2.5 Test Reporting (Afternoon, 1 hour)
+**Test 5: Reporting**
+- [ ] Run `Get-MailboxProvisioningReport`
+- [ ] Verify all 10 mailboxes in report
+- [ ] Verify metrics accurate (count, timestamps)
+- [ ] Export to CSV
+- [ ] Export to HTML
+- [ ] Verify all formats correct
+
+**Expected Result:** All exports functional and accurate
+
+---
+
+### 2.6 Test Failure Recovery (Afternoon, 0.5 hours)
+**Test 6: Recovery & Retry**
+- [ ] Verify `Resolve-MailboxProvisioningFailure` working
+- [ ] Verify `Invoke-MailboxProvisioningRetry` working
+- [ ] Document retry success rate
+
+**Expected Result:** Recovery mechanisms functional
+
+---
+
+**Owner:** QA | **Effort:** 8 hours | **Due:** July 2, 5 PM
+
+**Success Criteria:**
+- ✅ All 10 candidates found and validated
+- ✅ All 10 mailboxes provisioned successfully
+- ✅ All permissions correctly assigned
+- ✅ Reporting functional (all formats)
+- ✅ Recovery/retry mechanisms working
+- ✅ 0 critical issues (minor issues documented)
+
+**Deliverable:** Manual Testing Report (pass/fail per candidate, findings)
+
+---
+
+## WP-3: Performance Baseline Testing (Day 4, 8 hours)
+
+**Objective:** Establish performance metrics for future comparison
 
 **Performance Tests:**
 
-**Test 1: Throughput (Provisioning Rate)**
-- [ ] Provision 100 mailboxes in bulk
-- [ ] Measure: Mailboxes/hour achieved
-- [ ] Target: ≥ 60 mailboxes/hour
-- [ ] Document any throttling observed
-- **Expected Time:** 2-3 hours
-- **Owner:** DevOps
+### 3.1 Throughput Test (Morning, 2 hours)
+**What:** How many mailboxes can we provision per hour?
+- [ ] Provision 10 mailboxes in sequence (using our 10 test accounts)
+- [ ] Measure total time
+- [ ] Calculate: mailboxes/hour
+- [ ] Note any throttling observed
+- [ ] Document CPU/memory during provisioning
 
-**Test 2: Latency (Time per Mailbox)**
-- [ ] Provision 20 mailboxes individually
-- [ ] Measure: Average time per mailbox
-- [ ] Target: ≤ 3 minutes per mailbox
-- [ ] Identify slowest operations
-- **Expected Time:** 1 hour
-- **Owner:** DevOps
+**Target:** ≥60 mailboxes/hour
 
-**Test 3: Resource Utilization**
-- [ ] Monitor during bulk provisioning:
-  - [ ] CPU usage
-  - [ ] Memory usage
-  - [ ] Disk I/O
-  - [ ] Network bandwidth
-- [ ] Target: CPU < 50%, Memory < 70%, Disk < 80%
-- [ ] Document peak usage
-- **Expected Time:** 2 hours
-- **Owner:** DevOps
+**Owner:** DevOps | **Due:** July 3, 12 PM
 
-**Test 4: Concurrency Test**
-- [ ] Run manual provisioning + scheduled task simultaneously
-- [ ] Verify no conflicts/deadlocks
-- [ ] Verify both complete successfully
-- **Expected Time:** 1 hour
-- **Owner:** QA
+---
 
-**Tasks:**
-1. **Setup Performance Monitoring**
-   - [ ] Install perf monitoring (PerfMon, Task Manager, etc.)
-   - [ ] Setup logging capture (detailed timestamps)
-   - [ ] Prepare test data (100+ CSV mailbox rows)
-   - **Owner:** DevOps | **Effort:** 4 hours | **Due:** July 8
+### 3.2 Latency Test (Late Morning, 2 hours)
+**What:** Average time per mailbox?
+- [ ] Provision 5 additional test accounts individually
+- [ ] Measure time for each
+- [ ] Calculate average latency
+- [ ] Identify slowest operations (EXO call, AD call, reporting, etc.)
+- [ ] Document breakdown by operation type
 
-2. **Execute Tests**
-   - [ ] Run all 4 performance tests
-   - [ ] Capture metrics (throughput, latency, resources)
-   - [ ] Note any anomalies or issues
-   - **Owner:** DevOps | **Effort:** 8 hours | **Due:** July 10
+**Target:** ≤3 minutes per mailbox
 
-3. **Analysis & Recommendations**
-   - [ ] Analyze results vs. targets
-   - [ ] Identify bottlenecks (if any)
-   - [ ] Propose optimizations (prioritize for v1.1)
-   - [ ] Document baseline for future comparison
-   - **Owner:** DevOps | **Effort:** 4 hours | **Due:** July 12
+**Owner:** DevOps | **Due:** July 3, 2 PM
 
-**Success Criteria:**
-- ✅ Throughput ≥ 60 mailboxes/hour
-- ✅ Latency ≤ 3 minutes/mailbox
-- ✅ Resource utilization acceptable
-- ✅ No critical bottlenecks found
+---
+
+### 3.3 Resource Utilization Test (Afternoon, 2 hours)
+**What:** CPU, Memory, Disk usage during operations?
+- [ ] Monitor during throughput test:
+  - [ ] CPU usage (peak, average)
+  - [ ] Memory usage (peak, average)
+  - [ ] Disk I/O (logs, audit logs)
+  - [ ] Network bandwidth (EXO calls)
+- [ ] Document peak utilization
+- [ ] Identify bottlenecks (if any)
+
+**Target:** CPU <50%, Memory <70%, Disk <80% during peak
+
+**Owner:** DevOps | **Due:** July 3, 5 PM
+
+---
+
+### 3.4 Document Baseline (End of Day)
+- [ ] Create performance baseline report
+- [ ] Include: Throughput, Latency, Resources, Bottlenecks
+- [ ] Document for future v1.1 optimization planning
 
 **Deliverable:** Performance Baseline Report
 
 ---
 
-### WP-6: Upgrade Path Validation (Week 3)
+## WP-4: Upgrade Path Validation (Day 5, 4 hours)
 
-**Objective:** Verify v0.8.2 → v0.9.0 upgrade works smoothly
+**Objective:** Verify v0.8.2 → v0.9.0 upgrade process works safely
 
 **Tasks:**
-1. **Prepare Upgrade Test Environment**
-   - [ ] Setup clean staging server with v0.8.2 deployed
-   - [ ] Create test data (existing mailboxes, audit logs, configs)
-   - [ ] Backup all data before upgrade
-   - **Owner:** DevOps | **Effort:** 3 hours | **Due:** July 15
 
-2. **Execute Upgrade**
-   - [ ] Uninstall v0.8.2
-   - [ ] Install v0.9.0-rc.1
-   - [ ] Verify all settings/configs preserved
-   - [ ] Run smoke tests post-upgrade
-   - **Owner:** DevOps | **Effort:** 2 hours | **Due:** July 15
+### 4.1 Prepare Upgrade Test
+- [ ] Setup clean staging server with v0.8.2 fully deployed
+- [ ] Create test data (existing provisioned mailboxes, configs, audit logs)
+- [ ] Backup all data before upgrade
 
-3. **Validation**
-   - [ ] Verify existing audit logs still readable
-   - [ ] Verify configurations still valid
-   - [ ] Verify ScheduledTask still runs
-   - [ ] Verify no data loss
-   - [ ] Test rollback procedure (restore from backup)
-   - **Owner:** QA | **Effort:** 2 hours | **Due:** July 16
+**Effort:** 1 hour | **Due:** July 4, 9 AM
 
-4. **Document Upgrade Procedure**
-   - [ ] Write step-by-step upgrade guide
-   - [ ] Document any breaking changes (if any)
-   - [ ] Document rollback steps
-   - [ ] Add to USER-GUIDE.md
-   - **Owner:** Tech Writer | **Effort:** 2 hours | **Due:** July 16
+---
+
+### 4.2 Execute Upgrade
+- [ ] Uninstall v0.8.2
+- [ ] Install v0.9.0
+- [ ] Verify module loads correctly
+- [ ] Verify all functions accessible
+
+**Effort:** 1 hour | **Due:** July 4, 11 AM
+
+---
+
+### 4.3 Validate Post-Upgrade
+- [ ] Verify existing audit logs still readable
+- [ ] Verify configurations still valid
+- [ ] Verify ScheduledTask still configured
+- [ ] Run 2-3 provisioning operations
+- [ ] Verify no data loss
+
+**Effort:** 1 hour | **Due:** July 4, 1 PM
+
+---
+
+### 4.4 Test Rollback
+- [ ] Restore v0.8.2 from backup
+- [ ] Verify rollback successful
+- [ ] Verify data integrity after rollback
+- [ ] Document rollback procedure
+
+**Effort:** 1 hour | **Due:** July 4, 3 PM
+
+---
+
+**Owner:** DevOps | **Effort:** 4 hours | **Due:** July 4, 5 PM
 
 **Success Criteria:**
-- ✅ Upgrade completes without error
+- ✅ v0.8.2 → v0.9.0 upgrade completes without error
 - ✅ All configurations preserved
 - ✅ All functions work post-upgrade
+- ✅ No data loss
 - ✅ Rollback procedure validated
 
 **Deliverable:** Upgrade Procedure Documentation
 
 ---
 
-### WP-7: Documentation Updates (Week 4)
+## WP-5: Documentation Updates (Days 6-9, 12 hours)
 
-**Objective:** Update documentation based on UAT findings and lessons learned
-
-**Tasks:**
-1. **Incorporate UAT Findings**
-   - [ ] Add new troubleshooting scenarios (discovered during UAT)
-   - [ ] Update FAQ with real user questions
-   - [ ] Add performance tuning section (from baseline testing)
-   - [ ] Add examples from early adopter scenarios
-   - **Owner:** Tech Writer | **Effort:** 8 hours | **Due:** July 22
-
-2. **Update Runbooks**
-   - [ ] Add UAT-discovered edge cases to OPERATIONS-RUNBOOK.md
-   - [ ] Update incident playbooks with real scenarios
-   - [ ] Add performance monitoring procedures
-   - **Owner:** Tech Writer | **Effort:** 6 hours | **Due:** July 23
-
-3. **Update Known Issues**
-   - [ ] Document any P2/P3 issues (not fixed for v0.9.0)
-   - [ ] Add workarounds if available
-   - [ ] Plan resolution for v1.1
-   - **Owner:** Tech Writer | **Effort:** 3 hours | **Due:** July 23
-
-4. **Create Upgrade Guide**
-   - [ ] Step-by-step upgrade from v0.8.2 to v0.9.0
-   - [ ] Pre-upgrade checklist
-   - [ ] Post-upgrade validation
-   - [ ] Rollback procedures
-   - **Owner:** Tech Writer | **Effort:** 4 hours | **Due:** July 24
-
-5. **Final Review & QA**
-   - [ ] Tech writer reviews all updates
-   - [ ] QA spot-checks for accuracy
-   - [ ] Test all examples/procedures
-   - **Owner:** QA | **Effort:** 4 hours | **Due:** July 25
-
-**Success Criteria:**
-- ✅ All UAT findings documented
-- ✅ Troubleshooting section expanded
-- ✅ Upgrade procedures clear and tested
-- ✅ 0 broken links or examples
-
-**Deliverable:** Updated Documentation
-
----
-
-### WP-8: Release Candidate Preparation (Week 4)
-
-**Objective:** Prepare v0.9.0-rc.1 for final testing and approval
+**Objective:** Update docs based on Week 1 findings
 
 **Tasks:**
-1. **Create Release Candidate**
-   - [ ] Update version: v0.8.3+ → v0.9.0-rc.1
-   - [ ] Tag in Git: v0.9.0-rc.1
-   - [ ] Generate release notes (all issues fixed, UAT findings)
-   - [ ] Publish to PowerShell Gallery
-   - **Owner:** Release Manager | **Effort:** 2 hours | **Due:** July 25
 
-2. **Final Security Review**
-   - [ ] Re-run security scan (0 vulnerabilities expected)
-   - [ ] Verify no hardcoded secrets
-   - [ ] Verify credential handling best practices
-   - [ ] Sign off on security
-   - **Owner:** Security Team | **Effort:** 2 hours | **Due:** July 26
+### 5.1 Update USER-GUIDE.md (Days 6-7, 4 hours)
+- [ ] Add real-world provisioning example (from testing)
+- [ ] Add performance metrics section (based on baseline)
+- [ ] Update troubleshooting guide with findings (if any issues found)
+- [ ] Add FAQ based on test experience
+- [ ] Add upgrade procedure from WP-4
 
-3. **Final Compliance Check**
-   - [ ] Verify CLAUDE.md compliance: 100%
-   - [ ] Verify STRUCTURE.md compliance: 100%
-   - [ ] Verify DECISIONS.md alignment: 100%
-   - [ ] PSScriptAnalyzer: 0 violations
-   - **Owner:** QA | **Effort:** 2 hours | **Due:** July 26
+**Owner:** Tech Writer | **Due:** July 8 PM
 
-4. **Release Candidate Sign-Off**
-   - [ ] All stakeholders review and approve
-   - [ ] Go/No-Go decision made
-   - [ ] Launch readiness confirmed
-   - **Owner:** Project Manager | **Effort:** 2 hours | **Due:** July 26
+---
+
+### 5.2 Update ADMIN-GUIDE.md (Days 7-8, 4 hours)
+- [ ] Add staging deployment procedures
+- [ ] Add performance tuning recommendations
+- [ ] Add monitoring setup procedures
+- [ ] Add runbook for common scenarios
+
+**Owner:** Tech Writer | **Due:** July 9 PM
+
+---
+
+### 5.3 Update OPERATIONS-RUNBOOK.md (Days 8-9, 4 hours)
+- [ ] Add daily health check procedures
+- [ ] Add incident response procedures (based on testing)
+- [ ] Add recovery procedures
+- [ ] Add on-call handoff procedures
+
+**Owner:** Tech Writer | **Due:** July 10 PM
+
+---
 
 **Success Criteria:**
-- ✅ v0.9.0-rc.1 published to PSGallery
-- ✅ All security checks passed
-- ✅ All compliance checks passed
-- ✅ Stakeholder sign-off obtained
+- ✅ All docs updated from real-world findings
+- ✅ Examples accurate and tested
+- ✅ No broken links
+- ✅ All procedures documented
 
-**Deliverable:** v0.9.0-rc.1 (Release Candidate)
+**Deliverable:** Updated Documentation Suite
 
 ---
 
-### WP-9: Launch Readiness (Week 5)
+## WP-6: Release Process & Publication (Days 10-15, 8 hours)
 
-**Objective:** Final validation and preparation for v1.0.0 launch
+**Objective:** Document and execute release process (PSGallery + GitHub)
 
-**Tasks:**
-1. **Go/No-Go Decision**
-   - [ ] Review all phase deliverables
-   - [ ] Evaluate against success criteria
-   - [ ] Make final decision: GO or NO-GO
-   - [ ] Document decision rationale
-   - **Owner:** Steering Committee | **Effort:** 2 hours | **Due:** July 29
+**Release Process (Three-Tier Model):**
 
-2. **Launch Plan Finalization**
-   - [ ] Schedule v1.0.0 release date (target: Early Aug)
-   - [ ] Prepare launch announcement
-   - [ ] Coordinate with comms/marketing
-   - [ ] Setup monitoring for launch day
-   - **Owner:** Product Manager | **Effort:** 4 hours | **Due:** July 30
+### 6.1 Release Process Documentation (Days 10-11, 3 hours)
+- [ ] Document branch strategy: develop → prerelease → main
+- [ ] Document version progression: v0.9.0-beta.1 → v0.9.0
+- [ ] Document tagging procedure (annotated tags)
+- [ ] Document PSGallery publication steps
+- [ ] Document GitHub release automation
+- [ ] Document dual-remote strategy (origin/azure + github/github)
+- [ ] Document release notes template
 
-3. **Support Preparation**
-   - [ ] Train support team on v1.0.0
-   - [ ] Prepare support documentation
-   - [ ] Setup escalation procedures
-   - [ ] Brief on-call team
-   - **Owner:** Support Manager | **Effort:** 4 hours | **Due:** July 31
+**Owner:** Release Manager | **Due:** July 11 PM
 
-4. **Final Sign-Off**
-   - [ ] Legal review (if needed)
-   - [ ] Compliance sign-off
-   - [ ] Executive approval
-   - [ ] Launch clearance obtained
-   - **Owner:** Project Manager | **Effort:** 2 hours | **Due:** Aug 1
+**Deliverable:** Release Process Documentation
+
+---
+
+### 6.2 Prepare Release (Days 12-13, 2 hours)
+- [ ] Update module version: v0.8.2 → v0.9.0
+- [ ] Update CLAUDE.md version
+- [ ] Update README.md version
+- [ ] Prepare release notes (features, fixes, compatibility)
+- [ ] Verify no broken links in docs
+
+**Owner:** Release Manager | **Due:** July 13 PM
+
+---
+
+### 6.3 Execute Release (Days 14-15, 3 hours)
+- [ ] Merge develop → prerelease
+- [ ] Merge prerelease → main
+- [ ] Create annotated tag: v0.9.0
+- [ ] Push all branches and tags to origin (Azure DevOps)
+- [ ] Push all branches and tags to github (GitHub)
+- [ ] Publish to PowerShell Gallery
+- [ ] Verify published on PSGallery
+- [ ] Verify GitHub Releases created
+- [ ] Test installation: `Install-Module -Name SharedMailboxProvisioner -RequiredVersion 0.9.0`
+
+**Owner:** Release Manager | **Due:** July 15 PM
+
+---
 
 **Success Criteria:**
-- ✅ GO decision obtained
-- ✅ Launch date scheduled
-- ✅ Launch plan finalized
-- ✅ Support ready
-- ✅ All stakeholders approved
+- ✅ Release process fully documented
+- ✅ v0.9.0 published to PSGallery
+- ✅ v0.9.0 available on GitHub Releases
+- ✅ Installation works via `Install-Module`
+- ✅ Dual-remote sync complete
 
-**Deliverable:** Launch Readiness Report, v1.0.0 Launch Plan
-
----
-
-## Risk Management & Mitigation
-
-### Critical Risks
-
-| Risk | Probability | Impact | Mitigation |
-|------|------------|--------|-----------|
-| Real EXO/AD integration fails | Medium | HIGH | Deploy to staging immediately; test with real systems |
-| Early adopters find P0 issues | Medium | HIGH | Quick fix + v0.9.0-beta.2 publication |
-| Performance below baseline | Low | MEDIUM | Identify bottlenecks early; optimize for v1.1 if needed |
-| Upgrade path breaks configs | Low | HIGH | Test upgrade thoroughly; document rollback |
-
-### Medium Risks
-
-| Risk | Probability | Impact | Mitigation |
-|------|------------|--------|-----------|
-| Limited early adopter participation | Medium | MEDIUM | Recruit 5+ candidates; target 3 committed |
-| UAT feedback indicates doc gaps | High | LOW | Plan doc updates immediately |
-| User adoption slower than expected | Medium | LOW | Gather feedback; plan user training for v1.1 |
+**Deliverable:** v0.9.0 Released (PSGallery + GitHub)
 
 ---
 
-## Success Criteria Summary
+## WP-7: v0.9.0 Release Ready & v1.0.0 Prep (Days 16-21, 12 hours)
 
-**Pre-Release Phase is complete when ALL of the following are met:**
+**Objective:** Final validation and prepare for v1.0.0 launch
 
-1. ✅ **Real-World Deployment:** v0.8.2 deployed to staging, all functions work
-2. ✅ **Early Adoption:** 3+ organizations successfully provisioning mailboxes
-3. ✅ **UAT Complete:** All critical workflows validated, 50+ mailboxes provisioned
-4. ✅ **Issues Resolved:** All P0 issues fixed, 80% of P1 issues resolved
-5. ✅ **Performance Baseline:** Metrics established, ≥60 mailboxes/hour, acceptable resource usage
-6. ✅ **Upgrade Path:** v0.8.2 → v0.9.0 validated, rollback procedures tested
-7. ✅ **Documentation:** Updated with UAT findings, troubleshooting expanded
-8. ✅ **Release Candidate:** v0.9.0-rc.1 approved, ready for v1.0.0
-9. ✅ **Launch Ready:** GO decision obtained, v1.0.0 launch plan finalized
-10. ✅ **User Satisfaction:** Early adopters rate 8+/10 readiness
+### 7.1 Week 3 Validation (Days 16-17, 4 hours)
+- [ ] Test v0.9.0 installation from PSGallery
+- [ ] Smoke test v0.9.0 functions
+- [ ] Verify GitHub release downloads work
+- [ ] Monitor initial user feedback
+- [ ] Address any critical issues (if any)
+
+**Owner:** QA | **Due:** July 17 PM
 
 ---
 
-## Next Steps
+### 7.2 Go/No-Go Review (Days 17-18, 4 hours)
+- [ ] Review all WP deliverables
+- [ ] Verify all success criteria met
+- [ ] Steering committee sign-off
+- [ ] Go/No-Go decision documented
 
-**Immediate (Today - June 30):**
-- [ ] Approve this implementation plan
-- [ ] Assign owners to each work package
-- [ ] Schedule kickoff meeting (July 1)
+**Decision Criteria:**
+- ✅ GO if: All critical workflows pass, performance acceptable, no blockers
+- ❌ NO-GO if: Critical workflow fails, performance unacceptable, unresolved issues
 
-**Week 1 (July 1-5):**
-- [ ] Begin WP-1 (Staging Deployment)
-- [ ] Begin WP-2 (Gallery Publication)
-- [ ] Begin WP-3 (Early Adopter Recruitment)
+**Owner:** Steering Committee | **Due:** July 18 PM
 
-**Week 2+ (July 8+):**
-- [ ] Execute WP-4 (UAT)
-- [ ] Execute WP-5 (Performance Testing)
-- [ ] Execute WP-6 (Upgrade Path)
-- [ ] Publish WP-7 (Documentation)
+---
+
+### 7.3 v1.0.0 Launch Preparation (Days 19-21, 4 hours)
+- [ ] Schedule v1.0.0 release date
+- [ ] Prepare launch announcement
+- [ ] Brief support team
+- [ ] Setup monitoring for v1.0.0 launch
+- [ ] Coordinate launch timeline
+- [ ] Finalize v1.0.0 release procedures
+
+**Owner:** Product Manager | **Due:** July 21 PM
+
+---
+
+**Success Criteria:**
+- ✅ v0.9.0 fully validated
+- ✅ Go/No-Go decision obtained
+- ✅ v1.0.0 launch plan finalized
+- ✅ Support team ready
+- ✅ Monitoring setup complete
+
+**Deliverable:** Go/No-Go Decision Report, v1.0.0 Launch Plan
+
+---
+
+## Overall Success Criteria
+
+**Pre-Release Phase succeeds when:**
+
+✅ **WP-1 Complete:** v0.8.2 deployed to staging, all systems working  
+✅ **WP-2 Complete:** All 10 test candidates provisioned, all workflows pass  
+✅ **WP-3 Complete:** Performance baseline established and documented  
+✅ **WP-4 Complete:** Upgrade path tested, rollback validated  
+✅ **WP-5 Complete:** Documentation updated with real-world findings  
+✅ **WP-6 Complete:** v0.9.0 released (PSGallery + GitHub)  
+✅ **WP-7 Complete:** Go/No-Go decision obtained, v1.0.0 launch plan ready  
+
+---
+
+## Risk Mitigation
+
+| Risk | Mitigation |
+|------|-----------|
+| **Staging not ready** | Prepare infrastructure Day 1; don't wait |
+| **Test candidates delayed** | Pre-order via IT-Shop immediately (by June 30) |
+| **Performance issues found** | Document for v1.1; don't block v0.9.0 if acceptable |
+| **Upgrade path broken** | Rollback procedure tested; can revert if needed |
+| **Release issues** | Test PSGallery publish process early (Day 10) |
+
+---
+
+## Next Steps (Immediate)
+
+### By June 30 (Today)
+- [ ] Approve this Implementation Plan
+- [ ] Assign owners to each Work Package
+- [ ] **PRE-ORDER 10 TEST ACCOUNTS VIA IT-SHOP** (critical!)
+
+### July 1-5 (Week 1)
+- [ ] Execute WP-1 (Deployment)
+- [ ] Execute WP-2 (Manual Testing)
+- [ ] Execute WP-3 (Performance)
+- [ ] Execute WP-4 (Upgrade Validation)
+
+### July 8-12 (Week 2)
+- [ ] Execute WP-5 (Documentation)
+- [ ] Execute WP-6 (Release)
+
+### July 15-21 (Week 3)
+- [ ] Execute WP-7 (Final Validation & v1.0.0 Prep)
 
 ---
 
 **Pre-Release Phase Implementation Plan: READY TO EXECUTE** ✅
 
-**Estimated Completion:** August 1-5, 2026  
-**Target v1.0.0 Launch:** Early-Mid August 2026 🚀
+**Timeline:** 3 weeks (July 1-21)  
+**Effort:** ~64 person-hours  
+**Target:** v0.9.0 released, v1.0.0 launch plan ready

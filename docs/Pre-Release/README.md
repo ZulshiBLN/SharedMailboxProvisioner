@@ -2,249 +2,342 @@
 
 **Current Status:** READY TO EXECUTE (v0.8.2 → v0.9.0)  
 **Phase Start:** July 1, 2026  
-**Phase End Target:** August 1-5, 2026  
+**Phase Duration:** 3 weeks (July 1-21)  
 **Next Milestone:** v1.0.0 Full Production Release
 
 ---
 
 ## Phase Overview
 
-Pre-Release Phase (v0.9.x) is the **real-world validation phase** for SharedMailboxProvisioner. After Beta Phase (code-complete with mock testing), Pre-Release focuses on:
+Pre-Release Phase (v0.9.x) is the **practical validation phase** for SharedMailboxProvisioner. Three weeks of focused testing, performance baselining, and release preparation.
 
-- ✅ Deploying to real environments (staging with real EXO/AD)
-- ✅ Validating all workflows with real users (3+ early adopter orgs)
-- ✅ Establishing performance baseline
-- ✅ Testing upgrade paths and rollback procedures
-- ✅ Gathering user feedback and incorporating findings
-- ✅ Preparing for v1.0.0 launch
-
-**Duration:** 4-6 weeks  
-**Effort:** ~145 person-hours  
-**Key Deliverable:** v0.9.0 (Pre-Release Final)
+**Duration:** 3 weeks  
+**Effort:** ~64 person-hours  
+**Key Deliverable:** v0.9.0 (Pre-Release Stable)
 
 ---
 
 ## Key Documents
 
 ### 1. PHASE-PRERELEASE-ROADMAP.md
-**High-level roadmap and timeline for the entire Pre-Release Phase**
+**High-level roadmap and timeline for Pre-Release Phase**
 
-- Executive summary and objectives
-- 6-week detailed timeline (week-by-week breakdown)
-- Key milestones (Deployment, UAT, RC, Launch Ready)
-- Risk management and success criteria
-- Versioning strategy (v0.9.0-beta.1 → v0.9.0-rc.1 → v0.9.0)
+- Release Process (Three-Tier Model: develop → prerelease → main)
+- Week-by-week detailed timeline
+- Success criteria and Go/No-Go decision gate
+- Resource allocation and risk management
+- Version progression: v0.9.0-beta.1 → v0.9.0
 
-**Use This For:** Strategic planning, stakeholder communication, high-level tracking
+**Use This For:** Strategic planning, stakeholder communication, schedule tracking
 
 ---
 
 ### 2. IMPLEMENTATION-PLAN-PRERELEASE.md
-**Detailed, step-by-step implementation plan with tasks, owners, and success criteria**
+**Detailed, step-by-step execution plan with 7 work packages**
 
-**9 Work Packages:**
-- WP-1: Staging Environment Setup (8 hours)
-- WP-2: PowerShell Gallery Publication (6 hours)
-- WP-3: Early Adopter Recruitment (12 hours)
-- WP-4: User Acceptance Testing (60 hours over 2 weeks)
-- WP-5: Performance Baseline Testing (14 hours)
-- WP-6: Upgrade Path Validation (9 hours)
-- WP-7: Documentation Updates (27 hours)
-- WP-8: Release Candidate Preparation (8 hours)
-- WP-9: Launch Readiness (12 hours)
+**7 Work Packages (64 hours total):**
 
-**Total Effort:** ~145 person-hours over 4-6 weeks
+1. **WP-1:** Real-World Deployment (12h)
+   - Staging infrastructure setup
+   - v0.8.2 deployment and baseline testing
+   - Real EXO/AD connectivity validation
 
-**Use This For:** Daily execution, task assignment, progress tracking, detailed documentation
+2. **WP-2:** Manual Testing – Critical Workflows (8h)
+   - 10 prepared test candidates (via IT-Shop)
+   - Find & validate candidates
+   - Provision, permission assignment
+   - Reporting and recovery testing
+
+3. **WP-3:** Performance Baseline (8h)
+   - Throughput testing (mailboxes/hour)
+   - Latency testing (time per mailbox)
+   - Resource utilization monitoring
+
+4. **WP-4:** Upgrade Path Validation (4h)
+   - v0.8.2 → v0.9.0 upgrade process
+   - Configuration preservation verification
+   - Rollback procedure testing
+
+5. **WP-5:** Documentation Updates (12h)
+   - Update USER-GUIDE.md, ADMIN-GUIDE.md
+   - Update OPERATIONS-RUNBOOK.md
+   - Add real-world examples and findings
+
+6. **WP-6:** Release Process & Publication (8h)
+   - Document Three-Tier release process
+   - PSGallery publication automation
+   - GitHub Releases automation
+
+7. **WP-7:** v0.9.0 Release Ready & v1.0.0 Prep (12h)
+   - Final validation and sign-off
+   - Go/No-Go decision
+   - v1.0.0 launch plan
+
+**Use This For:** Daily execution, task assignment, progress tracking
 
 ---
 
-## Phase Goals
+## Phase Timeline (3 Weeks)
 
-| Goal | Success Criteria | Timeline |
-|------|------------------|----------|
-| **Real-World Deployment** | Deploy to staging; all functions work | Week 1 |
-| **Community Testing** | Publish to PSGallery; gather feedback | Week 1-2 |
-| **Early User Validation** | 3+ orgs actively testing; 50+ mailboxes | Week 2-3 |
-| **Performance Established** | Baseline metrics: ≥60 mailboxes/hour | Week 2-3 |
-| **Issues Resolved** | All P0 fixed, 80% P1 fixed | Week 3 |
-| **Upgrade Validated** | v0.8.2 → v0.9.0 path tested | Week 3 |
-| **Documentation Updated** | Reflects UAT findings; comprehensive | Week 4 |
-| **Launch Ready** | v0.9.0-rc.1 approved, GO/NO-GO made | Week 4-5 |
-| **User Feedback** | 8+/10 satisfaction from early adopters | Week 2-4 |
+### WEEK 1 (July 1-5): Deployment & Testing
+**All testing activities consolidated into one week**
+
+- **Days 1-2:** Real-World Deployment to staging
+- **Day 3:** Manual Testing (1 full day, 10 candidates, 6 workflows)
+- **Day 4:** Performance Baseline Testing
+- **Day 5:** Upgrade Path Validation
+
+**Milestone:** All critical validation complete
 
 ---
 
-## Version Progression
+### WEEK 2 (July 8-12): Fixes & Release Prep
+- Fix any issues from Week 1 (if any)
+- Documentation updates (from real-world findings)
+- Release process documentation
+- Release materials preparation
+
+**Milestone:** Ready for release
+
+---
+
+### WEEK 3 (July 15-21): Release & v1.0.0 Prep
+- Make Go/No-Go decision
+- Publish v0.9.0 (PSGallery + GitHub Releases)
+- Begin v1.0.0 launch preparation
+
+**Milestone:** v0.9.0 released, v1.0.0 launch plan ready
+
+---
+
+## Release Process (Three-Tier Model)
+
+### Branch Strategy (after WinHarden)
+
+```
+develop (Daily development)
+    ↓
+prerelease (v0.9.0-beta.x testing)
+    ↓
+main (v0.9.0 stable)
+    ↓
+v1.0.0 (Production Release)
+```
+
+### Version Progression
 
 ```
 v0.8.2 (Current - Beta Phase Complete)
-   ↓
-v0.9.0-beta.1 (Week 1 - Initial pre-release, PSGallery)
-   ↓
-v0.9.0-beta.2+ (Week 2 - After UAT feedback, bug fixes)
-   ↓
-v0.9.0-rc.1 (Week 3-4 - Release Candidate, final testing)
-   ↓
-v0.9.0 (Week 4-5 - Pre-Release Final, ready for v1.0.0)
-   ↓
-v1.0.0 (Early August - FULL PRODUCTION RELEASE 🚀)
+   ↓ [Week 1]
+v0.9.0-beta.1 (Initial pre-release)
+   ↓ [Week 2-3 after testing]
+v0.9.0 (Stable pre-release, ready for v1.0.0)
+   ↓ [After go-live validation]
+v1.0.0 (FULL PRODUCTION RELEASE)
 ```
+
+### Release Automation
+
+- **Dual-Remote Strategy:** origin (Azure DevOps) + github (GitHub)
+- **Tagging:** Annotated tags with release notes (WinHarden format)
+- **PowerShell Gallery:** v0.9.0-beta.1 (pre-release flag) → v0.9.0 (stable)
+- **GitHub Releases:** Automatic creation from tags
 
 ---
 
-## Critical Path Items
+## Manual Testing Plan (Day 3, 1 Day)
 
-**Do NOT proceed without:**
-1. ✅ Staging environment ready with real EXO/AD
-2. ✅ 3+ early adopter organizations committed
-3. ✅ v0.9.0-beta.1 published to PSGallery
-4. ✅ Performance baseline established (<5% variance)
-5. ✅ All P0 UAT issues resolved
-6. ✅ Upgrade path validated and documented
-7. ✅ Documentation updated from UAT findings
-8. ✅ Stakeholder sign-off for v1.0.0 launch
+### Test Scope: 10 Prepared Candidates
+
+All accounts prepared via IT-Shop (by July 2), following exact IT-Shop specifications.
+
+**6 Critical Workflows to Test:**
+
+1. **Find & Validate Candidates** (1.5 hours)
+   - Run `Get-SharedMailboxCandidates`
+   - Verify all 10 accounts found
+   - Find and validate associated groups
+
+2. **Validate Candidates** (1.5 hours)
+   - Run `Get-SharedMailboxCandidatesWithGroups`
+   - Verify all candidates pass validation
+
+3. **Test Provisioning** (2 hours)
+   - Provision all 10 mailboxes
+   - Verify creation in Exchange Online
+   - Verify no throttling errors
+
+4. **Test Permission Assignment** (1.5 hours)
+   - Verify all groups correctly assigned
+   - Verify Full Access and Send-As correct
+   - Verify audit logs capture assignments
+
+5. **Test Reporting** (1 hour)
+   - Run `Get-MailboxProvisioningReport`
+   - Export to CSV, HTML, JSON
+   - Verify all formats work correctly
+
+6. **Test Recovery & Retry** (0.5 hours)
+   - Test `Resolve-MailboxProvisioningFailure`
+   - Test `Invoke-MailboxProvisioningRetry`
+   - Verify recovery mechanisms work
+
+**Expected Result:** All 10 candidates provisioned, all workflows pass (Happy Path)
+
+---
+
+## Success Criteria
+
+**Pre-Release Phase is successful when:**
+
+✅ Real-World Deployment successful (staging ready)  
+✅ All 10 test candidates provisioned  
+✅ All 6 critical workflows pass  
+✅ Performance baseline documented (≥60 mailboxes/hour)  
+✅ Upgrade path v0.8.2 → v0.9.0 validated  
+✅ Documentation updated with findings  
+✅ Release process documented  
+✅ v0.9.0 published (PSGallery + GitHub)  
+✅ Go/No-Go decision for v1.0.0 made  
+✅ v1.0.0 launch plan finalized  
+
+---
+
+## Go/No-Go Criteria (End of Week 3)
+
+### GO Decision when:
+- ✅ All 10 test candidates provisioned successfully
+- ✅ All 6 critical workflows pass validation
+- ✅ Performance ≥60 mailboxes/hour (acceptable)
+- ✅ Upgrade path validated, rollback tested
+- ✅ No critical blockers remaining
+- ✅ Documentation complete and accurate
+
+### NO-GO Decision if:
+- ❌ Critical workflow fails in real environment
+- ❌ Performance <40 mailboxes/hour (unacceptable)
+- ❌ Upgrade path breaks or can't rollback
+- ❌ Unresolved security/compliance issues
+
+---
+
+## Work Package Overview
+
+| WP | Name | Days | Owner | Effort |
+|----|------|------|-------|--------|
+| 1 | Real-World Deployment | 1-2 | DevOps | 12h |
+| 2 | Manual Testing (10 Candidates) | 3 | QA | 8h |
+| 3 | Performance Baseline | 4 | DevOps | 8h |
+| 4 | Upgrade Path Validation | 5 | DevOps | 4h |
+| 5 | Documentation Updates | 6-9 | Tech Writer | 12h |
+| 6 | Release Process & Publication | 10-15 | Release Mgr | 8h |
+| 7 | v0.9.0 Release Ready | 16-21 | All | 12h |
+
+**Total Effort:** 64 person-hours over 3 weeks
+
+---
+
+## Critical Prerequisites
+
+**Must be ready BEFORE July 1:**
+
+1. ✅ **10 test accounts pre-ordered via IT-Shop**
+   - All accounts prepared and ready for provisioning
+   - All IT-Shop specifications followed exactly
+   - Accounts will be available in AD by July 2
+
+2. ✅ **Staging infrastructure planned**
+   - Real EXO and AD environments available
+   - Necessary permissions granted to deploy module
+   - Logging and monitoring configured
+
+3. ✅ **DevOps and QA team assigned**
+   - Clear owners for each work package
+   - Availability confirmed for July 1-21
 
 ---
 
 ## Stakeholders & Owners
 
-| Role | Responsibility | Owner |
-|------|-----------------|-------|
-| **Project Manager** | Overall phase coordination, risk tracking | [TBD] |
-| **DevOps/SRE** | Staging deployment, performance testing | [TBD] |
-| **QA Lead** | UAT execution, issue triage, testing | [TBD] |
-| **Developer** | Bug fixes, code optimization | [TBD] |
-| **Tech Writer** | Documentation updates, procedures | [TBD] |
-| **Product Manager** | Early adopter recruiting, feedback collection | [TBD] |
-| **Release Manager** | Gallery publication, release coordination | [TBD] |
-| **Support Manager** | Support preparation, on-call briefing | [TBD] |
+| Role | Responsibility |
+|------|-----------------|
+| **DevOps/SRE** | Staging deployment, performance testing, upgrade validation |
+| **QA/Testers** | Manual testing of 10 candidates |
+| **Tech Writer** | Documentation updates from findings |
+| **Release Manager** | Release process, PSGallery/GitHub publication |
+| **Product Manager** | v1.0.0 launch coordination |
+| **Support Manager** | Support team preparation |
 
 ---
 
-## Go/No-Go Criteria (Week 4-5)
+## Key Differences from Beta Phase
 
-**GO Decision when:**
-- ✅ All 5 UAT scenarios validated by all 3 organizations
-- ✅ User satisfaction ≥ 8/10 from early adopters
-- ✅ All P0 issues resolved, 80% P1 resolved
-- ✅ Performance metrics: ≥60 mailboxes/hour, acceptable resources
-- ✅ Upgrade path validated, rollback tested
-- ✅ Documentation complete and accurate
-- ✅ No critical security issues
-
-**NO-GO Decision if:**
-- ❌ Critical workflow (provision/manage/report) fails in production
-- ❌ Performance <40 mailboxes/hour (unacceptable)
-- ❌ P0 issues remain unresolved
-- ❌ User satisfaction <7/10 (adoption risk)
-- ❌ Upgrade path breaks (blocking v1.0.0)
-- ❌ Security scan finds vulnerabilities
+| Aspect | Beta Phase | Pre-Release Phase |
+|--------|-----------|-------------------|
+| **Environment** | Mock-based testing | Real EXO/AD staging |
+| **Testing Scope** | 41+ unit test cases | 10 manual test candidates |
+| **Duration** | Completed | 3 weeks (focused) |
+| **Scope** | Code-complete | Real-world validation |
+| **Release** | v0.8.2 (internal) | v0.9.0 (PSGallery + GitHub) |
 
 ---
 
-## Next Steps
+## Next Steps (Immediate)
 
-### Immediate (Today - June 30)
-- [ ] Review and approve this Pre-Release Phase plan
-- [ ] Assign owners to each role
-- [ ] Schedule Phase Kickoff (July 1)
+### By June 30 (TODAY)
+- [ ] Approve Roadmap and Implementation Plan
+- [ ] Assign owners to each Work Package
+- [ ] **PRE-ORDER 10 TEST ACCOUNTS VIA IT-SHOP** (CRITICAL!)
+- [ ] Confirm DevOps and QA availability
 
-### Week 1 (July 1-5)
-- [ ] Deploy v0.8.2 to staging environment
-- [ ] Publish v0.9.0-beta.1 to PowerShell Gallery
-- [ ] Begin early adopter onboarding
-- [ ] Establish feedback collection channels
+### July 1-5 (Week 1)
+- [ ] Execute WP-1 through WP-4 (Deployment, Testing, Performance, Upgrade)
+- [ ] Document any issues found
+- [ ] Complete all Week 1 testing
 
-### Week 2-3 (July 8-19)
-- [ ] Conduct full UAT with all 3 organizations
-- [ ] Execute performance baseline testing
-- [ ] Fix identified issues (P0/P1)
-- [ ] Test upgrade procedures
+### July 8-12 (Week 2)
+- [ ] Fix any issues from Week 1 (if any)
+- [ ] Execute WP-5 (Documentation updates)
+- [ ] Execute WP-6 (Release process preparation)
 
-### Week 4-5 (July 22-Aug 5)
-- [ ] Publish v0.9.0-rc.1 (Release Candidate)
-- [ ] Complete final testing and validation
-- [ ] Update documentation from UAT findings
-- [ ] Make Go/No-Go decision for v1.0.0
-- [ ] Finalize launch plan
-
----
-
-## Success Indicators
-
-✅ **Phase is on track when:**
-- Stakeholders actively engaged
-- Early adopters provisioning mailboxes daily
-- Issues identified and triaged within 24 hours
-- Documentation being updated in parallel
-- No critical blockers on critical path
-
-🟡 **Phase needs attention when:**
-- Early adopter participation drops
-- P0 issues take >2 days to resolve
-- Performance metrics not baseline
-- User satisfaction trending <7/10
-
-❌ **Phase is at risk when:**
-- Critical workflow failures in staging
-- Unable to recruit 3 early adopters
-- Performance <40 mailboxes/hour
-- Unresolved security issues
-- Upgrade path breaks
+### July 15-21 (Week 3)
+- [ ] Execute WP-7 (Final validation, Go/No-Go, release)
+- [ ] Publish v0.9.0 to PSGallery and GitHub
+- [ ] Finalize v1.0.0 launch plan
 
 ---
 
 ## Communication Plan
 
-**Weekly Status Updates (Every Friday):**
+**Weekly Status Updates:** Friday 5 PM
 - Progress against milestones
-- Issues identified and status
-- Early adopter feedback summary
-- Risk/blocker review
-- Next week's priorities
+- Issues and resolutions
+- Go/No-Go decision (Week 3)
 
 **Escalation Path:**
-- P0 Issues: Immediate escalation, daily standups
-- P1 Issues: Daily status, weekly planning
-- P2 Issues: Weekly planning cycle
-
-**Early Adopter Communication:**
-- Daily check-ins (Monday-Friday)
-- Weekly feedback collection
-- Issue resolution updates within 24 hours
-- v0.9.0-beta.2+ publication announcements
-
----
-
-## Resources & Effort
-
-**Estimated Total Effort:** ~145 person-hours over 4-6 weeks
-
-| Function | Effort | Timeline |
-|----------|--------|----------|
-| DevOps/SRE | 40 hours | Week 1, 2-3, 4 |
-| QA/Testers | 60 hours | Week 1-4 (continuous) |
-| Tech Writer | 20 hours | Week 4 (documentation) |
-| Product Manager | 15 hours | Week 1, ongoing |
-| Support/On-Call | 10 hours | Week 1-4 (triage) |
+- Critical blockers: Immediate escalation
+- Performance issues: Daily sync
+- Documentation gaps: As discovered
 
 ---
 
 ## Related Documentation
 
-- **[PHASE-PRERELEASE-ROADMAP.md](PHASE-PRERELEASE-ROADMAP.md)** – High-level roadmap and timeline
-- **[IMPLEMENTATION-PLAN-PRERELEASE.md](IMPLEMENTATION-PLAN-PRERELEASE.md)** – Detailed work packages and tasks
+- **[PHASE-PRERELEASE-ROADMAP.md](PHASE-PRERELEASE-ROADMAP.md)** – Strategic roadmap and timeline
+- **[IMPLEMENTATION-PLAN-PRERELEASE.md](IMPLEMENTATION-PLAN-PRERELEASE.md)** – Detailed execution plan
 
 ---
 
 ## Archive Reference
 
-**Beta Phase Documentation:**
+**Previous Phases:**
 - [../Beta-Phase/COMPLIANCE-AUDIT-PHASE-BETA-COMPLETE.md](../Beta-Phase/COMPLIANCE-AUDIT-PHASE-BETA-COMPLETE.md) – Beta Phase completion audit
+- [../Alpha-Phase/](../Alpha-Phase/) – Alpha Phase documentation
 
 ---
 
 **Pre-Release Phase: READY TO EXECUTE** ✅
 
-**Target v1.0.0 Launch: Early August 2026** 🚀
+**Timeline:** 3 weeks (July 1-21)  
+**Effort:** 64 person-hours  
+**Target:** v0.9.0 released, v1.0.0 launch ready 🚀

@@ -3,18 +3,64 @@
 **Date:** 2026-06-30  
 **Project:** SharedMailboxProvisioner  
 **Phase:** Pre-Release (v0.9.x)  
-**Duration:** 4-6 weeks  
-**Goal:** Prepare for v1.0.0 launch via real-world testing and user feedback
+**Duration:** 3 weeks  
+**Goal:** Real-world validation and preparation for v1.0.0 launch
 
 ---
 
 ## Executive Summary
 
-Pre-Release Phase focuses on **real-world validation** of the codebase through deployment to staging/test environments, comprehensive UAT, performance baseline establishment, and early user feedback collection. This phase bridges Beta (code-complete) → Release (production-ready).
+Pre-Release Phase focuses on **practical validation** through real-world deployment, manual testing of critical workflows, and establishing performance baselines. This phase bridges Beta (code-complete) → Release (production-ready).
 
 **Current State:** v0.8.2 (Beta-Phase-Complete)  
-**Target State:** v1.0.0 (Full Production Release)  
-**Intermediate Milestone:** v0.9.0 (Pre-Release Final)
+**Target State:** v0.9.0 (Pre-Release Ready for v1.0.0)  
+**Next Milestone:** v1.0.0 (Full Production Release)  
+**Duration:** 3 weeks (July 1 - July 21)
+
+---
+
+## Release Process – Three-Tier Model (after WinHarden)
+
+### Version Progression
+
+```
+v0.8.2 (Beta-Complete, current)
+    ↓
+v0.9.0-beta.1 (Initial pre-release)
+    ↓ [after testing OK]
+v0.9.0 (Pre-Release Stable - Ready for v1.0.0)
+    ↓ [after go-live validation]
+v1.0.0 (Full Production Release)
+```
+
+### Release Branches (Three-Tier Model)
+
+```
+develop (Daily development)
+    ↓ [merge after code complete]
+prerelease (v0.9.x testing branch)
+    ↓ [merge after testing + fixes]
+main (v0.9.0 stable, production-ready)
+    ↓ [tag + publish to PSGallery + GitHub Releases]
+v1.0.0 (Launch)
+```
+
+### Release Strategy
+
+**PowerShell Gallery Publication:**
+- ✅ v0.9.0-beta.1 (Pre-release flag) - Week 1
+- ✅ v0.9.0 (Stable release) - Week 3
+- ✅ v1.0.0 (Production release) - After go-live
+
+**GitHub Release Automation:**
+- Annotated tags: `v0.9.0`, `v0.9.0-beta.1`
+- Release notes automatically published
+- Same format as WinHarden (features, fixes, compatibility notes)
+
+**Dual-Remote Strategy (like WinHarden):**
+- `origin` = Azure DevOps (primary)
+- `github` = GitHub (secondary mirror)
+- All tags and releases pushed to both remotes
 
 ---
 
@@ -22,185 +68,133 @@ Pre-Release Phase focuses on **real-world validation** of the codebase through d
 
 | Objective | Success Criteria | Owner | Timeline |
 |-----------|------------------|-------|----------|
-| **Real-World Deployment** | Deploy to staging; no critical issues | DevOps/Admin | Week 1-2 |
-| **Post-Launch UAT** | All critical workflows validated | QA/Users | Week 2-4 |
-| **Performance Baseline** | Establish perf metrics; <5% variance | DevOps | Week 2-3 |
-| **Upgrade Path Validation** | v0.8.2 → v0.9.0 successful | DevOps | Week 3 |
-| **Gallery Publication** | Pre-release published to PSGallery | Release Manager | Week 2 |
-| **User Feedback** | 3+ early adopters, feedback collected | Product | Week 1-4 |
-| **Documentation Updates** | Updated based on UAT findings | Tech Writer | Week 4 |
-| **Release Candidate Ready** | v0.9.0-rc.1 approved for final testing | Release Manager | Week 4-5 |
+| **Real-World Deployment** | Deploy to staging; all functions work | DevOps | Week 1 |
+| **Manual Testing** | 10 candidates, all critical workflows pass | QA | Week 1 |
+| **Performance Baseline** | Throughput, latency, resources documented | DevOps | Week 1 |
+| **Upgrade Validation** | v0.8.2 → v0.9.0 path tested | DevOps | Week 1 |
+| **Documentation Updates** | Updated with findings | Tech Writer | Week 2 |
+| **Release Process** | PSGallery + GitHub releases automated | Release Mgr | Week 2-3 |
+| **v0.9.0 Ready** | Go/No-Go decision for v1.0.0 | Steering Cmte | Week 3 |
 
 ---
 
-## Pre-Release Phase Timeline
+## Pre-Release Phase Timeline (3 Weeks)
+
+### WEEK 1 (July 1-5): Deployment & Testing
 
 ```
-WEEK 1 (July 1-5): Deployment & Initial Testing
-├─ Day 1: Deploy to staging environment
-├─ Day 2-3: Smoke testing (basic functionality)
-├─ Day 3-4: Publish pre-release to PSGallery
-├─ Day 4-5: Gather initial user feedback
-└─ Milestone: v0.8.2 → v0.8.3 (bug fixes if needed)
+MONDAY (July 1)
+├─ 9:00 AM: Staging infrastructure ready
+├─ 10:00 AM: v0.8.2 deployed to staging
+├─ 12:00 PM: Smoke tests (basic connectivity)
+└─ 2:00 PM: Staging deployment complete
 
-WEEK 2 (July 8-12): UAT & Performance Testing
-├─ Day 1-2: Begin UAT with early adopters
-├─ Day 2-3: Performance baseline testing
-├─ Day 3-4: Resolve critical UAT issues
-├─ Day 4-5: Performance report + tuning recommendations
-└─ Milestone: Identify & prioritize issues
+TUESDAY (July 2)
+├─ 9:00 AM: Manual testing begins (10 prepared candidates)
+├─ 10:00 AM: Find & validate candidates
+├─ 11:00 AM: Test provisioning (all 10 mailboxes)
+├─ 12:00 PM: Verify permission assignment
+├─ 1:00 PM: Test reporting & recovery
+├─ 2:00 PM: Test retry mechanism
+└─ 3:00 PM: Testing complete - all pass/issues documented
 
-WEEK 3 (July 15-19): Stability & Upgrade Testing
-├─ Day 1-2: Fix UAT issues (P0/P1)
-├─ Day 2-3: Upgrade path testing (v0.8.2 → v0.9.0)
-├─ Day 3-4: Stabilization testing
-├─ Day 4-5: Final user acceptance sign-off
-└─ Milestone: v0.9.0-rc.1 ready
+WEDNESDAY (July 3)
+├─ 9:00 AM: Performance baseline testing
+│  ├─ Throughput (mailboxes/hour)
+│  ├─ Latency (time per mailbox)
+│  └─ Resource utilization (CPU, memory, disk)
+└─ 5:00 PM: Performance report complete
 
-WEEK 4 (July 22-26): Final Validation & Documentation
-├─ Day 1-2: Release candidate final testing
-├─ Day 2-3: Documentation updates from UAT findings
-├─ Day 3-4: Security validation review
-├─ Day 4-5: Prepare v1.0.0 launch plan
-└─ Milestone: v0.9.0 final approved
+THURSDAY (July 4)
+├─ 9:00 AM: Upgrade path validation
+│  ├─ Test v0.8.2 → v0.9.0 upgrade
+│  ├─ Verify configuration preservation
+│  └─ Validate rollback procedure
+└─ 5:00 PM: Upgrade path validated
 
-WEEK 5-6 (July 29-Aug 9): Buffer & Launch Prep
-├─ Buffer for unexpected issues
-├─ Fine-tuning based on feedback
-├─ Launch readiness verification
-├─ v1.0.0 release preparation
-└─ Milestone: GO/NO-GO decision for v1.0.0
+FRIDAY (July 5)
+├─ 9:00 AM: Week 1 results review
+├─ 10:00 AM: Issue triage (if any)
+├─ 11:00 AM: Fix critical issues (if any)
+└─ 5:00 PM: Ready for Week 2
 ```
 
----
-
-## Scope: What's Included in Pre-Release
-
-### ✅ Included (In Scope)
-
-1. **Real-World Deployment Testing**
-   - Deploy to staging/test environment with real EXO/AD systems
-   - Validate against production-like data volumes
-   - Test with realistic user workflows
-
-2. **User Acceptance Testing (UAT)**
-   - 3+ early adopter organizations
-   - Full workflow validation (provision, manage, report, fail-over)
-   - Edge case discovery and handling
-   - User feedback collection
-
-3. **Performance Baseline**
-   - Throughput testing (mailboxes/hour)
-   - Latency measurements (provision time)
-   - Resource utilization (CPU, memory, disk)
-   - Bottleneck identification
-
-4. **Upgrade Path Validation**
-   - Test v0.8.2 → v0.9.0 upgrade procedure
-   - Validate backward compatibility
-   - Test rollback procedures
-
-5. **PowerShell Gallery Publication**
-   - Publish as pre-release (v0.9.0-beta.1, etc.)
-   - Enable community testing
-   - Gather install/usage feedback
-
-6. **Documentation Updates**
-   - Incorporate UAT findings
-   - Update troubleshooting guides
-   - Add performance tuning docs
-   - Refine based on user questions
-
-### ❌ Out of Scope (Defer to v1.1+)
-
-- Advanced automation (Tier 9 - Integration Testing)
-- Mail-flow policies integration
-- Delegated access management
-- Performance optimizations beyond baseline
-- Container/Docker support
-- CI/CD pipeline automation
-- Load testing (>1000 concurrent users)
+**Milestone:** Real-world deployment validated, all critical workflows tested
 
 ---
 
-## Key Milestones
+### WEEK 2 (July 8-12): Fixes & Release Preparation
 
-### Milestone 1: Staging Deployment (Week 1)
-**Criteria:**
-- ✅ Module deployed to staging environment
-- ✅ Basic connectivity verified (EXO, AD)
-- ✅ Smoke tests passing (all critical functions accessible)
-- ✅ Pre-release published to PowerShell Gallery
+```
+MONDAY (July 8)
+├─ 9:00 AM: Fix any issues from Week 1 (if any)
+└─ 5:00 PM: Issues resolved
 
-**Deliverable:** v0.8.2-staging (internal), v0.9.0-beta.1 (PSGallery)
+TUESDAY (July 9)
+├─ 9:00 AM: Documentation updates
+│  ├─ Add findings from testing
+│  ├─ Update troubleshooting guides
+│  └─ Add performance metrics
+└─ 5:00 PM: Documentation complete
 
----
+WEDNESDAY (July 10)
+├─ 9:00 AM: Prepare Release Process documentation
+│  ├─ Three-Tier Model diagram
+│  ├─ PSGallery publication procedure
+│  └─ GitHub release automation
+└─ 5:00 PM: Release process documented
 
-### Milestone 2: UAT Execution (Week 2-3)
-**Criteria:**
-- ✅ 3+ early adopter organizations provisioning mailboxes
-- ✅ 50+ mailboxes provisioned through real workflows
-- ✅ All critical workflows tested (Create, Manage, Report, Recover)
-- ✅ P0/P1 issues logged and prioritized
-- ✅ Performance metrics captured
+THURSDAY (July 11)
+├─ 9:00 AM: Update version numbers (v0.9.0)
+├─ 10:00 AM: Prepare release notes
+├─ 11:00 AM: Update GitHub release template
+└─ 5:00 PM: Release materials ready
 
-**Deliverable:** UAT Report (issues, findings, recommendations)
+FRIDAY (July 12)
+├─ 9:00 AM: Final validation
+├─ 10:00 AM: Security/compliance check
+├─ 11:00 AM: Go/No-Go decision prep
+└─ 5:00 PM: Week 2 complete
+```
 
----
-
-### Milestone 3: Release Candidate (Week 4)
-**Criteria:**
-- ✅ All P0/P1 UAT issues resolved
-- ✅ Upgrade path v0.8.2 → v0.9.0 validated
-- ✅ Performance baseline documented
-- ✅ Documentation updated from UAT
-- ✅ Security review completed
-- ✅ User feedback integrated
-
-**Deliverable:** v0.9.0-rc.1 (Release Candidate)
-
----
-
-### Milestone 4: Launch Ready (Week 5)
-**Criteria:**
-- ✅ v0.9.0-rc.1 final testing complete
-- ✅ v1.0.0 launch plan finalized
-- ✅ Go/No-Go decision made
-- ✅ Communication plan prepared
-- ✅ Support procedures documented
-
-**Deliverable:** v1.0.0 ready for launch
+**Milestone:** All fixes applied, documentation updated, release process ready
 
 ---
 
-## Risk Management
+### WEEK 3 (July 15-19): Release & v1.0.0 Preparation
 
-### High-Risk Areas
+```
+MONDAY (July 15)
+├─ 9:00 AM: Final Go/No-Go meeting
+├─ 10:00 AM: Stakeholder sign-off
+└─ 11:00 AM: Release decision confirmed
 
-1. **Real EXO/AD Environment Compatibility**
-   - Risk: Code works in mock, fails in production
-   - Mitigation: Deploy to staging with real systems early
-   - Owner: DevOps
+TUESDAY (July 16)
+├─ 9:00 AM: Create release tag (v0.9.0)
+├─ 10:00 AM: Publish to PSGallery
+├─ 11:00 AM: Publish to GitHub Releases
+└─ 2:00 PM: Release published
 
-2. **Performance Under Load**
-   - Risk: Provisioning too slow for user expectations
-   - Mitigation: Establish baseline; identify bottlenecks
-   - Owner: Performance Team
+WEDNESDAY (July 17)
+├─ 9:00 AM: Verify PSGallery installation works
+├─ 10:00 AM: Verify GitHub release downloads
+├─ 11:00 AM: Monitor initial feedback
+└─ 5:00 PM: Release monitoring stable
 
-3. **User Adoption Issues**
-   - Risk: Early adopters struggle with workflows
-   - Mitigation: Gather feedback early; iterate docs/processes
-   - Owner: Product/Support
+THURSDAY (July 18)
+├─ 9:00 AM: Begin v1.0.0 launch preparation
+├─ 10:00 AM: Finalize launch timeline
+├─ 11:00 AM: Prepare launch announcement
+└─ 5:00 PM: Launch plan ready
 
-### Medium-Risk Areas
+FRIDAY (July 19)
+├─ 9:00 AM: Final v1.0.0 readiness review
+├─ 10:00 AM: Support team briefing
+├─ 11:00 AM: Monitoring setup verification
+└─ 5:00 PM: Ready for v1.0.0 launch
+```
 
-4. **Upgrade Path Failures**
-   - Mitigation: Test on staging before production
-   - Owner: DevOps
-
-5. **Documentation Gaps**
-   - Mitigation: UAT findings → immediate doc updates
-   - Owner: Tech Writer
+**Milestone:** v0.9.0 released, v1.0.0 launch plan finalized
 
 ---
 
@@ -208,32 +202,35 @@ WEEK 5-6 (July 29-Aug 9): Buffer & Launch Prep
 
 **Pre-Release Phase is successful when:**
 
-- ✅ All critical workflows validated in real environment
-- ✅ 3+ organizations can provision mailboxes without blockers
-- ✅ Performance baseline documented (<5% variance)
-- ✅ Upgrade path tested and documented
-- ✅ All P0 issues resolved
-- ✅ 80% of P1 issues resolved
-- ✅ Documentation updated from UAT findings
-- ✅ User feedback collected and prioritized
-- ✅ v0.9.0 release candidate approved
-- ✅ v1.0.0 launch plan finalized
+- ✅ v0.8.2 deployed to staging with real EXO/AD integration
+- ✅ All 10 test candidates provisioned successfully
+- ✅ All critical workflows validated (provision, permissions, report, recovery, retry)
+- ✅ Performance baseline established (throughput, latency, resources)
+- ✅ Upgrade path v0.8.2 → v0.9.0 tested and validated
+- ✅ Documentation updated with real-world findings
+- ✅ Release process documented (Three-Tier Model, PSGallery/GitHub automation)
+- ✅ v0.9.0 published to PSGallery and GitHub Releases
+- ✅ Go/No-Go decision obtained for v1.0.0
+- ✅ v1.0.0 launch plan finalized and approved
 
 ---
 
-## Versioning Strategy (Pre-Release)
+## Risk Management
 
-```
-v0.9.0-beta.1 (Week 1) – Initial pre-release to PSGallery
-       ↓
-v0.9.0-beta.2 (Week 2) – After initial UAT feedback
-       ↓
-v0.9.0-rc.1 (Week 3-4) – Release Candidate (final testing)
-       ↓
-v0.9.0 (Week 4-5) – Final pre-release (ready for v1.0.0 launch)
-       ↓
-v1.0.0 (Late Aug/Early Sep) – FULL PRODUCTION RELEASE 🚀
-```
+### Critical Risks
+
+| Risk | Probability | Impact | Mitigation |
+|------|------------|--------|-----------|
+| Real EXO/AD issues in staging | Medium | HIGH | Deploy early, test immediately |
+| Test candidate preparation delays | Low | MEDIUM | Prepare accounts via IT-Shop in advance |
+| Performance below expectations | Low | MEDIUM | Identify bottlenecks; plan optimizations for v1.1 |
+
+### Medium Risks
+
+| Risk | Probability | Impact | Mitigation |
+|------|------------|--------|-----------|
+| Upgrade path breaks settings | Low | HIGH | Test thoroughly; document rollback |
+| Release automation issues | Low | MEDIUM | Test PSGallery publish process early |
 
 ---
 
@@ -241,40 +238,60 @@ v1.0.0 (Late Aug/Early Sep) – FULL PRODUCTION RELEASE 🚀
 
 | Role | Effort | Timeline |
 |------|--------|----------|
-| DevOps/SRE | 40 hours | Week 1, 3 (deployment, performance) |
-| QA/Testers | 60 hours | Week 2-4 (UAT, validation) |
-| Tech Writer | 20 hours | Week 4-5 (documentation updates) |
-| Product Manager | 15 hours | Ongoing (feedback collection) |
-| Support/On-Call | 10 hours | Week 1-4 (issue triage) |
-| **TOTAL** | **145 hours** | **4-5 weeks** |
+| DevOps/SRE | 24 hours | Week 1-2 (deployment, performance) |
+| QA/Testers | 16 hours | Week 1 (manual testing, validation) |
+| Tech Writer | 12 hours | Week 2 (documentation) |
+| Release Manager | 8 hours | Week 2-3 (release process) |
+| Support Manager | 4 hours | Week 2-3 (support prep) |
+| **TOTAL** | **64 hours** | **3 weeks** |
+
+---
+
+## Go/No-Go Criteria (Week 3)
+
+**GO Decision when:**
+- ✅ All 10 test candidates provisioned successfully
+- ✅ All critical workflows pass validation
+- ✅ Performance metrics acceptable (throughput ≥60 mailboxes/hour)
+- ✅ Upgrade path validated and documented
+- ✅ No critical blockers remaining
+- ✅ Documentation complete and accurate
+- ✅ Release process tested and working
+
+**NO-GO Decision if:**
+- ❌ Critical workflow fails in staging
+- ❌ Performance unacceptable (<40 mailboxes/hour)
+- ❌ Upgrade path breaks (blocking v1.0.0)
+- ❌ Unresolved security issues
 
 ---
 
 ## Next Steps
 
-1. **Week 1 (June 30-July 5):**
-   - [ ] Finalize staging environment
-   - [ ] Deploy v0.8.2 to staging
-   - [ ] Publish v0.9.0-beta.1 to PSGallery
-   - [ ] Identify 3+ early adopter organizations
+### Immediate (Today - June 30)
+- [ ] Approve Pre-Release Phase Roadmap
+- [ ] Assign owners to each role
+- [ ] Prepare 10 test candidates via IT-Shop
 
-2. **Week 2 (July 8-12):**
-   - [ ] Begin UAT with early adopters
-   - [ ] Execute performance baseline testing
-   - [ ] Triage and prioritize issues
+### Week 1 (July 1-5)
+- [ ] Deploy v0.8.2 to staging
+- [ ] Execute manual testing (1 day, 10 candidates)
+- [ ] Complete performance baseline
+- [ ] Validate upgrade path
 
-3. **Week 3 (July 15-19):**
-   - [ ] Fix P0/P1 UAT issues
-   - [ ] Validate upgrade path
-   - [ ] Prepare v0.9.0-rc.1
+### Week 2 (July 8-12)
+- [ ] Fix any issues from Week 1
+- [ ] Update documentation
+- [ ] Prepare release materials
+- [ ] Test release process
 
-4. **Week 4-5 (July 22-Aug 2):**
-   - [ ] Final validation and sign-off
-   - [ ] Update documentation
-   - [ ] Prepare v1.0.0 launch
+### Week 3 (July 15-19)
+- [ ] Make Go/No-Go decision
+- [ ] Publish v0.9.0 (PSGallery + GitHub)
+- [ ] Finalize v1.0.0 launch plan
 
 ---
 
-**Pre-Release Phase is the bridge from "Code Complete" to "Production Ready"**
+**Pre-Release Phase: READY TO EXECUTE** ✅
 
-**Goal: Make v1.0.0 a confident, well-validated, user-approved production release.** 🎯
+**Target v1.0.0 Launch: Late July/Early August 2026** 🚀
