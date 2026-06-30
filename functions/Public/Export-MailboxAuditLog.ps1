@@ -169,7 +169,9 @@ function Export-MailboxAuditLog {
 }
 
 function _FormatAuditLogAsHtml {
-    param([PSCustomObject[]]$Entries)
+    param(
+        [array]$Entries
+    )
 
     $html = @"
 <!DOCTYPE html>
@@ -234,7 +236,9 @@ function _FormatAuditLogAsHtml {
 }
 
 function _FormatAuditLogAsCsv {
-    param([PSCustomObject[]]$Entries)
+    param(
+        [array]$Entries
+    )
 
     $csv = "Timestamp,Level,User,Operation,Status,Message`n"
 
@@ -252,7 +256,9 @@ function _FormatAuditLogAsCsv {
 }
 
 function _FormatAuditLogAsText {
-    param([PSCustomObject[]]$Entries)
+    param(
+        [array]$Entries
+    )
 
     $text = "PROVISIONING AUDIT LOG`n"
     $text += "Generated: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')`n"
