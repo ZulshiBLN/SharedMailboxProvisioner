@@ -18,6 +18,265 @@ This document provides a **step-by-step guide** for manual testing of all critic
 
 ---
 
+## CONNECTION SETUP (8:00 AM - 9:00 AM)
+
+**⚠️ CRITICAL PREREQUISITE:** All connections must be established BEFORE starting tests.
+
+### Step 0.1: Import Module
+
+```powershell
+# Import the SharedMailboxProvisioner module
+$modulePath = "C:\Repos\SharedMailboxProvisioner\SharedMailboxProvisioner.psd1"
+Import-Module $modulePath -Force -ErrorAction Stop
+
+# Verify module loaded
+Get-Module SharedMailboxProvisioner | Format-Table Name, Version
+```
+
+**Expected Output:**
+```
+Name                         Version
+----                         -------
+SharedMailboxProvisioner     0.9.0-beta.1
+```
+
+**If FAIL:**
+```powershell
+# Check module file exists
+Test-Path $modulePath  # Should be $true
+# Check PowerShell version
+$PSVersionTable.PSVersion  # Should be 5.1+
+```
+
+**Time Check:** ⏱️ 5 minutes
+
+---
+
+### Step 0.2: Connect to Exchange Online (EXO)
+
+**Required:** Modern Authentication enabled, MFA-less service account (or app registration)
+
+```powershell
+# Connect to Exchange Online
+# Option A: Using service account credentials
+$credential = Get-Credential  # Prompt for service account
+Connect-ExchangeOnline -Credential $credential -ShowProgress $false
+
+# Option B: Using app registration (if configured)
+# [Alternative: Contact IT for specific connection method]
+
+# Verify connection
+Get-ExchangeServer -ErrorAction Stop
+Get-Mailbox -ResultSize 1  # Quick test
+```
+
+**Expected Output:**
+```
+Connected to: outlook.office365.com
+Identity
+--------
+EXO01
+EXO02
+...
+
+DisplayName      PrimarySmtpAddress
+-----------      ------------------
+Shared Mailbox 1 sharedmb1@contoso.com
+```
+
+**Validation Checklist:**
+- [ ] Connected to outlook.office365.com
+- [ ] Can list Exchange servers
+- [ ] Can list mailboxes (at least 1)
+
+**If FAIL:**
+```powershell
+# Troubleshoot connection
+$error[0]  # Show last error
+# Common issues:
+# - MFA challenge: Use app registration instead
+# - Licensing: Account needs EXO license
+# - IP blocked: Contact security team
+# - Wrong credentials: Verify service account
+```
+
+**Time Check:** ⏱️ 10 minutes
+
+---
+
+### Step 0.3: Connect to Exchange On-Premises (Optional, if needed)
+
+**Only if your environment has Exchange On-Premises and you need to sync mailboxes**
+
+```powershell
+# Connect to Exchange On-Premises
+$onPremServer = "exchangeserver.contoso.local"  # Replace with your server
+$onPremCred = Get-Credential  # Service account with Exchange admin rights
+
+$session = New-PSSession -ConfigurationName Microsoft.Exchange `
+    -ConnectionUri "http://$onPremServer/PowerShell/" `
+    -Authentication Kerberos `
+    -Credential $onPremCred
+
+Import-PSSession $session -ErrorAction Stop -DisableNameChecking
+
+# Verify connection
+Get-ExchangeServer  # Should show on-prem servers
+```
+
+**Expected Output:**
+```
+Name           Site             ServerRole
+----           ----             ----------
+EX01           Default-Site-1   Mailbox, CAServer
+EX02           Default-Site-1   Mailbox, CAServer
+```
+
+**Validation Checklist:**
+- [ ] Connected to on-prem Exchange
+- [ ] Can list on-prem Exchange servers
+- [ ] Session active and imported
+
+**If FAIL or NOT APPLICABLE:**
+```powershell
+# If on-prem not needed, skip this step
+# If needed but fails:
+$error[0]  # Check error details
+# Common issues:
+# - Server name wrong: Verify FQDN
+# - Kerberos auth: Check domain membership
+# - Network: Check connectivity to server
+```
+
+**Time Check:** ⏱️ 10 minutes (skip if not needed)
+
+---
+
+### Step 0.4: Connect to Active Directory (AD)
+
+```powershell
+# Check AD connectivity
+Get-ADDomain  # Basic test
+Get-ADForest  # Get forest info
+
+# Find staging/test OU (if applicable)
+$testOU = "OU=SharedMailboxTest,DC=contoso,DC=com"  # Replace with your OU
+Get-ADUser -SearchBase $testOU -Filter * -ResultSetSize 5
+```
+
+**Expected Output:**
+```
+Domain           : contoso.com
+DomainMode       : Windows2016Domain
+Forest           : contoso.com
+
+DistinguishedName : CN=smbx_001,OU=SharedMailboxTest,DC=contoso,DC=com
+Name              : smbx_001
+SamAccountName    : smbx_001
+```
+
+**Validation Checklist:**
+- [ ] Can query AD domain info
+- [ ] Can list users in test OU
+- [ ] Test candidates visible (smbx_* accounts)
+
+**If FAIL:**
+```powershell
+# Troubleshoot AD
+Get-ADDomain -ErrorAction Stop  # Verify domain access
+# Check if test OU exists
+Get-ADOrganizationalUnit -Filter "Name -eq 'SharedMailboxTest'"
+# Common issues:
+# - Not domain-joined: Verify machine is domain member
+# - OU path wrong: Ask infrastructure team for correct path
+# - User lacks AD permission: Request elevated access
+```
+
+**Time Check:** ⏱️ 10 minutes
+
+---
+
+### Step 0.5: Verify All Connections
+
+```powershell
+# Create connection test function
+function Test-SharedMailboxProvisionerConnections {
+    Write-Host "Testing all connections..." -ForegroundColor Cyan
+    
+    # Test EXO
+    try {
+        $eox = Get-Mailbox -ResultSize 1 -ErrorAction Stop
+        Write-Host "[EXO] ✓ Connected" -ForegroundColor Green
+    } catch {
+        Write-Host "[EXO] ✗ Failed: $_" -ForegroundColor Red
+        return $false
+    }
+    
+    # Test AD
+    try {
+        $ad = Get-ADDomain -ErrorAction Stop
+        Write-Host "[AD] ✓ Connected" -ForegroundColor Green
+    } catch {
+        Write-Host "[AD] ✗ Failed: $_" -ForegroundColor Red
+        return $false
+    }
+    
+    # Test Module
+    try {
+        Get-Module SharedMailboxProvisioner -ErrorAction Stop | Out-Null
+        Write-Host "[Module] ✓ Loaded" -ForegroundColor Green
+    } catch {
+        Write-Host "[Module] ✗ Failed: $_" -ForegroundColor Red
+        return $false
+    }
+    
+    Write-Host "All connections verified!" -ForegroundColor Green
+    return $true
+}
+
+# Run verification
+$allConnected = Test-SharedMailboxProvisionerConnections
+if (-not $allConnected) { exit 1 }
+```
+
+**Expected Output:**
+```
+Testing all connections...
+[EXO] ✓ Connected
+[AD] ✓ Connected
+[Module] ✓ Loaded
+All connections verified!
+```
+
+**Validation Checklist:**
+- [ ] EXO connection working
+- [ ] AD connection working
+- [ ] Module loaded and accessible
+
+**If ANY FAIL:**
+- **STOP** - Do not proceed with testing
+- Contact DevOps team
+- Reschedule testing once connections are restored
+
+**Time Check:** ⏱️ 5 minutes
+
+---
+
+### Connection Setup Summary
+
+| Connection | Status | Details |
+|-----------|--------|---------|
+| Module Import | ✅ / ❌ | ___ |
+| EXO Connected | ✅ / ❌ | ___ |
+| EXO On-Prem (if needed) | ✅ / ❌ | ___ |
+| AD Connected | ✅ / ❌ | ___ |
+| All Verified | ✅ / ❌ | ___ |
+
+**If all marked ✅:** Proceed to Pre-Test Checklist  
+**If any marked ❌:** STOP and fix connections
+
+---
+
 ## Pre-Test Checklist (Before 9:00 AM)
 
 **15 minutes before testing starts:**
