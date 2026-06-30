@@ -156,7 +156,7 @@ function Get-MailboxProvisioningReport {
                     $durations += $duration
                 }
                 catch {
-                    # Skip entries with date parsing errors
+                    Write-Verbose "Failed to parse date in duration calculation: $_"
                 }
             }
 
@@ -182,7 +182,12 @@ function Get-MailboxProvisioningReport {
         foreach ($group in $groupGroups) {
             $groupSuccessCount = @($group.Group | Where-Object { $_.Status -eq "PERMISSIONS_SET" }).Count
             $groupTotal = $group.Group.Count
-            $groupSuccessRate = if ($groupTotal -gt 0) { [math]::Round(($groupSuccessCount / $groupTotal) * 100, 1) } else { 0 }
+            $groupSuccessRate = if ($groupTotal -gt 0) {
+                [math]::Round(($groupSuccessCount / $groupTotal) * 100, 1)
+            }
+            else {
+                0
+            }
 
             $result.ByGroup[$group.Name] = @{
                 Count = $groupTotal
