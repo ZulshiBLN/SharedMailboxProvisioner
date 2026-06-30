@@ -97,18 +97,61 @@ function Get-MailboxProvisioningStatus {
         $results = @()
 
         foreach ($entry in $entries) {
+            # Calculate property values
+            $errorCode = if ([string]::IsNullOrWhiteSpace($entry.ErrorCode)) {
+                "None"
+            }
+            else {
+                $entry.ErrorCode
+            }
+
+            $errorMessage = if ([string]::IsNullOrWhiteSpace($entry.ErrorMessage)) {
+                "None"
+            }
+            else {
+                $entry.ErrorMessage
+            }
+
+            $completedAt = if ([string]::IsNullOrWhiteSpace($entry.CompletedAt)) {
+                "Pending"
+            }
+            else {
+                $entry.CompletedAt
+            }
+
+            $retryCount = if ($entry.RetryCount) {
+                $entry.RetryCount
+            }
+            else {
+                0
+            }
+
+            $maxRetries = if ($entry.MaxRetries) {
+                $entry.MaxRetries
+            }
+            else {
+                5
+            }
+
+            $lastRetryAt = if ([string]::IsNullOrWhiteSpace($entry.LastRetryAt)) {
+                "Never"
+            }
+            else {
+                $entry.LastRetryAt
+            }
+
             $statusObj = [PSCustomObject]@{
                 SamAccountName = $entry.SamAccountName
                 DisplayName = $entry.DisplayName
                 Email = $entry.Email
                 CurrentStatus = $entry.Status
-                ErrorCode = if ([string]::IsNullOrWhiteSpace($entry.ErrorCode)) { "None" } else { $entry.ErrorCode }
-                ErrorMessage = if ([string]::IsNullOrWhiteSpace($entry.ErrorMessage)) { "None" } else { $entry.ErrorMessage }
+                ErrorCode = $errorCode
+                ErrorMessage = $errorMessage
                 CreatedAt = $entry.CreatedAt
-                CompletedAt = if ([string]::IsNullOrWhiteSpace($entry.CompletedAt)) { "Pending" } else { $entry.CompletedAt }
-                RetryCount = if ($entry.RetryCount) { $entry.RetryCount } else { 0 }
-                MaxRetries = if ($entry.MaxRetries) { $entry.MaxRetries } else { 5 }
-                LastRetryAt = if ([string]::IsNullOrWhiteSpace($entry.LastRetryAt)) { "Never" } else { $entry.LastRetryAt }
+                CompletedAt = $completedAt
+                RetryCount = $retryCount
+                MaxRetries = $maxRetries
+                LastRetryAt = $lastRetryAt
             }
 
             # Add timeline if requested
