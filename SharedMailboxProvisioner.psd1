@@ -31,6 +31,12 @@
         'Get-MailboxProvisioningReport'
         'Export-MailboxAuditLog'
         'Get-MailboxProvisioningMetrics'
+        # Tier 10: Operational Tooling
+        'Get-MailboxProvisioningStatus'
+        'Resolve-MailboxProvisioningFailure'
+        'Invoke-MailboxProvisioningRetry'
+        'Set-MailboxProvisioningSchedule'
+        'Get-MailboxProvisioningHealth'
     )
     CmdletsToExport = @()
     VariablesToExport = @()
