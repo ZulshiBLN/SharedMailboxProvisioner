@@ -89,7 +89,6 @@ function Get-MailboxProvisioningMetrics {
         # STEP 2: Calculate KPIs
         # ================================================================
         $successCount = @($backlogData | Where-Object { $_.Status -eq "PERMISSIONS_SET" }).Count
-        $failedCount = @($backlogData | Where-Object { $_.Status -eq "FAILED_PERMISSIONS" }).Count
         $totalCount = $backlogData.Count
 
         if ($totalCount -gt 0) {
@@ -108,7 +107,7 @@ function Get-MailboxProvisioningMetrics {
                     $durations += $duration
                 }
                 catch {
-                    # Skip on parse error
+                    Write-Verbose "Failed to parse date in duration calculation: $_"
                 }
             }
         }
@@ -141,7 +140,7 @@ function Get-MailboxProvisioningMetrics {
                     $recoveryTimes += $recoveryTime
                 }
                 catch {
-                    # Skip on parse error
+                    Write-Verbose "Failed to parse date in recovery time calculation: $_"
                 }
             }
 
@@ -197,6 +196,7 @@ function Get-MailboxProvisioningMetrics {
                     $entryDate -ge $cutoffDate
                 }
                 catch {
+                    Write-Verbose "Failed to parse date in trend analysis: $_"
                     $false
                 }
             })
@@ -245,7 +245,7 @@ function Get-MailboxProvisioningMetrics {
                 }
             }
             catch {
-                # Skip on parse error
+                Write-Verbose "Failed to parse date in hourly stats calculation: $_"
             }
         }
 
