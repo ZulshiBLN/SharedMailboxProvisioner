@@ -73,6 +73,16 @@ Active Directory ──> Candidate Discovery ──> Backlog Queue
                                                  └──> Audit Log ──> Reports
 ```
 
+### Tier 9: Integration Testing (Removed)
+
+**Note:** Tier 9 (Integration Testing) was originally planned but **removed during Beta Phase** due to infrastructure constraints:
+- **Constraint:** Accounts created only via IT-Shop (no direct AD creation)
+- **Impact:** No non-production test environment available for isolated testing
+- **Solution:** Mock-based testing in Tiers 1-8 validates core logic; Post-launch UAT with real infrastructure planned after deployment
+- **Status:** Tier 9 testing replaced by production UAT phase (scheduled after v0.8.2 deployment)
+
+This pragmatic decision maintains code quality while focusing on real-world validation post-launch.
+
 ### Data Storage
 
 #### 1. Provisioning Queue (JSON)

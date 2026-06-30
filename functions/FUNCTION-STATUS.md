@@ -128,18 +128,19 @@ Tracking of all functions: implementation status, test coverage, usage.
    - Rationale: Accounts created only via IT-Shop, no direct AD creation, no non-prod OU
    - Alternative: Mock-based testing (Tier 8), Post-launch UAT with real accounts
 
-3. **Tier 10: Operational Tooling (IN PROGRESS)**
-   - [ ] `Get-MailboxProvisioningStatus.ps1` – Query mailbox status
-   - [ ] `Resolve-MailboxProvisioningFailure.ps1` – Diagnostics
-   - [ ] `Invoke-MailboxProvisioningRetry.ps1` – Manual retry
-   - [ ] `Set-MailboxProvisioningSchedule.ps1` – ScheduledTask config
-   - [ ] `Get-MailboxProvisioningHealth.ps1` – System health check
+3. **Tier 10: Operational Tooling (COMPLETE ✅ 2026-06-30)**
+   - [x] `Get-MailboxProvisioningStatus.ps1` – Query mailbox status
+   - [x] `Resolve-MailboxProvisioningFailure.ps1` – Diagnostics
+   - [x] `Invoke-MailboxProvisioningRetry.ps1` – Manual retry
+   - [x] `Set-MailboxProvisioningSchedule.ps1` – ScheduledTask config
+   - [x] `Get-MailboxProvisioningHealth.ps1` – System health check
 
-4. **Tier 11: Documentation (PLANNED)**
-   - [ ] USER-GUIDE.md – Getting started + use cases
-   - [ ] ADMIN-GUIDE.md – Architecture & configuration
-   - [ ] OPERATIONS-RUNBOOK.md – Daily operations & failure handling
-   - [ ] API-REFERENCE.md – All functions documented
+4. **Tier 11: Documentation (COMPLETE ✅ 2026-06-30)**
+   - [x] USER-GUIDE.md – Getting started + use cases
+   - [x] ADMIN-GUIDE.md – Architecture & configuration
+   - [x] OPERATIONS-RUNBOOK.md – Daily operations & failure handling
+   - [x] API-REFERENCE.md – All functions documented
+   - [x] README.md – Documentation index & quick reference
 
 ### Refinements (Lower Priority)
 - [ ] Pester mock refinement for Tier 7 tests (8/10 tests currently failing on mocking)
