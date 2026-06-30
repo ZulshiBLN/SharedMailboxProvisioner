@@ -58,7 +58,7 @@ function Export-MailboxAuditLog {
         [string]$OutputPath = "",
 
         [Parameter(Mandatory = $false)]
-        [ValidateSet("All", "SUCCESS", "FAILED", "WARN")]
+        [ValidateSet("All", "INFO", "ERROR", "WARN")]
         [string]$FilterStatus = "All"
     )
 
