@@ -22,11 +22,10 @@ Describe "Get-MailboxProvisioningHealth" {
     }
 
     Context "Check All Health Indicators" {
-        It "Should perform all checks when CheckAll specified" {
+        It "Should perform checks and return consistent status" {
             $result = Get-MailboxProvisioningHealth -CheckAll
 
-            $result.Details | Should -Not -BeNullOrEmpty
-            $result.Details.Count | Should -BeGreaterThan 0
+            $result.OverallStatus | Should -Match "HEALTHY|DEGRADED|UNKNOWN"
         }
 
         It "Should default to CheckAll when no parameters specified" {
@@ -37,103 +36,84 @@ Describe "Get-MailboxProvisioningHealth" {
     }
 
     Context "Individual Health Checks" {
-        It "Should check Active Directory connectivity" {
+        It "Should check Active Directory connectivity status" {
             $result = Get-MailboxProvisioningHealth -CheckAD
 
             $result.Details | Should -Not -BeNullOrEmpty
-            $result.Details.Component | Should -Contain "Active Directory"
+            $adDetail = $result.Details | Where-Object { $_.Component -eq "Active Directory" }
+            $adDetail | Should -Not -BeNullOrEmpty
+            $adDetail.Status | Should -Match "CONNECTED|DISCONNECTED|ERROR"
         }
 
         It "Should check ScheduledTask status" {
             $result = Get-MailboxProvisioningHealth -CheckScheduledTask
 
             $result.Details | Should -Not -BeNullOrEmpty
-            $result.Details.Component | Should -Contain "ScheduledTask"
-        }
-
-        It "Should check Exchange Online connectivity" {
-            $result = Get-MailboxProvisioningHealth -CheckEXO
-
-            $result.Details | Should -Not -BeNullOrEmpty
-            $result.Details.Component | Should -Contain "Exchange Online"
-        }
-    }
-
-    Context "Health Status Reporting" {
-        It "Should report HEALTHY status when all components OK" {
-            $result = Get-MailboxProvisioningHealth -CheckAll
-
-            $result.OverallStatus | Should -Match "HEALTHY|DEGRADED|UNKNOWN"
-        }
-
-        It "Should populate Issues array when problems detected" {
-            $result = Get-MailboxProvisioningHealth -CheckAll
-
-            $result.Issues | Should -BeOfType [System.Collections.ArrayList]
-        }
-
-        It "Should include component details" {
-            $result = Get-MailboxProvisioningHealth -CheckAll
-
-            $result.Details | Should -Not -BeNullOrEmpty
-
-            foreach ($detail in $result.Details) {
-                $detail | Get-Member -Name "Component" | Should -Not -BeNullOrEmpty
-                $detail | Get-Member -Name "Status" | Should -Not -BeNullOrEmpty
-            }
-        }
-    }
-
-    Context "Component-Specific Checks" {
-        It "Should return component status for AD check" {
-            $result = Get-MailboxProvisioningHealth -CheckAD
-
-            $adDetail = $result.Details | Where-Object { $_.Component -eq "Active Directory" }
-            $adDetail | Should -Not -BeNullOrEmpty
-            $adDetail.Status | Should -Match "CONNECTED|DISCONNECTED|ERROR"
-        }
-
-        It "Should return component status for ScheduledTask check" {
-            $result = Get-MailboxProvisioningHealth -CheckScheduledTask
-
             $taskDetail = $result.Details | Where-Object { $_.Component -eq "ScheduledTask" }
             $taskDetail | Should -Not -BeNullOrEmpty
             $taskDetail.Status | Should -Match "RUNNING|DISABLED|NOT_FOUND|ERROR"
         }
 
-        It "Should return component status for EXO check" {
+        It "Should check Exchange Online connectivity status" {
             $result = Get-MailboxProvisioningHealth -CheckEXO
 
+            $result.Details | Should -Not -BeNullOrEmpty
             $exoDetail = $result.Details | Where-Object { $_.Component -eq "Exchange Online" }
             $exoDetail | Should -Not -BeNullOrEmpty
             $exoDetail.Status | Should -Match "CONNECTED|DISCONNECTED|ERROR"
         }
     }
 
-    Context "Degraded Status Detection" {
-        It "Should mark health as DEGRADED when component fails" {
+    Context "Health Status Reporting" {
+        It "Should report valid status values" {
+            $result = Get-MailboxProvisioningHealth -CheckAll
+
+            $result.OverallStatus | Should -Match "HEALTHY|DEGRADED|UNKNOWN"
+        }
+
+        It "Should include component details in response" {
+            $result = Get-MailboxProvisioningHealth -CheckAll
+
+            $result.Details | Should -Not -BeNullOrEmpty
+            $result.Details.Count | Should -BeGreaterThan 0
+
+            foreach ($detail in $result.Details) {
+                $detail.Component | Should -Not -BeNullOrEmpty
+                $detail.Status | Should -Not -BeNullOrEmpty
+            }
+        }
+    }
+
+    Context "Degraded Status" {
+        It "Should report DEGRADED when issues are detected" {
             $result = Get-MailboxProvisioningHealth -CheckAll
 
             if ($result.Issues.Count -gt 0) {
                 $result.OverallStatus | Should -Be "DEGRADED"
             }
         }
+
+        It "Should populate Issues array when problems found" {
+            $result = Get-MailboxProvisioningHealth -CheckAll
+
+            $result.Issues | Should -BeOfType [System.Collections.ArrayList]
+        }
     }
 
     Context "Error Handling" {
-        It "Should return UNKNOWN status on exception" {
+        It "Should handle exceptions gracefully" {
+            { Get-MailboxProvisioningHealth -CheckAll } | Should -Not -Throw
+        }
+
+        It "Should return valid status on error" {
             $result = Get-MailboxProvisioningHealth -CheckAll -ErrorAction SilentlyContinue
 
             $result.OverallStatus | Should -Match "HEALTHY|DEGRADED|UNKNOWN"
         }
-
-        It "Should complete without throwing" {
-            { Get-MailboxProvisioningHealth -CheckAll } | Should -Not -Throw
-        }
     }
 
-    Context "Output Format" {
-        It "Should return consistent output format" {
+    Context "Output Consistency" {
+        It "Should return consistent output structure across multiple calls" {
             $result1 = Get-MailboxProvisioningHealth
             $result2 = Get-MailboxProvisioningHealth
 
@@ -141,6 +121,8 @@ Describe "Get-MailboxProvisioningHealth" {
             $result2.CheckTime | Should -Not -BeNullOrEmpty
             $result1.OverallStatus | Should -Not -BeNullOrEmpty
             $result2.OverallStatus | Should -Not -BeNullOrEmpty
+            $result1.Details | Should -Not -BeNullOrEmpty
+            $result2.Details | Should -Not -BeNullOrEmpty
         }
     }
 }

@@ -2,7 +2,8 @@ Describe "Get-MailboxProvisioningStatus" {
     BeforeAll {
         Import-Module "$PSScriptRoot\..\SharedMailboxProvisioner.psd1" -Force
 
-        $testBacklogDir = Join-Path ([System.IO.Path]::GetTempPath()) "smp-test-tier10-status"
+        $testGuid = New-Guid
+        $testBacklogDir = Join-Path ([System.IO.Path]::GetTempPath()) "smp-test-status-$testGuid"
         $testBacklogPath = Join-Path $testBacklogDir "mailbox-provisioning-queue.json"
 
         if (-not (Test-Path $testBacklogDir)) {
@@ -10,9 +11,9 @@ Describe "Get-MailboxProvisioningStatus" {
         }
     }
 
-    AfterEach {
-        if (Test-Path $testBacklogPath) {
-            Remove-Item $testBacklogPath -Force
+    AfterAll {
+        if (Test-Path $testBacklogDir) {
+            Remove-Item $testBacklogDir -Recurse -Force
         }
     }
 
@@ -68,10 +69,7 @@ Describe "Get-MailboxProvisioningStatus" {
 
     Context "Query All Mailboxes" {
         It "Should return all pending mailboxes when no filter specified" {
-            # Remove any pre-existing backlog
-            if (Test-Path $testBacklogPath) {
-                Remove-Item $testBacklogPath -Force
-            }
+            $localBacklogPath = Join-Path $testBacklogDir "backlog-all.json"
 
             $backlog = @(
                 @{
@@ -94,9 +92,9 @@ Describe "Get-MailboxProvisioningStatus" {
                 }
             )
 
-            $backlog | ConvertTo-Json -Depth 10 | Set-Content -Path $testBacklogPath
+            $backlog | ConvertTo-Json -Depth 10 | Set-Content -Path $localBacklogPath
 
-            $result = Get-MailboxProvisioningStatus -BacklogPath $testBacklogPath
+            $result = Get-MailboxProvisioningStatus -BacklogPath $localBacklogPath
 
             $result.Count | Should -Be 2
             $result[0].SamAccountName | Should -Be "smbx_001"
@@ -106,6 +104,8 @@ Describe "Get-MailboxProvisioningStatus" {
 
     Context "Timeline Display" {
         It "Should include timeline when ShowTimeline switch is used" {
+            $localBacklogPath = Join-Path $testBacklogDir "backlog-timeline.json"
+
             $backlog = @(
                 @{
                     SamAccountName = "smbx_001"
@@ -121,9 +121,9 @@ Describe "Get-MailboxProvisioningStatus" {
                 }
             )
 
-            $backlog | ConvertTo-Json -Depth 10 | Set-Content -Path $testBacklogPath
+            $backlog | ConvertTo-Json -Depth 10 | Set-Content -Path $localBacklogPath
 
-            $result = Get-MailboxProvisioningStatus -SamAccountName "smbx_001" -ShowTimeline -BacklogPath $testBacklogPath
+            $result = Get-MailboxProvisioningStatus -SamAccountName "smbx_001" -ShowTimeline -BacklogPath $localBacklogPath
 
             $result.Timeline | Should -Not -BeNullOrEmpty
             $result.Timeline | Should -Match "\[CREATED\]"
@@ -132,6 +132,8 @@ Describe "Get-MailboxProvisioningStatus" {
         }
 
         It "Should include retry attempt in timeline" {
+            $localBacklogPath = Join-Path $testBacklogDir "backlog-retry.json"
+
             $backlog = @(
                 @{
                     SamAccountName = "smbx_001"
@@ -145,9 +147,9 @@ Describe "Get-MailboxProvisioningStatus" {
                 }
             )
 
-            $backlog | ConvertTo-Json -Depth 10 | Set-Content -Path $testBacklogPath
+            $backlog | ConvertTo-Json -Depth 10 | Set-Content -Path $localBacklogPath
 
-            $result = Get-MailboxProvisioningStatus -SamAccountName "smbx_001" -ShowTimeline -BacklogPath $testBacklogPath
+            $result = Get-MailboxProvisioningStatus -SamAccountName "smbx_001" -ShowTimeline -BacklogPath $localBacklogPath
 
             $result.Timeline | Should -Match "\[RETRIED\]"
             $result.Timeline | Should -Match "1 of 5"
@@ -156,11 +158,10 @@ Describe "Get-MailboxProvisioningStatus" {
 
     Context "Error Handling" {
         It "Should handle missing backlog file gracefully" {
-            $nonExistentPath = Join-Path $testBacklogDir "nonexistent.json"
+            $nonExistentPath = Join-Path $testBacklogDir "nonexistent-$((New-Guid).Guid).json"
 
             $result = Get-MailboxProvisioningStatus -SamAccountName "smbx_001" -BacklogPath $nonExistentPath -ErrorAction SilentlyContinue
 
-            # Result can be $null or empty array, or error message (all acceptable behaviors)
             if ($result -is [array]) {
                 $result.Count | Should -Be 0
             }
@@ -170,9 +171,10 @@ Describe "Get-MailboxProvisioningStatus" {
         }
 
         It "Should handle empty backlog" {
-            Set-Content -Path $testBacklogPath -Value ""
+            $emptyBacklogPath = Join-Path $testBacklogDir "empty.json"
+            Set-Content -Path $emptyBacklogPath -Value ""
 
-            $result = Get-MailboxProvisioningStatus -BacklogPath $testBacklogPath
+            $result = Get-MailboxProvisioningStatus -BacklogPath $emptyBacklogPath
 
             $result | Should -BeNullOrEmpty
         }
@@ -180,6 +182,8 @@ Describe "Get-MailboxProvisioningStatus" {
 
     Context "Status Properties" {
         It "Should correctly map error codes" {
+            $localBacklogPath = Join-Path $testBacklogDir "backlog-errors.json"
+
             $backlog = @(
                 @{
                     SamAccountName = "smbx_001"
@@ -194,12 +198,34 @@ Describe "Get-MailboxProvisioningStatus" {
                 }
             )
 
-            $backlog | ConvertTo-Json -Depth 10 | Set-Content -Path $testBacklogPath
+            $backlog | ConvertTo-Json -Depth 10 | Set-Content -Path $localBacklogPath
 
-            $result = Get-MailboxProvisioningStatus -SamAccountName "smbx_001" -BacklogPath $testBacklogPath
+            $result = Get-MailboxProvisioningStatus -SamAccountName "smbx_001" -BacklogPath $localBacklogPath
 
             $result.ErrorCode | Should -Be "MailboxNotFound"
             $result.ErrorMessage | Should -Match "not found"
+        }
+
+        It "Should handle missing optional fields" {
+            $localBacklogPath = Join-Path $testBacklogDir "backlog-minimal.json"
+
+            $backlog = @(
+                @{
+                    SamAccountName = "smbx_001"
+                    DisplayName = "Mailbox 001"
+                    Email = "smbx001@contoso.com"
+                    Status = "PENDING"
+                    CreatedAt = "2026-06-30 10:00:00"
+                }
+            )
+
+            $backlog | ConvertTo-Json -Depth 10 | Set-Content -Path $localBacklogPath
+
+            $result = Get-MailboxProvisioningStatus -SamAccountName "smbx_001" -BacklogPath $localBacklogPath
+
+            $result | Should -Not -BeNullOrEmpty
+            $result.ErrorCode | Should -Be "None"
+            $result.CompletedAt | Should -Be "Pending"
         }
     }
 }

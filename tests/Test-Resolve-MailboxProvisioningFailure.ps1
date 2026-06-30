@@ -2,22 +2,24 @@ Describe "Resolve-MailboxProvisioningFailure" {
     BeforeAll {
         Import-Module "$PSScriptRoot\..\SharedMailboxProvisioner.psd1" -Force
 
-        $testBacklogDir = Join-Path ([System.IO.Path]::GetTempPath()) "smp-test-tier10-resolve"
-        $testBacklogPath = Join-Path $testBacklogDir "mailbox-provisioning-queue.json"
+        $testGuid = New-Guid
+        $testBacklogDir = Join-Path ([System.IO.Path]::GetTempPath()) "smp-test-resolve-$testGuid"
 
         if (-not (Test-Path $testBacklogDir)) {
             New-Item -ItemType Directory -Path $testBacklogDir -Force | Out-Null
         }
     }
 
-    AfterEach {
-        if (Test-Path $testBacklogPath) {
-            Remove-Item $testBacklogPath -Force
+    AfterAll {
+        if (Test-Path $testBacklogDir) {
+            Remove-Item $testBacklogDir -Recurse -Force
         }
     }
 
     Context "Diagnose Single Failure" {
-        It "Should diagnose MailboxNotFound error" {
+        It "Should diagnose MailboxNotFound error as retryable" {
+            $localBacklogPath = Join-Path $testBacklogDir "diagnose-mailbox.json"
+
             $backlog = @(
                 @{
                     SamAccountName = "smbx_001"
@@ -31,9 +33,9 @@ Describe "Resolve-MailboxProvisioningFailure" {
                 }
             )
 
-            $backlog | ConvertTo-Json -Depth 10 | Set-Content -Path $testBacklogPath
+            $backlog | ConvertTo-Json -Depth 10 | Set-Content -Path $localBacklogPath
 
-            $result = Resolve-MailboxProvisioningFailure -SamAccountName "smbx_001" -BacklogPath $testBacklogPath
+            $result = Resolve-MailboxProvisioningFailure -SamAccountName "smbx_001" -BacklogPath $localBacklogPath
 
             $result | Should -Not -BeNullOrEmpty
             $result.CanRetry | Should -Be $true
@@ -42,6 +44,8 @@ Describe "Resolve-MailboxProvisioningFailure" {
         }
 
         It "Should diagnose GroupNotFound error as non-retryable" {
+            $localBacklogPath = Join-Path $testBacklogDir "diagnose-group.json"
+
             $backlog = @(
                 @{
                     SamAccountName = "smbx_001"
@@ -55,9 +59,9 @@ Describe "Resolve-MailboxProvisioningFailure" {
                 }
             )
 
-            $backlog | ConvertTo-Json -Depth 10 | Set-Content -Path $testBacklogPath
+            $backlog | ConvertTo-Json -Depth 10 | Set-Content -Path $localBacklogPath
 
-            $result = Resolve-MailboxProvisioningFailure -SamAccountName "smbx_001" -BacklogPath $testBacklogPath
+            $result = Resolve-MailboxProvisioningFailure -SamAccountName "smbx_001" -BacklogPath $localBacklogPath
 
             $result.CanRetry | Should -Be $false
             $result.RecommendedAction | Should -Match "ESCALATE"
@@ -65,6 +69,8 @@ Describe "Resolve-MailboxProvisioningFailure" {
         }
 
         It "Should diagnose PermissionError as retryable" {
+            $localBacklogPath = Join-Path $testBacklogDir "diagnose-permission.json"
+
             $backlog = @(
                 @{
                     SamAccountName = "smbx_001"
@@ -78,9 +84,9 @@ Describe "Resolve-MailboxProvisioningFailure" {
                 }
             )
 
-            $backlog | ConvertTo-Json -Depth 10 | Set-Content -Path $testBacklogPath
+            $backlog | ConvertTo-Json -Depth 10 | Set-Content -Path $localBacklogPath
 
-            $result = Resolve-MailboxProvisioningFailure -SamAccountName "smbx_001" -BacklogPath $testBacklogPath
+            $result = Resolve-MailboxProvisioningFailure -SamAccountName "smbx_001" -BacklogPath $localBacklogPath
 
             $result.CanRetry | Should -Be $true
             $result.RecommendedAction | Should -Match "Check service account"
@@ -89,6 +95,8 @@ Describe "Resolve-MailboxProvisioningFailure" {
 
     Context "Diagnose All Failures" {
         It "Should analyze multiple failed mailboxes" {
+            $localBacklogPath = Join-Path $testBacklogDir "diagnose-all.json"
+
             $backlog = @(
                 @{
                     SamAccountName = "smbx_001"
@@ -119,9 +127,9 @@ Describe "Resolve-MailboxProvisioningFailure" {
                 }
             )
 
-            $backlog | ConvertTo-Json -Depth 10 | Set-Content -Path $testBacklogPath
+            $backlog | ConvertTo-Json -Depth 10 | Set-Content -Path $localBacklogPath
 
-            $result = Resolve-MailboxProvisioningFailure -DiagnoseAll -BacklogPath $testBacklogPath
+            $result = Resolve-MailboxProvisioningFailure -DiagnoseAll -BacklogPath $localBacklogPath
 
             $result.Count | Should -Be 2
             $result[0].CanRetry | Should -Be $true
@@ -129,8 +137,10 @@ Describe "Resolve-MailboxProvisioningFailure" {
         }
     }
 
-    Context "Max Retry Reached" {
+    Context "Max Retry Exceeded" {
         It "Should recommend escalation when max retries exceeded" {
+            $localBacklogPath = Join-Path $testBacklogDir "diagnose-maxretry.json"
+
             $backlog = @(
                 @{
                     SamAccountName = "smbx_001"
@@ -143,9 +153,9 @@ Describe "Resolve-MailboxProvisioningFailure" {
                 }
             )
 
-            $backlog | ConvertTo-Json -Depth 10 | Set-Content -Path $testBacklogPath
+            $backlog | ConvertTo-Json -Depth 10 | Set-Content -Path $localBacklogPath
 
-            $result = Resolve-MailboxProvisioningFailure -SamAccountName "smbx_001" -BacklogPath $testBacklogPath
+            $result = Resolve-MailboxProvisioningFailure -SamAccountName "smbx_001" -BacklogPath $localBacklogPath
 
             $result.CanRetry | Should -Be $false
             $result.RecommendedAction | Should -Match "Max retries"
@@ -153,8 +163,10 @@ Describe "Resolve-MailboxProvisioningFailure" {
         }
     }
 
-    Context "Error Codes" {
-        It "Should handle InvalidMailbox error" {
+    Context "Error Code Handling" {
+        It "Should handle InvalidMailbox error code" {
+            $localBacklogPath = Join-Path $testBacklogDir "diagnose-invalid.json"
+
             $backlog = @(
                 @{
                     SamAccountName = "invalid"
@@ -167,15 +179,17 @@ Describe "Resolve-MailboxProvisioningFailure" {
                 }
             )
 
-            $backlog | ConvertTo-Json -Depth 10 | Set-Content -Path $testBacklogPath
+            $backlog | ConvertTo-Json -Depth 10 | Set-Content -Path $localBacklogPath
 
-            $result = Resolve-MailboxProvisioningFailure -SamAccountName "invalid" -BacklogPath $testBacklogPath
+            $result = Resolve-MailboxProvisioningFailure -SamAccountName "invalid" -BacklogPath $localBacklogPath
 
             $result.CanRetry | Should -Be $false
             $result.RecommendedAction | Should -Match "SAM prefix"
         }
 
-        It "Should handle ADConnectDelay error" {
+        It "Should handle ADConnectDelay error code" {
+            $localBacklogPath = Join-Path $testBacklogDir "diagnose-addelay.json"
+
             $backlog = @(
                 @{
                     SamAccountName = "smbx_001"
@@ -188,15 +202,17 @@ Describe "Resolve-MailboxProvisioningFailure" {
                 }
             )
 
-            $backlog | ConvertTo-Json -Depth 10 | Set-Content -Path $testBacklogPath
+            $backlog | ConvertTo-Json -Depth 10 | Set-Content -Path $localBacklogPath
 
-            $result = Resolve-MailboxProvisioningFailure -SamAccountName "smbx_001" -BacklogPath $testBacklogPath
+            $result = Resolve-MailboxProvisioningFailure -SamAccountName "smbx_001" -BacklogPath $localBacklogPath
 
             $result.CanRetry | Should -Be $true
             $result.RecommendedAction | Should -Match "60 min"
         }
 
-        It "Should handle unknown error code with default diagnosis" {
+        It "Should handle unknown error codes with default diagnosis" {
+            $localBacklogPath = Join-Path $testBacklogDir "diagnose-unknown.json"
+
             $backlog = @(
                 @{
                     SamAccountName = "smbx_001"
@@ -209,9 +225,9 @@ Describe "Resolve-MailboxProvisioningFailure" {
                 }
             )
 
-            $backlog | ConvertTo-Json -Depth 10 | Set-Content -Path $testBacklogPath
+            $backlog | ConvertTo-Json -Depth 10 | Set-Content -Path $localBacklogPath
 
-            $result = Resolve-MailboxProvisioningFailure -SamAccountName "smbx_001" -BacklogPath $testBacklogPath
+            $result = Resolve-MailboxProvisioningFailure -SamAccountName "smbx_001" -BacklogPath $localBacklogPath
 
             $result.CanRetry | Should -Be $true
             $result.Details | Should -Match "Unknown error"
@@ -219,13 +235,17 @@ Describe "Resolve-MailboxProvisioningFailure" {
     }
 
     Context "Error Handling" {
-        It "Should handle missing backlog file" {
-            $result = Resolve-MailboxProvisioningFailure -SamAccountName "smbx_001" -BacklogPath "nonexistent.json" -ErrorAction SilentlyContinue
+        It "Should handle missing backlog file gracefully" {
+            $nonExistentPath = Join-Path $testBacklogDir "nonexistent-$((New-Guid).Guid).json"
+
+            $result = Resolve-MailboxProvisioningFailure -SamAccountName "smbx_001" -BacklogPath $nonExistentPath -ErrorAction SilentlyContinue
 
             $result | Should -BeNullOrEmpty
         }
 
         It "Should return empty when no failures exist" {
+            $localBacklogPath = Join-Path $testBacklogDir "diagnose-nofailures.json"
+
             $backlog = @(
                 @{
                     SamAccountName = "smbx_001"
@@ -235,9 +255,9 @@ Describe "Resolve-MailboxProvisioningFailure" {
                 }
             )
 
-            $backlog | ConvertTo-Json -Depth 10 | Set-Content -Path $testBacklogPath
+            $backlog | ConvertTo-Json -Depth 10 | Set-Content -Path $localBacklogPath
 
-            $result = Resolve-MailboxProvisioningFailure -DiagnoseAll -BacklogPath $testBacklogPath
+            $result = Resolve-MailboxProvisioningFailure -DiagnoseAll -BacklogPath $localBacklogPath
 
             $result | Should -BeNullOrEmpty
         }
