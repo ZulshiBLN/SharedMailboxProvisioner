@@ -208,10 +208,21 @@ function _FormatAuditLogAsHtml {
 
     foreach ($entry in $Entries) {
         $rowClass = switch ($entry.Level) {
-            "INFO" { "success" }
-            "WARN" { "warn" }
-            "ERROR" { "failed" }
-            default { "" }
+            "INFO" {
+                "success"
+                break
+            }
+            "WARN" {
+                "warn"
+                break
+            }
+            "ERROR" {
+                "failed"
+                break
+            }
+            default {
+                ""
+            }
         }
 
         $html += @"
