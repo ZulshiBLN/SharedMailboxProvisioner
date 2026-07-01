@@ -1,6 +1,6 @@
 @{
     RootModule = 'SharedMailboxProvisioner.psm1'
-    ModuleVersion = '0.8.2'
+    ModuleVersion = '0.9.0'
     GUID = '50f777da-b442-4736-a21a-d05fc91849f5'
     Author = 'Michel Brosche'
     CompanyName = 'Cloud Operations'
@@ -46,6 +46,7 @@
             Tags = @('ExchangeOnline', 'SharedMailbox', 'Provisioning', 'Automation')
             ProjectUri = 'https://github.com/yourusername/SharedMailboxProvisioner'
             LicenseUri = 'https://github.com/yourusername/SharedMailboxProvisioner/blob/main/LICENSE'
+            Prerelease = 'beta1'
         }
     }
 }
