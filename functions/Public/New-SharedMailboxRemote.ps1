@@ -244,7 +244,7 @@ function _GetExchangePSSession {
         # Fallback to credential file
         if (-not (Test-Path -Path $CredentialPath)) {
             Write-Warning "Credential file not found: $CredentialPath"
-            Write-Warning "Run scripts\Initialize-OnPremCredential.ps1 to create the credential file"
+            Write-Warning "Run scripts\Initialize-ProvisioningConnections.ps1 to create the credential file"
             return $null
         }
 

@@ -16,7 +16,7 @@ Per ADR-004: Logging & Audit Trail
 
 .PARAMETER Tenant
 Organization name (e.g., 'contoso.onmicrosoft.com') or TenantId (GUID). Optional - falls back
-to the 'Organization' (or 'TenantId') value from config.<Environment>.json if not supplied.
+to the 'Organization' value from config.<Environment>.json if not supplied.
 
 .PARAMETER AppId
 Application (client) ID for app-based authentication. Optional - falls back to the 'AppId'
@@ -31,7 +31,8 @@ Optional explicit path to a config JSON file, overriding the Environment-based l
 
 .PARAMETER CertificateThumbprint
 Thumbprint of the authentication certificate, already installed in the local certificate store.
-Required together with -AppId for app-based (certificate) authentication.
+Required together with -AppId for app-based (certificate) authentication. Optional - falls
+back to the 'CertificateThumbprint' value from config.<Environment>.json if not supplied.
 
 .PARAMETER SkipConnectIfAlready
 If connection already exists, skip reconnect (default: false, always reconnect)
@@ -52,9 +53,9 @@ Connect-ExchangeOnlineEnv -Tenant "contoso.onmicrosoft.com"
 Connects to Exchange Online for contoso tenant (interactive auth)
 
 .EXAMPLE
-Connect-ExchangeOnlineEnv -CertificateThumbprint "AB12CD34..."
-Connects using Tenant/AppId resolved from config.dev.json (set up via
-scripts/Initialize-OnPremCredential.ps1)
+Connect-ExchangeOnlineEnv
+Connects using Tenant/AppId/CertificateThumbprint all resolved from config.dev.json
+(set up via scripts/Initialize-ProvisioningConnections.ps1)
 
 .EXAMPLE
 Connect-ExchangeOnlineEnv -Tenant "12345678-1234-1234-1234-123456789012" -AppId "app-guid" -CertificateThumbprint "AB12CD34..."
@@ -103,22 +104,25 @@ function Connect-ExchangeOnlineEnv {
         [string]$Prefix = "ETH"
     )
 
-    # Resolve Tenant/AppId from config if not explicitly supplied
-    if (-not $Tenant -or -not $AppId) {
+    # Resolve Tenant/AppId/CertificateThumbprint from config if not explicitly supplied
+    if (-not $Tenant -or -not $AppId -or -not $CertificateThumbprint) {
         $config = Get-Configuration -ConfigPath $ConfigPath -Environment $Environment
 
         if ($config) {
             if (-not $Tenant) {
-                $Tenant = if ($config.Organization) { $config.Organization } else { $config.TenantId }
+                $Tenant = $config.Organization
             }
             if (-not $AppId) {
                 $AppId = $config.AppId
+            }
+            if (-not $CertificateThumbprint) {
+                $CertificateThumbprint = $config.CertificateThumbprint
             }
         }
     }
 
     if (-not $Tenant) {
-        Write-Error "Tenant not specified and no 'Organization'/'TenantId' found in config.$Environment.json"
+        Write-Error "Tenant not specified and no 'Organization' found in config.$Environment.json"
         return $false
     }
 

@@ -43,9 +43,9 @@ function Get-Configuration {
 
     # Default configuration (fallback)
     $defaultConfig = @{
-        TenantId = ""
         Organization = ""
         AppId = ""
+        CertificateThumbprint = ""
         DefaultMailboxQuota = "50GB"
         LogRetentionDays = 90
         MaxRetries = 5
@@ -73,32 +73,8 @@ function Get-Configuration {
         Write-Verbose "Configuration file not found: $ConfigPath (using defaults)"
     }
 
-    # Validate required fields
-    if (-not $config.TenantId -or $config.TenantId -eq "") {
-        Write-Error "Configuration error: TenantId is required"
-        return $null
-    }
-
-    # Validate format of required fields
-    if (-not (_ValidateGuid -Value $config.TenantId)) {
-        Write-Error "Configuration error: TenantId must be a valid GUID (got: $($config.TenantId))"
-        return $null
-    }
-
     Write-Verbose "Configuration validated successfully"
     return [PSCustomObject]$config
-}
-
-function _ValidateGuid {
-    param([string]$Value)
-
-    try {
-        $guid = [guid]::Parse($Value)
-        return $true
-    }
-    catch {
-        return $false
-    }
 }
 
 function Get-ServiceAccountCredential {

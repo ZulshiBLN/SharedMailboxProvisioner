@@ -73,9 +73,9 @@ $appId  = "<app-registration-client-id>"  # Application (client) ID
 # (which imports unprefixed cmdlets) without name collisions.
 Connect-ExchangeOnlineEnv -Tenant $tenant -AppId $appId -CertificateThumbprint $certificateThumbprint
 
-# Option B: Tenant/AppId resolved from config (set up once via
-# scripts\Initialize-OnPremCredential.ps1 - see Step 0.3). Omit -Tenant/-AppId entirely:
-# Connect-ExchangeOnlineEnv -Environment prod -CertificateThumbprint $certificateThumbprint
+# Option B: Tenant/AppId/CertificateThumbprint all resolved from config (set up once via
+# scripts\Initialize-ProvisioningConnections.ps1 - see Step 0.3). No explicit params needed:
+# Connect-ExchangeOnlineEnv -Environment prod
 
 # Verify connection
 Get-ConnectionInformation
@@ -127,8 +127,8 @@ AS the Service Account with elevated privileges - this also populates
 `config.<Environment>.json` used by `Connect-ExchangeOnlineEnv` (Step 0.2, Option B):
 
 ```powershell
-.\scripts\Initialize-OnPremCredential.ps1 -UserName "ETHZ\SvcExchangeAdmin" -Environment prod `
-    -TenantId "<tenant-guid>" -Organization "<tenant>.onmicrosoft.com" -AppId "<app-registration-client-id>"
+.\scripts\Initialize-ProvisioningConnections.ps1 -UserName "ETHZ\SvcExchangeAdmin" -Environment prod `
+    -Organization "<tenant>.onmicrosoft.com" -AppId "<app-registration-client-id>" -CertificateThumbprint $certificateThumbprint
 ```
 
 This creates `config\Credential_ETHZ_SvcExchangeAdmin.clixml`.
@@ -180,7 +180,7 @@ EX02           Default-Site-1   Mailbox, CAServer
 # If needed but fails:
 $error[0]  # Check error details
 # Common issues:
-# - Credential file missing: run scripts\Initialize-OnPremCredential.ps1 first (see above)
+# - Credential file missing: run scripts\Initialize-ProvisioningConnections.ps1 first (see above)
 # - Server name wrong: Verify FQDN
 # - Current user context failing: expected if not running as the Service Account - the
 #   credential-file fallback should still succeed

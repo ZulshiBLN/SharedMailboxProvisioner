@@ -1,7 +1,7 @@
 {
-  "TenantId": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
   "Organization": "contoso.onmicrosoft.com",
   "AppId": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
+  "CertificateThumbprint": "AB12CD34EF56AB12CD34EF56AB12CD34EF56AB12",
   "DefaultMailboxQuota": "50GB",
   "LogRetentionDays": 90,
   "MaxRetries": 5

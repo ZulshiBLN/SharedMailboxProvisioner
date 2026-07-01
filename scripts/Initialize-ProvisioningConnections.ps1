@@ -1,6 +1,7 @@
 <#
 .SYNOPSIS
-One-time setup: create the on-premises Service Account credential file and populate EXO connection config.
+One-time setup for both connections the provisioning pipeline needs: the on-premises
+Service Account credential and the Exchange Online (EXO) app connection config.
 
 .DESCRIPTION
 CLI admin tool that:
@@ -9,34 +10,39 @@ CLI admin tool that:
    credential file at config\Credential_{UserName}.clixml. New-SharedMailboxRemote
    uses this file as a fallback when the current user context cannot establish an
    on-premises Exchange PSSession.
-3. Writes/updates TenantId, Organization and AppId into config\config.<Environment>.json,
-   so Connect-ExchangeOnlineEnv can resolve them without explicit parameters.
+3. Writes Organization, AppId and CertificateThumbprint into config\config.<Environment>.json,
+   so Connect-ExchangeOnlineEnv can resolve the EXO app connection without explicit
+   parameters. These three belong together (EXO app auth won't work with only one
+   or two of them), so all three are required.
 
 This is a MANUAL ADMIN TOOL - run once per Service Account/environment, never scheduled.
 
 Per ADR-005: Configuration Management
 
 .PARAMETER UserName
-Service Account username, e.g. "ETHZ\SvcExchangeAdmin". Must match the account this
-script is currently running as (verified before prompting for credentials).
+Local on-premises Service Account username, e.g. "ETHZ\SvcExchangeAdmin". Must match
+the account this script is currently running as (verified before prompting for
+credentials). Used only for the credential file - unrelated to the EXO connection.
 
 .PARAMETER Environment
 Config environment to update (config.<Environment>.json). Default: "dev"
 
-.PARAMETER TenantId
-Optional TenantId (GUID) to store in config.<Environment>.json.
-
 .PARAMETER Organization
-Optional Organization domain (e.g. "ethz.onmicrosoft.com") to store in config.<Environment>.json.
+Organization domain for the EXO app connection (e.g. "ethz.onmicrosoft.com").
+Stored in config.<Environment>.json.
 
 .PARAMETER AppId
-Optional Application (client) ID to store in config.<Environment>.json.
+Application (client) ID for the EXO app connection. Stored in config.<Environment>.json.
+
+.PARAMETER CertificateThumbprint
+Thumbprint of the authentication certificate, already installed in the local certificate
+store, for the EXO app connection. Stored in config.<Environment>.json.
 
 .EXAMPLE
-.\Initialize-OnPremCredential.ps1 -UserName "ETHZ\SvcExchangeAdmin" -Environment prod `
-    -TenantId "9634a6ec-a266-45a3-ab14-74c4211fc582" `
+.\Initialize-ProvisioningConnections.ps1 -UserName "ETHZ\SvcExchangeAdmin" -Environment prod `
     -Organization "ethz.onmicrosoft.com" `
-    -AppId "2b249afb-9e8c-4321-8808-6dce76a6160b"
+    -AppId "2b249afb-9e8c-4321-8808-6dce76a6160b" `
+    -CertificateThumbprint "A377E5106C48A92041314CB5A13369F827A2AC96"
 
 Creates config\Credential_ETHZ_SvcExchangeAdmin.clixml and updates config\config.prod.json
 
@@ -44,8 +50,8 @@ Creates config\Credential_ETHZ_SvcExchangeAdmin.clixml and updates config\config
 - Must be run AS the Service Account, with elevated privileges (matches the original
   Initialize-ScheduledTaskCredential design this script replaces)
 - Credential file is encrypted via Export-Clixml (DPAPI, tied to the running user/account)
-- TenantId/Organization/AppId are not secrets, but config.<Environment>.json is excluded
-  from Git via .gitignore regardless - keep tenant-specific values out of config.template.json
+- Organization/AppId/CertificateThumbprint are not secrets, but config.<Environment>.json is
+  excluded from Git via .gitignore regardless - keep tenant-specific values out of config.template.json
 #>
 
 [CmdletBinding()]
@@ -56,14 +62,14 @@ param(
     [Parameter(Mandatory = $false)]
     [string]$Environment = "dev",
 
-    [Parameter(Mandatory = $false)]
-    [string]$TenantId = "",
+    [Parameter(Mandatory = $true)]
+    [string]$Organization,
 
-    [Parameter(Mandatory = $false)]
-    [string]$Organization = "",
+    [Parameter(Mandatory = $true)]
+    [string]$AppId,
 
-    [Parameter(Mandatory = $false)]
-    [string]$AppId = ""
+    [Parameter(Mandatory = $true)]
+    [string]$CertificateThumbprint
 )
 
 # Dot-source Write-Log directly (private module function, not exported by Import-Module)
@@ -72,7 +78,8 @@ $moduleRoot = Split-Path -Parent $PSScriptRoot
 
 Write-Output ""
 Write-Output "========================================="
-Write-Output "On-Premises Credential + EXO Config Setup"
+Write-Output "Provisioning Connections Setup"
+Write-Output "(On-Premises Credential + EXO App Config)"
 Write-Output "========================================="
 Write-Output ""
 
@@ -119,9 +126,9 @@ if (-not (Test-Path -Path $configDir)) {
 
 try {
     # ================================================================
-    # STEP 1: Create encrypted credential file
+    # STEP 1: Create encrypted credential file for the local Service Account
     # ================================================================
-    Write-Output "[1/2] Creating encrypted credential file..."
+    Write-Output "[1/2] Creating local Service Account credential file..."
     Write-Output ""
 
     $sanitizedUserName = $UserName -replace '[\\/:*?"<>|]', '_'
@@ -141,13 +148,13 @@ try {
     Write-Output ""
     Write-Output "[OK] Credential file created: $credentialPath"
     Write-Log -Message "On-premises credential file created: $credentialPath" `
-        -Level INFO -Operation "Initialize-OnPremCredential" -Status "SUCCESS"
+        -Level INFO -Operation "Initialize-ProvisioningConnections" -Status "SUCCESS"
     Write-Output ""
 
     # ================================================================
-    # STEP 2: Update config.<Environment>.json with EXO connection data
+    # STEP 2: Write EXO app connection config (Organization/AppId/CertificateThumbprint)
     # ================================================================
-    Write-Output "[2/2] Updating config.$Environment.json..."
+    Write-Output "[2/2] Updating config.$Environment.json with EXO app connection..."
 
     $configPath = Join-Path $configDir "config.$Environment.json"
     $templatePath = Join-Path $configDir "config.template.json"
@@ -162,21 +169,15 @@ try {
         $configData = [PSCustomObject]@{}
     }
 
-    if ($TenantId) {
-        $configData | Add-Member -NotePropertyName 'TenantId' -NotePropertyValue $TenantId -Force
-    }
-    if ($Organization) {
-        $configData | Add-Member -NotePropertyName 'Organization' -NotePropertyValue $Organization -Force
-    }
-    if ($AppId) {
-        $configData | Add-Member -NotePropertyName 'AppId' -NotePropertyValue $AppId -Force
-    }
+    $configData | Add-Member -NotePropertyName 'Organization' -NotePropertyValue $Organization -Force
+    $configData | Add-Member -NotePropertyName 'AppId' -NotePropertyValue $AppId -Force
+    $configData | Add-Member -NotePropertyName 'CertificateThumbprint' -NotePropertyValue $CertificateThumbprint -Force
 
     $configData | ConvertTo-Json -Depth 10 | Set-Content -Path $configPath -Force -ErrorAction Stop
 
     Write-Output "[OK] Config updated: $configPath"
-    Write-Log -Message "Config updated for environment '$Environment': $configPath" `
-        -Level INFO -Operation "Initialize-OnPremCredential" -Status "SUCCESS"
+    Write-Log -Message "EXO app connection config updated for environment '$Environment': $configPath" `
+        -Level INFO -Operation "Initialize-ProvisioningConnections" -Status "SUCCESS"
     Write-Output ""
 
     Write-Output "Setup Complete!"
@@ -188,12 +189,12 @@ try {
     Write-Output "1. New-SharedMailboxRemote -CredentialPath `"$credentialPath`""
     Write-Output "   uses this file as fallback if the current user context can't open a PSSession."
     Write-Output "2. Connect-ExchangeOnlineEnv -Environment $Environment"
-    Write-Output "   resolves Tenant/AppId from config.$Environment.json automatically."
+    Write-Output "   resolves Tenant/AppId/CertificateThumbprint from config.$Environment.json automatically."
     Write-Output ""
 }
 catch {
-    $msg = "On-premises credential/config setup failed: $($_.Exception.Message)"
+    $msg = "Provisioning connections setup failed: $($_.Exception.Message)"
     Write-Error $msg
-    Write-Log -Message $msg -Level ERROR -Operation "Initialize-OnPremCredential" -Status "FAILED"
+    Write-Log -Message $msg -Level ERROR -Operation "Initialize-ProvisioningConnections" -Status "FAILED"
     exit 1
 }

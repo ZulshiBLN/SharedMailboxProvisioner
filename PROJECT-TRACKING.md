@@ -64,7 +64,7 @@ Candidate discovery, validation, and Exchange Online provisioning. 10 functions,
 | 2 | Group Validation | `_ParseSharedMailboxGroupDescription`, `_ValidateSharedMailboxGroup`, `Get-SharedMailboxACLGroup` | ACL group lookup, optimized with `Get-ADObject` |
 | 3 | Data Quality | `_ValidateDomainInExchangeOnline`, `_CheckForDuplicateEmails`, `Test-SharedMailboxCandidate` | Combined candidate validation (renamed from `Validate-` to approved verb `Test-`) |
 | 4 | Candidate Discovery | `Get-SharedMailboxCandidates`, `Get-SharedMailboxCandidatesWithGroups` | AD query for eligible candidates |
-| 5 | Exchange Provisioning | `New-SharedMailboxRemote`, `Invoke-MailboxPermissionQueue` | Hybrid JSON/CSV backlog, 60-min EXO sync handling. Credential setup moved to `scripts/Initialize-OnPremCredential.ps1` (2026-07-01, see Known Issues/Changelog below). |
+| 5 | Exchange Provisioning | `New-SharedMailboxRemote`, `Invoke-MailboxPermissionQueue` | Hybrid JSON/CSV backlog, 60-min EXO sync handling. Credential setup moved to `scripts/Initialize-ProvisioningConnections.ps1` (2026-07-01, see Known Issues/Changelog below). |
 | 6 | Batch Orchestration | `Invoke-SharedMailboxProvisioning` | Main entry point: discover -> create -> assign permissions |
 
 **Commits:** 2c8a116, 824159f, 8ee5634, 6507d81, 8de6a0a, ba4bc2e, d9b6461, d09a1f7, ab9ec6b
@@ -134,15 +134,19 @@ pair) and needs an outbound proxy. `Connect-ExchangeOnlineEnv` was extended acco
 - `-Tenant`/`-AppId` are now optional, falling back to `Organization`/`AppId` in
   `config.<Environment>.json` (new `-Environment`/`-ConfigPath` params)
 
-New admin script `scripts/Initialize-OnPremCredential.ps1` (replaces the private
+New admin script `scripts/Initialize-ProvisioningConnections.ps1` (replaces the private
 `_Initialize-ScheduledTaskCredential`) creates the on-prem Service Account credential file
-at `config/Credential_{UserName}.clixml` and writes `TenantId`/`Organization`/`AppId` into
+at `config/Credential_{UserName}.clixml` and writes `Organization`/`AppId`/`CertificateThumbprint` into
 `config/config.<Environment>.json` in one step. `.gitignore` was extended with `*.clixml`
 since neither `config/` nor `data/` previously excluded credential files.
 
 Confirmed working live: `Connect-ExchangeOnlineEnv -Tenant ethz.onmicrosoft.com -AppId ... -CertificateThumbprint ... -ProxyUrl proxy.ethz.ch:3128` connected successfully (`ModulePrefix: ETH`, `CertificateAuthentication: True`), and `Get-ETHMailbox -ResultSize 1` returned a real mailbox.
 
 Config schema also simplified same day: `OrganizationName`, `PrimarySmtpDomain`, `ComplianceLabels`, `DelegatedAdministration`, `InitialBackoffMs` removed from `config.template.json`/`_Get-Configuration.ps1` defaults - none had any downstream consumer (grepped the whole codebase to confirm). `PrimarySmtpDomain`'s mandatory validation (and the now-unused `_ValidateDomain` helper) removed accordingly. `MaxRetries` default raised 3 -> 5; still not wired to any actual retry logic (`_RetryExchangeOperation` has its own separate, hardcoded defaults) - kept in schema for future use only.
+
+Same-day follow-up: script renamed `Initialize-OnPremCredential.ps1` -> `Initialize-ProvisioningConnections.ps1` since `-Organization`/`-AppId`/`-CertificateThumbprint` are EXO-only concerns, not on-prem, despite the old name implying otherwise. `-UserName` (on-prem credential) stays independent; the three EXO params are now all `Mandatory = $true` (previously individually optional) since EXO app auth needs all three together or none.
+
+Second same-day follow-up: `TenantId` swapped for `CertificateThumbprint` in `config.template.json`/`_Get-Configuration.ps1`/`Initialize-ProvisioningConnections.ps1`/`Connect-ExchangeOnlineEnv.ps1`. `Connect-ExchangeOnlineEnv` now also resolves `-CertificateThumbprint` from config (not just `-Tenant`/`-AppId`), so a fully config-driven call needs zero explicit parameters. `_ValidateGuid` helper removed (no caller left once `TenantId`'s validation was dropped). Also fixed `tests/Test-GetConfiguration.ps1`, found broken independent of this change: wrong require path (`Get-Configuration.ps1` instead of `_Get-Configuration.ps1`) and assertions against the pre-simplification schema - test count 5 -> 2, total suite 348 -> 345.
 
 ---
 
@@ -207,10 +211,10 @@ Phase Beta (Tier 7-8,10-11): COMPLETE & TESTED (12 functions + 1 script, ~2,743 
 Pre-Release Phase:           ACTIVE (Week 1 of 3, staging deployment underway)
 
 Total Public Functions:      18
-Total Private Functions:     11 (was 12; _Initialize-ScheduledTaskCredential removed 2026-07-01, superseded by scripts/Initialize-OnPremCredential.ps1)
-Total Admin Scripts:         2 (Provision-BulkMailboxesFromCSV.ps1, Initialize-OnPremCredential.ps1)
+Total Private Functions:     11 (was 12; _Initialize-ScheduledTaskCredential removed 2026-07-01, superseded by scripts/Initialize-ProvisioningConnections.ps1)
+Total Admin Scripts:         2 (Provision-BulkMailboxesFromCSV.ps1, Initialize-ProvisioningConnections.ps1)
 Total Test Files:            27
-Total Test Cases:            348 (counted from `It` blocks in tests/)
+Total Test Cases:            345 (counted from `It` blocks in tests/; was 348 before Test-GetConfiguration.ps1 rewrite, 2026-07-01)
 Build Validation:            PASSED (0 PSScriptAnalyzer violations, 2026-07-01)
 Module Loading:              VERIFIED
 ```

@@ -37,21 +37,22 @@ notepad config\config.dev.json
 **Example config.dev.json:**
 ```json
 {
-  "TenantId": "12345678-1234-1234-1234-123456789012",
-  "OrganizationName": "MyOrg",
-  "PrimarySmtpDomain": "myorg.com",
+  "Organization": "myorg.onmicrosoft.com",
+  "AppId": "12345678-1234-1234-1234-123456789012",
+  "CertificateThumbprint": "AB12CD34EF56AB12CD34EF56AB12CD34EF56AB12",
   "DefaultMailboxQuota": "50GB",
-  "ComplianceLabels": ["Internal"],
-  "DelegatedAdministration": true,
   "LogRetentionDays": 90,
-  "MaxRetries": 3,
-  "InitialBackoffMs": 100
+  "MaxRetries": 5
 }
 ```
 
-**Required fields:**
-- `TenantId`: Your Azure AD Tenant ID (GUID format)
-- `PrimarySmtpDomain`: Your primary SMTP domain (e.g., contoso.com)
+**Fields used for the EXO app connection** (see `Connect-ExchangeOnlineEnv`, or generate this
+file via `scripts\Initialize-ProvisioningConnections.ps1`):
+- `Organization`: Your tenant's `*.onmicrosoft.com` domain (or TenantId GUID)
+- `AppId`: Application (client) ID of the App Registration used for EXO app auth
+- `CertificateThumbprint`: Thumbprint of the auth certificate, already installed in the local certificate store
+
+None of these are hard-required by `Get-Configuration` itself - `Connect-ExchangeOnlineEnv` validates what it actually needs at connect time.
 
 ---
 
@@ -139,8 +140,8 @@ Get-Module SharedMailboxProvisioner | Select-Object -ExpandProperty ExportedFunc
 ```powershell
 # Source helper functions
 . .\functions\Private\_RetryExchangeOperation.ps1
-. .\functions\Private\Write-Log.ps1
-. .\functions\Private\Get-Configuration.ps1
+. .\functions\Private\_Write-Log.ps1
+. .\functions\Private\_Get-Configuration.ps1
 
 # Test retry function
 $result = _RetryExchangeOperation -ScriptBlock { "Success" } -OperationName "Test"
@@ -148,7 +149,7 @@ $result = _RetryExchangeOperation -ScriptBlock { "Success" } -OperationName "Tes
 
 # Test configuration loading
 $config = Get-Configuration -ConfigPath "config\config.dev.json"
-Write-Output "Tenant: $($config.TenantId)"
+Write-Output "Organization: $($config.Organization)"
 ```
 
 ---
@@ -490,9 +491,11 @@ Copy-Item config\config.template.json config\config.dev.json
 ### Exchange Online connection fails
 
 ```powershell
-# Check tenant ID format
+# Check EXO app connection fields
 $config = Get-Configuration -ConfigPath "config\config.dev.json"
-$config.TenantId  # Should be GUID format
+$config.Organization             # Should be your tenant's *.onmicrosoft.com domain
+$config.AppId                    # Should be a GUID
+$config.CertificateThumbprint    # Should match a cert in Cert:\CurrentUser\My or Cert:\LocalMachine\My
 
 # Check credential availability
 $cred = Get-ServiceAccountCredential -EnvironmentName "dev"
