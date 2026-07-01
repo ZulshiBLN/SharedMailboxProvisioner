@@ -98,9 +98,9 @@ Shared Mailbox 1 sharedmb1@contoso.com
 ```
 
 **Validation Checklist:**
-- [ ] `Connect-ExchangeOnlineEnv` prints `[OK] Connected to Exchange Online successfully`
-- [ ] `Get-ConnectionInformation` shows an active session for the correct tenant
-- [ ] `Get-ETHMailbox` (prefixed) can list mailboxes (at least 1)
+- [x] `Connect-ExchangeOnlineEnv` prints `[OK] Connected to Exchange Online successfully` (2026-07-01: confirmed, tenant `ethz.onmicrosoft.com`, prefix `ETH`)
+- [x] `Get-ConnectionInformation` shows an active session for the correct tenant (2026-07-01: `State: Connected`, `CertificateAuthentication: True`)
+- [x] `Get-ETHMailbox` (prefixed) can list mailboxes (at least 1) (2026-07-01: returned `phdhoersaal@ethz.ch`)
 
 **If FAIL:**
 ```powershell
@@ -170,10 +170,10 @@ EX02           Default-Site-1   Mailbox, CAServer
 ```
 
 **Validation Checklist:**
-- [ ] Connected to on-prem Exchange (current user context or credential file fallback)
-- [ ] Can list on-prem Exchange servers
-- [ ] `Get-Mailbox` (unprefixed) returns a result without colliding with `Get-ETHMailbox` from Step 0.2
-- [ ] Session active and imported
+- [x] Connected to on-prem Exchange (current user context or credential file fallback) (2026-07-01: current user context succeeded directly against `mailm120`, no fallback needed)
+- [x] Can list on-prem Exchange servers (2026-07-01: `Get-ExchangeServer` returned `mailm220`, `mailm120`)
+- [x] `Get-Mailbox` (unprefixed) returns a result without colliding with `Get-ETHMailbox` from Step 0.2 (2026-07-01: returned a result; happened to be a disabled `SystemMailbox{...}` object with a pre-existing "Database is mandatory on UserMailbox" warning - unrelated to this module, just note for anyone re-running with `-ResultSize 1`)
+- [x] Session active and imported (2026-07-01: `Import-PSSession` succeeded, on-prem cmdlets like `Add-ADPermission` available)
 
 **If FAIL or NOT APPLICABLE:**
 ```powershell
@@ -306,11 +306,11 @@ All connections verified!
 
 | Connection | Status | Details |
 |-----------|--------|---------|
-| Module Import | ✅ / ❌ | ___ |
-| EXO Connected | ✅ / ❌ | ___ |
-| EXO On-Prem (if needed) | ✅ / ❌ | ___ |
-| AD Connected | ✅ / ❌ | ___ |
-| All Verified | ✅ / ❌ | ___ |
+| Module Import | ✅ | 2026-07-01: `SharedMailboxProvisioner 0.9.0`, PS `5.1.26100` |
+| EXO Connected | ✅ | 2026-07-01: cert-store app auth via `Connect-ExchangeOnlineEnv`, tenant `ethz.onmicrosoft.com`, prefix `ETH` |
+| EXO On-Prem (if needed) | ✅ | 2026-07-01: current user context against `mailm120`, `Get-ExchangeServer`/`Get-Mailbox` both returned data |
+| AD Connected | ⏳ pending | Step 0.4 output not yet confirmed (message truncated during testing) |
+| All Verified | ⏳ pending | Step 0.5 (`Test-SharedMailboxProvisionerConnections`) output not yet confirmed |
 
 **If all marked ✅:** Proceed to Pre-Test Checklist  
 **If any marked ❌:** STOP and fix connections
