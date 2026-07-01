@@ -54,29 +54,32 @@ $PSVersionTable.PSVersion  # Should be 5.1+
 
 ### Step 0.2: Connect to Exchange Online (EXO)
 
-**Required:** Modern Authentication enabled, MFA-less service account (or app registration)
+**Required:** App Registration with certificate-based authentication (`Exchange.ManageAsApp` API permission, admin consent granted). Interactive/credential-based auth is NOT used - see `Connect-ExchangeOnlineEnv` (`functions/Public/Connect-ExchangeOnlineEnv.ps1`).
 
 ```powershell
-# Connect to Exchange Online
-# Option A: Using service account credentials
-$credential = Get-Credential  # Prompt for service account
-Connect-ExchangeOnline -Credential $credential -ShowProgress $false
+# Connect to Exchange Online via App Registration (certificate-based auth)
+# Required environment variables (set beforehand, never hardcode secrets):
+#   $env:EXO_CERT_PATH     - Path to the .pfx certificate file
+#   $env:EXO_CERT_PASSWORD - Certificate password
 
-# Option B: Using app registration (if configured)
-# [Alternative: Contact IT for specific connection method]
+$tenant = "<tenant>.onmicrosoft.com"        # Replace with actual tenant
+$appId  = "<app-registration-client-id>"   # Replace with actual AppId (GUID)
+
+Connect-ExchangeOnlineEnv -Tenant $tenant -AppId $appId
 
 # Verify connection
-Get-ExchangeServer -ErrorAction Stop
+Get-ConnectionInformation
 Get-Mailbox -ResultSize 1  # Quick test
 ```
 
 **Expected Output:**
 ```
-Connected to: outlook.office365.com
-Identity
---------
-EXO01
-EXO02
+[INFO] Connecting to Exchange Online (attempt 1/3)...
+[OK] Connected to Exchange Online successfully (tenant: contoso.onmicrosoft.com)
+
+ConnectionId      : ...
+Organization      : contoso.onmicrosoft.com
+UserPrincipalName : app@contoso.onmicrosoft.com
 ...
 
 DisplayName      PrimarySmtpAddress
@@ -85,8 +88,8 @@ Shared Mailbox 1 sharedmb1@contoso.com
 ```
 
 **Validation Checklist:**
-- [ ] Connected to outlook.office365.com
-- [ ] Can list Exchange servers
+- [ ] `Connect-ExchangeOnlineEnv` prints `[OK] Connected to Exchange Online successfully`
+- [ ] `Get-ConnectionInformation` shows an active session for the correct tenant
 - [ ] Can list mailboxes (at least 1)
 
 **If FAIL:**
@@ -94,10 +97,11 @@ Shared Mailbox 1 sharedmb1@contoso.com
 # Troubleshoot connection
 $error[0]  # Show last error
 # Common issues:
-# - MFA challenge: Use app registration instead
-# - Licensing: Account needs EXO license
-# - IP blocked: Contact security team
-# - Wrong credentials: Verify service account
+# - Certificate not found/expired: verify $env:EXO_CERT_PATH points to a valid, non-expired .pfx
+# - Wrong certificate password: verify $env:EXO_CERT_PASSWORD
+# - Wrong AppId or tenant: double-check the App Registration's Application (client) ID and tenant name/ID
+# - Missing consent: Azure AD > App Registration > API permissions > verify Exchange.ManageAsApp has admin consent granted
+# - Licensing: Ensure the mailbox(es) the app manages have valid EXO licenses
 ```
 
 **Time Check:** ⏱️ 10 minutes
