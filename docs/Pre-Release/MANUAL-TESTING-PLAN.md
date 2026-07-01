@@ -26,7 +26,7 @@ This document provides a **step-by-step guide** for manual testing of all critic
 
 ```powershell
 # Import the SharedMailboxProvisioner module
-$modulePath = "C:\Repos\SharedMailboxProvisioner\SharedMailboxProvisioner.psd1"
+$modulePath = "S:\Scheduled Tasks\Exchange SE\SharedMailboxProvisioner\SharedMailboxProvisioner.psd1"
 Import-Module $modulePath -Force -ErrorAction Stop
 
 # Verify module loaded
