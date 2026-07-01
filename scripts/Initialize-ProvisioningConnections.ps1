@@ -20,7 +20,7 @@ This is a MANUAL ADMIN TOOL - run once per Service Account/environment, never sc
 Per ADR-005: Configuration Management
 
 .PARAMETER UserName
-Local on-premises Service Account username, e.g. "ETHZ\SvcExchangeAdmin". Must match
+Local on-premises Service Account username, e.g. "D\SvcExchangeAdmin". Must match
 the account this script is currently running as (verified before prompting for
 credentials). Used only for the credential file - unrelated to the EXO connection.
 
@@ -39,12 +39,12 @@ Thumbprint of the authentication certificate, already installed in the local cer
 store, for the EXO app connection. Stored in config.<Environment>.json.
 
 .EXAMPLE
-.\Initialize-ProvisioningConnections.ps1 -UserName "ETHZ\SvcExchangeAdmin" -Environment prod `
+.\Initialize-ProvisioningConnections.ps1 -UserName "D\SvcExchangeAdmin" -Environment prod `
     -Organization "ethz.onmicrosoft.com" `
     -AppId "2b249afb-9e8c-4321-8808-6dce76a6160b" `
     -CertificateThumbprint "A377E5106C48A92041314CB5A13369F827A2AC96"
 
-Creates config\Credential_ETHZ_SvcExchangeAdmin.clixml and updates config\config.prod.json
+Creates config\Credential_D_SvcExchangeAdmin.clixml and updates config\config.prod.json
 
 .NOTES
 - Must be run AS the Service Account, with elevated privileges (matches the original

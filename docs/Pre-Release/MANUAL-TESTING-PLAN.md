@@ -127,18 +127,18 @@ AS the Service Account with elevated privileges - this also populates
 `config.<Environment>.json` used by `Connect-ExchangeOnlineEnv` (Step 0.2, Option B):
 
 ```powershell
-.\scripts\Initialize-ProvisioningConnections.ps1 -UserName "ETHZ\SvcExchangeAdmin" -Environment prod `
+.\scripts\Initialize-ProvisioningConnections.ps1 -UserName "D\SvcExchangeAdmin" -Environment prod `
     -Organization "<tenant>.onmicrosoft.com" -AppId "<app-registration-client-id>" -CertificateThumbprint $certificateThumbprint
 ```
 
-This creates `config\Credential_ETHZ_SvcExchangeAdmin.clixml`.
+This creates `config\Credential_D_SvcExchangeAdmin.clixml`.
 
 ```powershell
 # Verify on-premises connectivity - mirrors the same current-context-first,
 # credential-file-fallback pattern New-SharedMailboxRemote uses internally
 # (functions/Public/New-SharedMailboxRemote.ps1 -> _GetExchangePSSession).
 $onPremUri = "http://exchangeserver.contoso.local/PowerShell/"  # Replace with your server
-$credentialPath = "config\Credential_ETHZ_SvcExchangeAdmin.clixml"  # From the setup step above
+$credentialPath = "config\Credential_D_SvcExchangeAdmin.clixml"  # From the setup step above
 
 try {
     $session = New-PSSession -ConfigurationName Microsoft.Exchange -ConnectionUri $onPremUri -ErrorAction Stop
