@@ -2,39 +2,42 @@
 
 Tracking of all functions: implementation status, test coverage, usage.
 
+**Last Refreshed:** 2026-07-01 (full pass against actual `functions/`, `scripts/`, `tests/` contents)
+
 ---
 
 ## Private Functions (Helpers) – Core Infrastructure
 
 | Function | Status | Tests | ADR | Notes |
 |----------|--------|-------|-----|-------|
-| `_RetryExchangeOperation` | [COMPLETE] | [YES] | ADR-003 | Retry logic with exponential backoff. Core for all EXO calls. |
-| `Write-Log` | [COMPLETE] | [YES] | ADR-004 | Centralized audit & error logging. Used by all operations. |
-| `Get-Configuration` | [COMPLETE] | [YES] | ADR-005 | Config loading & validation. Supports JSON + Azure KV. |
-| `_ValidateGuid` | [COMPLETE] | [IMPLIED] | ADR-005 | Helper for GUID validation. |
-| `_ValidateDomain` | [COMPLETE] | [IMPLIED] | ADR-005 | Helper for domain validation. |
-| `Get-ServiceAccountCredential` | [COMPLETE] | [PARTIAL] | ADR-005 | Load creds from KV/Credential Manager/Env. |
-| `Remove-OldLogs` | [COMPLETE] | [YES] | ADR-004 | Log rotation (90-day audit, 30-day errors). |
+| `_RetryExchangeOperation` | [COMPLETE] | [YES] (5) | ADR-003 | Retry logic with exponential backoff. Core for all EXO calls. `tests/Test-RetryExchangeOperation.ps1` |
+| `_Write-Log` | [COMPLETE] | [YES] (4) | ADR-004 | Centralized audit & error logging. Used by all operations. `tests/Test-WriteLog.ps1` |
+| `_Get-Configuration` | [COMPLETE] | [YES] (5) | ADR-005 | Config loading & validation. `tests/Test-GetConfiguration.ps1` |
+| `_Initialize-ScheduledTaskCredential` | [COMPLETE] | [NONE] | ADR-002 | Interactive encrypted-credential setup for ScheduledTask execution. No automated test (interactive by design). |
 
 ---
 
 ## Private Functions (Helpers) – AD Candidate Discovery & Validation
 
-### Group Validation (Tier 2 - COMPLETE)
+### Group Validation (Tier 2)
 | Function | Status | Tests | ADR | Notes |
 |----------|--------|-------|-----|-------|
-| `_ParseSharedMailboxGroupDescription` | [COMPLETE] | [YES] | ADR-006 | Parse ACL group description, extract admin group. Tier 2 complete. |
-| `_ValidateSharedMailboxGroup` | [COMPLETE] | [YES] | ADR-006 | Validate group structure (type, mail, description pattern). Tier 2 complete. |
-| `Get-SharedMailboxACLGroup` | [COMPLETE] | [YES] | ADR-006 | Lookup & validate ACL group for candidate user. Tier 2 complete. Performance optimized with Get-ADObject. |
+| `_ParseSharedMailboxGroupDescription` | [COMPLETE] | [YES] (20) | ADR-006 | Parse ACL group description, extract admin group. `tests/Test-ParseSharedMailboxGroupDescription.ps1` |
+| `_ValidateSharedMailboxGroup` | [COMPLETE] | [YES] (17) | ADR-006 | Validate group structure (type, mail, description pattern). `tests/Test-ValidateSharedMailboxGroup.ps1` |
 
-### Data Quality Validation (NEW)
+### Data Quality Validation (Tier 1 & 3)
 | Function | Status | Tests | ADR | Notes |
 |----------|--------|-------|-----|-------|
-| `_ValidateEmailFormat` | [COMPLETE] | [YES] | ADR-006 | RFC 5321 email format validation. Tier 1 - Text Parsing |
-| `_ValidateDisplayName` | [COMPLETE] | [YES] | ADR-006 | DisplayName character validation. Tier 1 - Text Parsing |
-| `_ValidateProxyAddresses` | [PLANNED] | [NONE] | ADR-006 | Validate SMTP addresses, check primary, allowed domains. |
-| `_ValidateDomainInExchangeOnline` | [PLANNED] | [NONE] | ADR-006 | Check domain against AcceptedDomains list. |
-| `_CheckForDuplicateEmails` | [PLANNED] | [NONE] | ADR-006 | Detect duplicate emails in AD ProxyAddresses. |
+| `_ValidateEmailFormat` | [COMPLETE] | [YES] (22) | ADR-006 | RFC 5321 email format validation. `tests/Test-ValidateEmailFormat.ps1` |
+| `_ValidateDisplayName` | [COMPLETE] | [YES] (21) | ADR-006 | DisplayName character validation. `tests/Test-ValidateDisplayName.ps1` |
+| `_ValidateDomainInExchangeOnline` | [COMPLETE] | [YES] (18) | ADR-006 | Check domain against AcceptedDomains list. `tests/Test-ValidateDomainInExchangeOnline.ps1` |
+| `_CheckForDuplicateEmails` | [COMPLETE] | [YES] (19) | ADR-006 | Detect duplicate emails in AD. `tests/Test-CheckForDuplicateEmails.ps1` |
+
+### Bulk Import & Reporting Helpers (Tier 7-8)
+| Function | Status | Tests | ADR | Notes |
+|----------|--------|-------|-----|-------|
+| `_ConvertTo-MailboxCandidateObject` | [COMPLETE] | [IMPLIED] | ADR-001 | CSV row -> normalized candidate object. Covered indirectly via `tests/Test-Import-MailboxCandidatesFromCSV.ps1`. |
+| `_ConvertTo-MailboxReportFormat` | [COMPLETE] | [NONE] | ADR-004 | Raw data -> HTML/CSV/Text/JSON formatting for reports & audit export. No dedicated test file. |
 
 ---
 
@@ -42,7 +45,7 @@ Tracking of all functions: implementation status, test coverage, usage.
 
 | Function | Status | Tests | ADR | Usage | Notes |
 |----------|--------|-------|-----|-------|-------|
-| `Validate-SharedMailboxCandidate` | [PLANNED] | [NONE] | ADR-006 | Validate user for provisioning readiness | Uses: All validation helpers, Write-Log |
+| `Test-SharedMailboxCandidate` | [COMPLETE] | [YES] (15) | ADR-006 | Validate user for provisioning readiness | Uses: `_ValidateEmailFormat`, `_ValidateDisplayName`, `_ValidateDomainInExchangeOnline`, `_CheckForDuplicateEmails`, `_Write-Log`. Renamed from `Validate-SharedMailboxCandidate` to the approved verb `Test-`. `tests/Test-ValidateSharedMailboxCandidate.ps1` |
 
 ---
 
@@ -50,12 +53,9 @@ Tracking of all functions: implementation status, test coverage, usage.
 
 | Function | Status | Tests | ADR | Usage | Notes |
 |----------|--------|-------|-----|-------|-------|
-| `New-SharedMailbox` | [PLANNED] | [NONE] | ADR-001 | Create a new shared mailbox | Uses: _RetryExchangeOperation, Write-Log, Get-Configuration |
-| `Add-SharedMailboxMember` | [PLANNED] | [NONE] | ADR-001 | Add members to shared mailbox | Uses: _RetryExchangeOperation, Write-Log |
-| `Remove-SharedMailboxMember` | [PLANNED] | [NONE] | ADR-001 | Remove members from shared mailbox | Uses: _RetryExchangeOperation, Write-Log |
-| `Get-SharedMailbox` | [PLANNED] | [NONE] | ADR-001 | Retrieve shared mailbox(es) | Uses: _RetryExchangeOperation, Connect-ExchangeOnlineEnv |
-| `Remove-SharedMailbox` | [PLANNED] | [NONE] | ADR-001 | Delete a shared mailbox | Uses: _RetryExchangeOperation, Write-Log |
-| `Grant-SharedMailboxAccess` | [PLANNED] | [NONE] | ADR-001 | Grant delegated access | Uses: _RetryExchangeOperation, Write-Log |
+| `Connect-ExchangeOnlineEnv` | [COMPLETE] | [NONE] | ADR-002 | Establish Exchange Online connection | Wrapper for EXO-V3 module, auto-install, exponential backoff, connection pooling. No dedicated test file (external module dependency). |
+| `New-SharedMailboxRemote` | [COMPLETE] | [YES] (11) | ADR-001, ADR-003 | Create remote shared mailbox on-premises | Uses: PSSession management, hybrid JSON/CSV backlog. `tests/Test-NewSharedMailboxRemote.ps1` |
+| `Invoke-MailboxPermissionQueue` | [COMPLETE] | [YES] (11) | ADR-001, ADR-003 | Process provisioning backlog, assign permissions | Async retry queue, 60-min EXO sync handling. `tests/Test-InvokeMailboxPermissionQueue.ps1` |
 
 ---
 
@@ -63,24 +63,43 @@ Tracking of all functions: implementation status, test coverage, usage.
 
 | Function | Status | Tests | ADR | Usage | Notes |
 |----------|--------|-------|-----|-------|-------|
-| `Get-SharedMailboxCandidates` | [COMPLETE] | [YES] | ADR-006 | Query AD for eligible candidates | Uses: ActiveDirectory module, Write-Log. Get-ADObject optimized for large AD. 20 test cases. |
-| `Get-SharedMailboxCandidatesWithGroups` | [COMPLETE] | [YES] | ADR-006 | Candidates with validated ACL groups | Uses: Get-SharedMailboxCandidates, Get-SharedMailboxACLGroup. Combines results with group validation. 10 test cases. |
-| `Connect-ExchangeOnlineEnv` | [COMPLETE] | [PARTIAL] | ADR-002 | Establish Exchange Online connection | Wrapper for EXO-V3 module, auto-install |
+| `Get-SharedMailboxACLGroup` | [COMPLETE] | [YES] (25) | ADR-006 | Lookup & validate ACL group for candidate | Uses: `_ParseSharedMailboxGroupDescription`, `_ValidateSharedMailboxGroup`. Optimized with `Get-ADObject`. `tests/Test-GetSharedMailboxACLGroup.ps1` |
+| `Get-SharedMailboxCandidates` | [COMPLETE] | [YES] (20) | ADR-006 | Query AD for eligible candidates | Get-ADObject optimized for large AD. `tests/Test-GetSharedMailboxCandidates.ps1` |
+| `Get-SharedMailboxCandidatesWithGroups` | [COMPLETE] | [YES] (10) | ADR-006 | Candidates combined with validated ACL groups | Uses: `Get-SharedMailboxCandidates`, `Get-SharedMailboxACLGroup`. `tests/Test-GetSharedMailboxCandidatesWithGroups.ps1` |
 
 ---
 
 ## Public Functions (Cmdlets) – Provisioning Orchestration & Bulk Import
 
-### Tier 6: Batch Orchestration (COMPLETE)
 | Function | Status | Tests | ADR | Usage | Notes |
 |----------|--------|-------|-----|-------|-------|
-| `Invoke-SharedMailboxProvisioning` | [COMPLETE] | [YES] | ADR-001, ADR-006 | Main orchestration entry point | Discovers candidates → Creates mailboxes → Processes permission queue. 10 test cases. |
+| `Invoke-SharedMailboxProvisioning` | [COMPLETE] | [YES] (9) | ADR-001, ADR-006 | Main orchestration entry point | Discovers candidates -> creates mailboxes -> processes permission queue. `tests/Test-InvokeSharedMailboxProvisioning.ps1` |
+| `Import-MailboxCandidatesFromCSV` | [COMPLETE] | [YES] (14) | ADR-001 | Import & validate CSV candidates | Encoding fallback, error recovery, audit logging. **MANUAL ONLY**. `tests/Test-Import-MailboxCandidatesFromCSV.ps1` |
+| `Test-MailboxBulkImport` | [COMPLETE] | [YES] (13) | ADR-001 | Dry-run validation + HTML report | Duplicate/conflict detection, impact analysis. **MANUAL ONLY**. `tests/Test-MailboxBulkImport.ps1` |
 
-### Tier 7: Manual Bulk Import Tool (COMPLETE)
+Cross-tier coverage: `tests/Test-Tier7-Integration.ps1` (10 tests) exercises Import + Test-MailboxBulkImport + `Provision-BulkMailboxesFromCSV.ps1` together end-to-end (mocked).
+
+---
+
+## Public Functions (Cmdlets) – Reporting & Audit (Tier 8)
+
 | Function | Status | Tests | ADR | Usage | Notes |
 |----------|--------|-------|-----|-------|-------|
-| `Import-MailboxCandidatesFromCSV` | [COMPLETE] | [PARTIAL] | ADR-001 | Import & validate CSV candidates | CSV parsing with error recovery, encoding fallback, audit logging. 14 test cases. **MANUAL ONLY** - never automated. |
-| `Test-MailboxBulkImport` | [COMPLETE] | [PARTIAL] | ADR-001 | Dry-run validation + HTML report | Detects duplicates, conflicts, generates preview report. 12 test cases. **MANUAL ONLY** - dry-run mode before provisioning. |
+| `Get-MailboxProvisioningReport` | [COMPLETE] | [YES] (11) | ADR-004 | Comprehensive metrics & timeline report | Summary, daily breakdown, per-group stats, top failures. `tests/Test-Get-MailboxProvisioningReport.ps1` |
+| `Export-MailboxAuditLog` | [COMPLETE] | [YES] (10) | ADR-004, ADR-007 | Audit log export (HTML/CSV/Text) | Date/status filtering, color-coded HTML. `tests/Test-Export-MailboxAuditLog.ps1` |
+| `Get-MailboxProvisioningMetrics` | [COMPLETE] | [YES] (10) | ADR-004 | KPIs, bottleneck ID, trend analysis | 7/14/30-day trends, top error codes. `tests/Test-Get-MailboxProvisioningMetrics.ps1` |
+
+---
+
+## Public Functions (Cmdlets) – Operational Tooling (Tier 10)
+
+| Function | Status | Tests | ADR | Usage | Notes |
+|----------|--------|-------|-----|-------|-------|
+| `Get-MailboxProvisioningStatus` | [COMPLETE] | [YES] (9) | ADR-003, ADR-004 | Query status of single/all mailboxes | Timeline of operations, highlights blocked/failed entries. `tests/Test-Get-MailboxProvisioningStatus.ps1` |
+| `Resolve-MailboxProvisioningFailure` | [COMPLETE] | [YES] (10) | ADR-003 | Diagnose failure root cause | RETRY vs ESCALATE recommendation. `tests/Test-Resolve-MailboxProvisioningFailure.ps1` |
+| `Invoke-MailboxProvisioningRetry` | [COMPLETE] | [YES] (9) | ADR-003 | Manual retry for single/bulk mailboxes | Max-retry enforcement, force override. `tests/Test-Invoke-MailboxProvisioningRetry.ps1` |
+| `Set-MailboxProvisioningSchedule` | [COMPLETE] | [YES] (6) | ADR-002 | Configure ScheduledTask interval | Enable/disable, retry parameter updates. `tests/Test-Set-MailboxProvisioningSchedule.ps1` |
+| `Get-MailboxProvisioningHealth` | [COMPLETE] | [YES] (14) | ADR-002, ADR-003 | EXO/AD connectivity + ScheduledTask check | Read-only diagnostics. `tests/Test-Get-MailboxProvisioningHealth.ps1` |
 
 ---
 
@@ -88,10 +107,9 @@ Tracking of all functions: implementation status, test coverage, usage.
 
 | Script | Status | Tests | Purpose | Notes |
 |--------|--------|-------|---------|-------|
-| `Provision-BulkMailboxesFromCSV.ps1` | [COMPLETE] | [PARTIAL] | Manual bulk provision from CSV | CLI admin tool (Tier 7). Supports dry-run preview, explicit confirmation. **MANUAL ONLY** - never automated/scheduled. Uses: Import-MailboxCandidatesFromCSV, Test-MailboxBulkImport, New-SharedMailboxRemote, Invoke-MailboxPermissionQueue |
-| `Remove-MailboxBatch.ps1` | [PLANNED] | [NONE] | Bulk delete from CSV | Uses: Remove-SharedMailbox, Write-Log |
-| `Sync-MailboxMembers.ps1` | [PLANNED] | [NONE] | Sync members from AD group | Uses: Add-SharedMailboxMember, Remove-SharedMailboxMember |
-| `Export-MailboxAudit.ps1` | [PLANNED] | [NONE] | Export audit logs | Uses: Write-Log functions |
+| `scripts/Provision-BulkMailboxesFromCSV.ps1` | [COMPLETE] | [YES] (via Test-Tier7-Integration.ps1) | Manual bulk provision from CSV | Admin CLI. Dry-run preview, explicit confirmation. **MANUAL ONLY - never automated/scheduled.** Uses: `Import-MailboxCandidatesFromCSV`, `Test-MailboxBulkImport`, `New-SharedMailboxRemote`, `Invoke-MailboxPermissionQueue` |
+
+No further scripts are planned at this time (the "Remove-MailboxBatch" / "Sync-MailboxMembers" / "Export-MailboxAudit" script ideas from the original Tier plan were superseded by `Export-MailboxAuditLog` and the existing bulk-provisioning script; revisit only if a concrete need arises).
 
 ---
 
@@ -107,95 +125,45 @@ Tracking of all functions: implementation status, test coverage, usage.
 
 | Test Status | Meaning |
 |---|---|
-| [YES] | Unit tests present & passing |
-| [PARTIAL] | Some tests present |
-| [IMPLIED] | Tested indirectly (via dependent functions) |
+| [YES] (n) | Unit tests present & passing; n = `It` block count in its test file |
+| [IMPLIED] | Tested indirectly (via a dependent function's test file) |
 | [NONE] | No tests yet |
 
 ---
 
-## Next Steps (Priority Order - Phase Beta)
+## Next Steps
 
-### Phase Beta Tier 8, 10-11 (Remaining)
+All planned Tiers (1-8, 10-11) are complete; Tier 9 was formally removed (see `PROJECT-TRACKING.md` and `docs/Beta-Phase/`). Current phase is **Pre-Release** (v0.9.0-beta.1) - see `docs/Pre-Release/PHASE-PRERELEASE-ROADMAP.md`.
 
-1. **Tier 8: Reporting & Audit (COMPLETE ✅ 2026-06-30)**
-   - [x] `Get-MailboxProvisioningReport.ps1` – Metrics & timeline
-   - [x] `Export-MailboxAuditLog.ps1` – HTML/CSV/Text export
-   - [x] `Get-MailboxProvisioningMetrics.ps1` – KPIs & bottleneck analysis
-   - [x] `ConvertTo-MailboxReportFormat.ps1` – Format helper (private)
-
-2. **Tier 9: Integration Testing (REMOVED - Not applicable)**
-   - Rationale: Accounts created only via IT-Shop, no direct AD creation, no non-prod OU
-   - Alternative: Mock-based testing (Tier 8), Post-launch UAT with real accounts
-
-3. **Tier 10: Operational Tooling (COMPLETE ✅ 2026-06-30)**
-   - [x] `Get-MailboxProvisioningStatus.ps1` – Query mailbox status
-   - [x] `Resolve-MailboxProvisioningFailure.ps1` – Diagnostics
-   - [x] `Invoke-MailboxProvisioningRetry.ps1` – Manual retry
-   - [x] `Set-MailboxProvisioningSchedule.ps1` – ScheduledTask config
-   - [x] `Get-MailboxProvisioningHealth.ps1` – System health check
-
-4. **Tier 11: Documentation (COMPLETE ✅ 2026-06-30)**
-   - [x] USER-GUIDE.md – Getting started + use cases
-   - [x] ADMIN-GUIDE.md – Architecture & configuration
-   - [x] OPERATIONS-RUNBOOK.md – Daily operations & failure handling
-   - [x] API-REFERENCE.md – All functions documented
-   - [x] README.md – Documentation index & quick reference
-
-### Refinements (Lower Priority)
-- [ ] Pester mock refinement for Tier 7 tests (8/10 tests currently failing on mocking)
-- [ ] ScheduledTask wrapper for automatic provisioning (v1.1+)
-- [ ] Performance optimization for bulk 100+ mailboxes
+Remaining gaps identified in this refresh:
+- [ ] `_ConvertTo-MailboxReportFormat` has no dedicated unit test.
+- [ ] `_Initialize-ScheduledTaskCredential` and `Connect-ExchangeOnlineEnv` have no automated tests (both depend on interactive/external-module behavior); covered so far only by manual verification.
+- [ ] Local dev environment only has Pester 3.4.0; a Pester 5.x install is needed to actually execute the suite and confirm all counted `It` blocks pass.
+- [ ] Performance validation for 100+ mailbox batches (deferred, no scale testing done yet).
 
 ---
 
 ## Implementation Progress
 
-| Tier | Status | Functions | Tests | Notes |
-|------|--------|-----------|-------|-------|
-| Tier 1 | [COMPLETE] | 2 | 43 | Text Parsing: ValidateEmailFormat, ValidateDisplayName |
-| Tier 2 | [COMPLETE] | 3 | 62 | Group Validation: ParseGroupDesc, ValidateGroup, GetACLGroup |
-| Tier 3 | [COMPLETE] | 3 | 52 | Data Quality: CheckDuplicates, ValidateDomain, ValidateCandidate |
-| Tier 4 | [COMPLETE] | 2 | 30 | Candidate Discovery: GetCandidates, GetCandidatesWithGroups |
-| Tier 5 | [COMPLETE] | 3 | 84 | Exchange Provisioning: NewRemoteMailbox, InitializeCredential, PermissionQueue |
-| Tier 6 | [COMPLETE] | 1 | 10 | Batch Orchestration: Invoke-SharedMailboxProvisioning |
-| Tier 7 | [COMPLETE] | 2 + 1 script | 26 | Manual Bulk Import: Import-MailboxCandidatesFromCSV, Test-MailboxBulkImport, Provision-BulkMailboxesFromCSV.ps1 |
-| **Total** | **COMPLETE** | **16 (+ 1 script)** | **307** | 18 test files, ~6,500 lines of code |
-
-**Tier 6 Functions (NEW):**
-- Invoke-SharedMailboxProvisioning: Main orchestration entry point (10 test cases)
-
-**Tier 7 Functions & Script (NEW - PHASE BETA):**
-- Import-MailboxCandidatesFromCSV: Read & validate CSV, return candidates (14 test cases)
-- Test-MailboxBulkImport: Dry-run validation + HTML preview report (12 test cases)
-- Provision-BulkMailboxesFromCSV.ps1: CLI admin tool for manual bulk provisioning (not automated)
-
-**Test Coverage Summary:**
-
-```
-Phase Alpha (Tier 1-6):    16 (100%) COMPLETE [297 test cases]
-Phase Beta (Tier 7):       2 functions + 1 script (100%) COMPLETE [26 test cases]
-Remaining (Tier 8-11):     [PLANNED] Reporting, Integration Testing, Ops Tools, Documentation
-```
+| Tier | Status | Functions | Test Cases | Notes |
+|------|--------|-----------|-------------|-------|
+| Core Infra | [COMPLETE] | 3 | 14 | `_RetryExchangeOperation`, `_Write-Log`, `_Get-Configuration` (Setup Phase, pre-Tier) |
+| 1 | [COMPLETE] | 2 | 43 | Text Parsing: `_ValidateEmailFormat`, `_ValidateDisplayName` |
+| 2 | [COMPLETE] | 3 | 62 | Group Validation: `_ParseSharedMailboxGroupDescription`, `_ValidateSharedMailboxGroup`, `Get-SharedMailboxACLGroup` |
+| 3 | [COMPLETE] | 3 | 52 | Data Quality: `_CheckForDuplicateEmails`, `_ValidateDomainInExchangeOnline`, `Test-SharedMailboxCandidate` |
+| 4 | [COMPLETE] | 2 | 30 | Candidate Discovery: `Get-SharedMailboxCandidates`, `Get-SharedMailboxCandidatesWithGroups` |
+| 5 | [COMPLETE] | 3 | 22 | Exchange Provisioning: `New-SharedMailboxRemote` (11), `Invoke-MailboxPermissionQueue` (11), `_Initialize-ScheduledTaskCredential` (untested) |
+| 6 | [COMPLETE] | 1 | 9 | Batch Orchestration: `Invoke-SharedMailboxProvisioning` |
+| 7 | [COMPLETE] | 2 + 1 script | 37 | Bulk Import: `Import-MailboxCandidatesFromCSV` (14), `Test-MailboxBulkImport` (13), `Provision-BulkMailboxesFromCSV.ps1` (10, via integration test) |
+| 8 | [COMPLETE] | 3 | 31 | Reporting & Audit: `Get-MailboxProvisioningReport`, `Export-MailboxAuditLog`, `Get-MailboxProvisioningMetrics` |
+| 9 | [REMOVED] | - | - | Integration Testing - not applicable (see rationale in `PROJECT-TRACKING.md`) |
+| 10 | [COMPLETE] | 5 | 48 | Operational Tooling: `Get-MailboxProvisioningStatus`, `Resolve-MailboxProvisioningFailure`, `Invoke-MailboxProvisioningRetry`, `Set-MailboxProvisioningSchedule`, `Get-MailboxProvisioningHealth` |
+| 11 | [COMPLETE] | - (5 docs, ~130 pages) | - | Documentation: README, USER-GUIDE, ADMIN-GUIDE, OPERATIONS-RUNBOOK, API-REFERENCE |
+| **Total** | **COMPLETE** | **18 public + 12 private + 1 script** | **348** | 27 test files, 5,939 lines (functions + script) |
 
 **Code Quality Metrics:**
-- Total Functions: 16 implemented (14 public + 2 private new)
-- Total Scripts: 1 (Provision-BulkMailboxesFromCSV.ps1)
-- Total Lines: ~6,500
-- Test Cases: 307 total (with Tier 7)
-- Build Status: ✅ PASSED (no PSScriptAnalyzer violations)
-- Compliance: 100% (ADR + STRUCTURE.md + CLAUDE.md rules)
-- Code Style: K&R bracing, 4-space indentation, full documentation
-- Test Status: 2/10 Tier 7 integration tests passing (mocking refinement needed for 8 others)
+- Build Status: PASSED (0 PSScriptAnalyzer violations, verified 2026-07-01)
+- Compliance: ADR + STRUCTURE.md + CLAUDE.md rules followed throughout
+- Code Style: K&R bracing, 4-space indentation, ASCII-only output
 
-**Key Features (Tier 7):**
-- ✅ CSV import with error recovery (skip invalid rows, continue)
-- ✅ Data normalization (trim, lowercase, format validation)
-- ✅ Duplicate detection (SAM, email)
-- ✅ Dry-run preview mode with HTML report
-- ✅ Encoding fallback (UTF8BOM → UTF8 → ASCII)
-- ✅ Audit logging on all operations
-- ✅ Explicit confirmation workflow
-- ✅ **MANUAL ONLY** - never automated/scheduled
-
-Next Phase: Tier 8 - Reporting & Audit functions
+Next Phase: Pre-Release validation (staging deployment, manual testing, performance baseline) - see `PROJECT-TRACKING.md`.
