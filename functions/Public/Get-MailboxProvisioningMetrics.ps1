@@ -284,5 +284,3 @@ function Get-MailboxProvisioningMetrics {
         return $result
     }
 }
-
-Export-ModuleMember -Function Get-MailboxProvisioningMetrics

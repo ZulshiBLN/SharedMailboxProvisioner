@@ -4,8 +4,8 @@ Unit tests for Get-SharedMailboxCandidatesWithGroups function
 #>
 
 # Import function
-$projectRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
-$functionPath = Join-Path $projectRoot "functions" "Public" "Get-SharedMailboxCandidatesWithGroups.ps1"
+$projectRoot = Split-Path -Parent $PSScriptRoot
+$functionPath = Join-Path (Join-Path $projectRoot "functions") "Public\Get-SharedMailboxCandidatesWithGroups.ps1"
 . $functionPath
 
 Describe "GetSharedMailboxCandidatesWithGroups" {

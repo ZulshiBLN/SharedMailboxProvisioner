@@ -119,7 +119,6 @@ function Import-MailboxCandidatesFromCSV {
         # STEP 2: Validate column headers
         # ================================================================
         $requiredColumns = @("SamAccountName", "DisplayName", "Email")
-        $optionalColumns = @("ACLGroup", "AdminGroup", "Description", "CustomAttribute")
 
         if ($csvData -is [System.Collections.IEnumerable] -and $csvData -isnot [string]) {
             $firstRow = $csvData[0]
@@ -248,5 +247,3 @@ function Import-MailboxCandidatesFromCSV {
         return $result
     }
 }
-
-Export-ModuleMember -Function Import-MailboxCandidatesFromCSV

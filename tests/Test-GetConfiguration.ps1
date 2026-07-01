@@ -1,12 +1,12 @@
 <#
 .SYNOPSIS
-Unit tests for Get-Configuration function
+Unit tests for _Get-Configuration function
 
 .DESCRIPTION
 Tests configuration loading, validation, and defaults
 #>
 
-$functionPath = Join-Path (Split-Path -Parent (Split-Path -Parent $PSScriptRoot)) "functions" "Private" "_Get-Configuration.ps1"
+$functionPath = Join-Path (Join-Path (Split-Path -Parent $PSScriptRoot) "functions") "Private\_Get-Configuration.ps1"
 . $functionPath
 
 Describe "GetConfiguration" {
@@ -34,7 +34,7 @@ Describe "GetConfiguration" {
             $configFile = Join-Path $testConfigDir "config.test.json"
             $validConfig | ConvertTo-Json | Set-Content -Path $configFile
 
-            $config = Get-Configuration -ConfigPath $configFile
+            $config = _Get-Configuration -ConfigPath $configFile
             $config.Organization | Should -Be "ethz.onmicrosoft.com"
             $config.AppId | Should -Be "2b249afb-9e8c-4321-8808-6dce76a6160b"
             $config.CertificateThumbprint | Should -Be "A377E5106C48A92041314CB5A13369F827A2AC96"
@@ -44,7 +44,7 @@ Describe "GetConfiguration" {
 
     Context "Default configuration fallback" {
         It "Should use defaults when config file missing" {
-            $config = Get-Configuration -ConfigPath (Join-Path $testConfigDir "nonexistent.json")
+            $config = _Get-Configuration -ConfigPath (Join-Path $testConfigDir "nonexistent.json")
             $config.DefaultMailboxQuota | Should -Be "50GB"
             $config.MaxRetries | Should -Be 5
             $config.Organization | Should -BeNullOrEmpty

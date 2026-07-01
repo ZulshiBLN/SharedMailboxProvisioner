@@ -94,7 +94,6 @@ Describe "Export-MailboxAuditLog" {
         }
 
         It "Should return empty when no audit directory" {
-            $nonexistentDir = Join-Path $script:testDir "NonExistent"
             $output = Export-MailboxAuditLog -Format HTML
 
             # Should handle gracefully

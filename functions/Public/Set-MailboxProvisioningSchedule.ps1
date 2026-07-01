@@ -37,6 +37,7 @@ Updates task trigger and action properties.
 
 function Set-MailboxProvisioningSchedule {
     [CmdletBinding()]
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseShouldProcessForStateChangingFunctions', '', Justification = 'Deferred: SupportsShouldProcess is a behavioral change to a function confirmed working against the live tenant this Pre-Release week. See COMPLIANCE-AUDIT-PHASE-PRERELEASE.md Known Gaps')]
     param(
         [Parameter(Mandatory = $false)]
         [string]$TaskName = "SharedMailboxProvisioning",
@@ -100,5 +101,3 @@ function Set-MailboxProvisioningSchedule {
         return $false
     }
 }
-
-Export-ModuleMember -Function Set-MailboxProvisioningSchedule

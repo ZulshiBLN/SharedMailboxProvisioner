@@ -34,6 +34,7 @@ Suggests manual remediation or retry triggers.
 
 function Resolve-MailboxProvisioningFailure {
     [CmdletBinding()]
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSReviewUnusedParameter', 'DiagnoseAll', Justification = 'Documented switch not yet wired to distinct behavior - omitting -SamAccountName already analyzes all entries. See COMPLIANCE-AUDIT-PHASE-PRERELEASE.md Known Gaps')]
     param(
         [Parameter(Mandatory = $false)]
         [string]$SamAccountName = "",
@@ -228,5 +229,3 @@ function _DiagnoseFailure {
 
     return $diagnosis
 }
-
-Export-ModuleMember -Function Resolve-MailboxProvisioningFailure

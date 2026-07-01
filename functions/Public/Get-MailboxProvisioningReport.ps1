@@ -255,5 +255,3 @@ function Get-MailboxProvisioningReport {
         return $result
     }
 }
-
-Export-ModuleMember -Function Get-MailboxProvisioningReport

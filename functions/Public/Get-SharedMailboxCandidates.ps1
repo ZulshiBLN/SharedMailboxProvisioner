@@ -193,5 +193,3 @@ function _MapCustomAttributeToExtension {
     Write-Warning "Unknown custom attribute '$AttributeName', using as-is"
     return $AttributeName
 }
-
-Export-ModuleMember -Function Get-SharedMailboxCandidates

@@ -4,8 +4,8 @@ Unit tests for _ParseSharedMailboxGroupDescription function
 #>
 
 # Import function
-$projectRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
-$functionPath = Join-Path $projectRoot "functions" "Private" "_ParseSharedMailboxGroupDescription.ps1"
+$projectRoot = Split-Path -Parent $PSScriptRoot
+$functionPath = Join-Path (Join-Path $projectRoot "functions") "Private\_ParseSharedMailboxGroupDescription.ps1"
 . $functionPath
 
 Describe "ParseSharedMailboxGroupDescription" {

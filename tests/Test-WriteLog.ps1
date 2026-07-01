@@ -6,7 +6,7 @@ Unit tests for Write-Log function
 Tests logging to audit and error logs
 #>
 
-$functionPath = Join-Path (Split-Path -Parent (Split-Path -Parent $PSScriptRoot)) "functions" "Private" "Write-Log.ps1"
+$functionPath = Join-Path (Join-Path (Split-Path -Parent $PSScriptRoot) "functions") "Private\_Write-Log.ps1"
 . $functionPath
 
 Describe "WriteLog" {
@@ -58,7 +58,7 @@ Describe "WriteLog" {
             "new content" | Out-File -FilePath (Join-Path $auditDir "audit-$(Get-Date -Format 'yyyy-MM-dd').log")
 
             # Run cleanup
-            Remove-OldLogs -AuditRetentionDays 30 -LogPath $testLogPath
+            _Remove-OldLogs -AuditRetentionDays 30 -LogPath $testLogPath
 
             # Old file should be gone
             Test-Path (Join-Path $auditDir "audit-2020-01-01.log") | Should -Be $false

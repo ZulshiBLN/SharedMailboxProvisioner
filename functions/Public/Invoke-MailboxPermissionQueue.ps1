@@ -411,5 +411,3 @@ function _EnsureArray {
     }
     return @($InputObject)
 }
-
-Export-ModuleMember -Function Invoke-MailboxPermissionQueue

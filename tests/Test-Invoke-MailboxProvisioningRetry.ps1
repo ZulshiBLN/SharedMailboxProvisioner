@@ -106,7 +106,7 @@ Describe "Invoke-MailboxProvisioningRetry" {
 
             $backlog | ConvertTo-Json -Depth 10 | Set-Content -Path $localBacklogPath
 
-            $result = Invoke-MailboxProvisioningRetry -RetryAll -BacklogPath $localBacklogPath
+            $null = Invoke-MailboxProvisioningRetry -RetryAll -BacklogPath $localBacklogPath
 
             $updatedBacklog = Get-Content -Path $localBacklogPath | ConvertFrom-Json
             $updatedBacklog[0].RetryCount | Should -Be 5
@@ -193,7 +193,7 @@ Describe "Invoke-MailboxProvisioningRetry" {
 
             $backlog | ConvertTo-Json -Depth 10 | Set-Content -Path $localBacklogPath
 
-            $result = Invoke-MailboxProvisioningRetry -SamAccountName "smbx_001" -BacklogPath $localBacklogPath
+            $null = Invoke-MailboxProvisioningRetry -SamAccountName "smbx_001" -BacklogPath $localBacklogPath
 
             $updatedBacklog = Get-Content -Path $localBacklogPath | ConvertFrom-Json
             $updatedBacklog.LastRetryAt | Should -Not -BeNullOrEmpty

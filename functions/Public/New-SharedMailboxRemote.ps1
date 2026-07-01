@@ -67,6 +67,8 @@ Creates remote mailbox and adds entry to provisioning backlog
 
 function New-SharedMailboxRemote {
     [CmdletBinding()]
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseShouldProcessForStateChangingFunctions', '', Justification = 'Deferred: SupportsShouldProcess is a behavioral change to a function confirmed working against the live tenant this Pre-Release week. See COMPLIANCE-AUDIT-PHASE-PRERELEASE.md Known Gaps')]
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidUsingPlainTextForPassword', 'CredentialPath', Justification = 'File path to a .clixml credential file, not a literal secret value. See COMPLIANCE-AUDIT-PHASE-PRERELEASE.md Known Gaps')]
     param(
         [Parameter(Mandatory = $true)]
         [string]$SamAccountName,
@@ -211,6 +213,7 @@ function New-SharedMailboxRemote {
 
 function _GetExchangePSSession {
     [CmdletBinding()]
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidUsingPlainTextForPassword', 'CredentialPath', Justification = 'File path to a .clixml credential file, not a literal secret value. See COMPLIANCE-AUDIT-PHASE-PRERELEASE.md Known Gaps')]
     param(
         [Parameter(Mandatory = $false)]
         [string]$ExchangeURI,
@@ -227,7 +230,7 @@ function _GetExchangePSSession {
 
         if ([string]::IsNullOrWhiteSpace($ExchangeURI)) {
             # Get from configuration if not provided
-            $config = Get-Configuration
+            $config = _Get-Configuration
             $ExchangeURI = $config.exchange.onPremises.uri
         }
 
@@ -405,5 +408,3 @@ function _ExportBacklogToCSV {
 
     Write-Verbose "Backlog exported to CSV: $csvPath"
 }
-
-Export-ModuleMember -Function New-SharedMailboxRemote

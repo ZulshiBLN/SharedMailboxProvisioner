@@ -45,10 +45,9 @@ function _RetryExchangeOperation {
         catch {
             $lastException = $_
             $errorMessage = $_.Exception.Message
-            $errorType = $_.Exception.GetType().Name
 
             # Classify error: is it retryable?
-            $isRetryable = _IsRetryableError -Exception $_ -ErrorMessage $errorMessage
+            $isRetryable = _IsRetryableError -Exception $_
 
             if (-not $isRetryable -or $attempt -ge $MaxRetries) {
                 # Permanent error or max retries reached
@@ -77,10 +76,7 @@ function _IsRetryableError {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory = $true)]
-        $Exception,
-
-        [Parameter(Mandatory = $false)]
-        [string]$ErrorMessage = ""
+        $Exception
     )
 
     if (-not $Exception) {

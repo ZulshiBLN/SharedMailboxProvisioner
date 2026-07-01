@@ -59,6 +59,7 @@ Create mailboxes only (skip permission assignment for testing)
 
 function Invoke-SharedMailboxProvisioning {
     [CmdletBinding()]
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSReviewUnusedParameter', 'GenerateReport', Justification = 'Summary report currently always prints regardless of this flag - not yet wired to gate Step 4. See COMPLIANCE-AUDIT-PHASE-PRERELEASE.md Known Gaps')]
     param(
         [Parameter(Mandatory = $false)]
         [string]$SamAccountNamePrefix = "smbx_",
@@ -291,5 +292,3 @@ function _EnsureArray {
     }
     return @($InputObject)
 }
-
-Export-ModuleMember -Function Invoke-SharedMailboxProvisioning

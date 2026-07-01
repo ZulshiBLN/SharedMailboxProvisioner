@@ -286,5 +286,3 @@ function _FormatAuditLogAsText {
 
     return $text
 }
-
-Export-ModuleMember -Function Export-MailboxAuditLog

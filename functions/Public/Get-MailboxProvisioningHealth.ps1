@@ -163,5 +163,3 @@ function _CheckScheduledTaskHealth {
         return @{ Component = "ScheduledTask"; Status = "ERROR"; Issue = "Could not check ScheduledTask status: $_" }
     }
 }
-
-Export-ModuleMember -Function Get-MailboxProvisioningHealth

@@ -140,5 +140,3 @@ function Get-SharedMailboxACLGroup {
         return $null
     }
 }
-
-Export-ModuleMember -Function Get-SharedMailboxACLGroup

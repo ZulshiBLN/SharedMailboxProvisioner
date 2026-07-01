@@ -1,3 +1,6 @@
+[Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseDeclaredVarsMoreThanAssignments', 'testBacklogPath', Justification = 'Set in BeforeAll, consumed in sibling It blocks - PSScriptAnalyzer does not see across Pester scriptblock scopes')]
+param()
+
 Describe "Get-MailboxProvisioningStatus" {
     BeforeAll {
         Import-Module "$PSScriptRoot\..\SharedMailboxProvisioner.psd1" -Force

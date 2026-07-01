@@ -4,15 +4,15 @@ Unit tests for Get-SharedMailboxCandidates function
 #>
 
 # Import function
-$projectRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
-$functionPath = Join-Path $projectRoot "functions" "Public" "Get-SharedMailboxCandidates.ps1"
+$projectRoot = Split-Path -Parent $PSScriptRoot
+$functionPath = Join-Path (Join-Path $projectRoot "functions") "Public\Get-SharedMailboxCandidates.ps1"
 . $functionPath
 
 Describe "GetSharedMailboxCandidates" {
 
     Context "Finding candidates" {
         It "Should return candidates matching criteria" {
-            Mock Get-ADUser {
+            Mock Get-ADObject {
                 return @(
                     [PSCustomObject]@{
                         sAMAccountName = "smbx_user1"
@@ -39,7 +39,7 @@ Describe "GetSharedMailboxCandidates" {
         }
 
         It "Should return empty array when no candidates found" {
-            Mock Get-ADUser {
+            Mock Get-ADObject {
                 return $null
             }
 
@@ -48,7 +48,7 @@ Describe "GetSharedMailboxCandidates" {
         }
 
         It "Should handle single candidate result" {
-            Mock Get-ADUser {
+            Mock Get-ADObject {
                 return [PSCustomObject]@{
                     sAMAccountName = "smbx_only"
                     DisplayName = "Single Mailbox"
@@ -67,7 +67,7 @@ Describe "GetSharedMailboxCandidates" {
 
     Context "Candidate properties" {
         It "Should include all candidate properties" {
-            Mock Get-ADUser {
+            Mock Get-ADObject {
                 return [PSCustomObject]@{
                     sAMAccountName = "smbx_test"
                     DisplayName = "Test Mailbox"
@@ -89,7 +89,7 @@ Describe "GetSharedMailboxCandidates" {
         }
 
         It "Should correctly identify disabled accounts" {
-            Mock Get-ADUser {
+            Mock Get-ADObject {
                 return [PSCustomObject]@{
                     sAMAccountName = "smbx_disabled"
                     DisplayName = "Disabled Mailbox"
@@ -105,7 +105,7 @@ Describe "GetSharedMailboxCandidates" {
         }
 
         It "Should correctly identify enabled accounts" {
-            Mock Get-ADUser {
+            Mock Get-ADObject {
                 return [PSCustomObject]@{
                     sAMAccountName = "smbx_enabled"
                     DisplayName = "Enabled Mailbox"
@@ -123,86 +123,86 @@ Describe "GetSharedMailboxCandidates" {
 
     Context "Filter parameters" {
         It "Should use default prefix when not specified" {
-            Mock Get-ADUser {
+            Mock Get-ADObject {
                 return @()
             }
 
             Get-SharedMailboxCandidates
 
-            Assert-MockCalled Get-ADUser -Times 1 -ParameterFilter {
-                $Filter -like "*(sAMAccountName=smbx_*)*"
+            Assert-MockCalled Get-ADObject -Times 1 -ParameterFilter {
+                $LDAPFilter -like "*(sAMAccountName=smbx_*)*"
             }
         }
 
         It "Should use custom prefix when specified" {
-            Mock Get-ADUser {
+            Mock Get-ADObject {
                 return @()
             }
 
             Get-SharedMailboxCandidates -SamAccountNamePrefix "custom_"
 
-            Assert-MockCalled Get-ADUser -Times 1 -ParameterFilter {
-                $Filter -like "*(sAMAccountName=custom_*)*"
+            Assert-MockCalled Get-ADObject -Times 1 -ParameterFilter {
+                $LDAPFilter -like "*(sAMAccountName=custom_*)*"
             }
         }
 
         It "Should filter by description pattern" {
-            Mock Get-ADUser {
+            Mock Get-ADObject {
                 return @()
             }
 
             Get-SharedMailboxCandidates
 
-            Assert-MockCalled Get-ADUser -Times 1 -ParameterFilter {
-                $Filter -like "*(description=Shared Mailbox Persona*)*"
+            Assert-MockCalled Get-ADObject -Times 1 -ParameterFilter {
+                $LDAPFilter -like "*(description=Shared Mailbox Persona*)*"
             }
         }
 
         It "Should apply disabled account filter" {
-            Mock Get-ADUser {
+            Mock Get-ADObject {
                 return @()
             }
 
             Get-SharedMailboxCandidates -AccountStatus "Disabled"
 
-            Assert-MockCalled Get-ADUser -Times 1 -ParameterFilter {
-                $Filter -like "*(userAccountControl:1.2.840.113556.1.4.803:=2)*"
+            Assert-MockCalled Get-ADObject -Times 1 -ParameterFilter {
+                $LDAPFilter -like "*(userAccountControl:1.2.840.113556.1.4.803:=2)*"
             }
         }
 
         It "Should apply enabled account filter" {
-            Mock Get-ADUser {
+            Mock Get-ADObject {
                 return @()
             }
 
             Get-SharedMailboxCandidates -AccountStatus "Enabled"
 
-            Assert-MockCalled Get-ADUser -Times 1 -ParameterFilter {
-                $Filter -like "*(!(userAccountControl:1.2.840.113556.1.4.803:=2))*"
+            Assert-MockCalled Get-ADObject -Times 1 -ParameterFilter {
+                $LDAPFilter -like "*(!(userAccountControl:1.2.840.113556.1.4.803:=2))*"
             }
         }
 
         It "Should include custom attribute filter" {
-            Mock Get-ADUser {
+            Mock Get-ADObject {
                 return @()
             }
 
             Get-SharedMailboxCandidates
 
-            Assert-MockCalled Get-ADUser -Times 1 -ParameterFilter {
-                $Filter -like "*(extensionAttribute1=Create RemoteMailbox)*"
+            Assert-MockCalled Get-ADObject -Times 1 -ParameterFilter {
+                $LDAPFilter -like "*(extensionAttribute1=Create RemoteMailbox)*"
             }
         }
 
         It "Should pass SearchBase parameter" {
-            Mock Get-ADUser {
+            Mock Get-ADObject {
                 return @()
             }
 
             $searchBase = "OU=Shared,DC=ethz,DC=ch"
             Get-SharedMailboxCandidates -SearchBase $searchBase
 
-            Assert-MockCalled Get-ADUser -Times 1 -ParameterFilter {
+            Assert-MockCalled Get-ADObject -Times 1 -ParameterFilter {
                 $SearchBase -eq "OU=Shared,DC=ethz,DC=ch"
             }
         }
@@ -210,45 +210,45 @@ Describe "GetSharedMailboxCandidates" {
 
     Context "Custom attribute mapping" {
         It "Should map nethzTask to extensionAttribute1" {
-            Mock Get-ADUser {
+            Mock Get-ADObject {
                 return @()
             }
 
             Get-SharedMailboxCandidates -CustomAttribute "nethzTask" -CustomAttributeValue "Test"
 
-            Assert-MockCalled Get-ADUser -Times 1 -ParameterFilter {
-                $Filter -like "*(extensionAttribute1=Test)*"
+            Assert-MockCalled Get-ADObject -Times 1 -ParameterFilter {
+                $LDAPFilter -like "*(extensionAttribute1=Test)*"
             }
         }
 
         It "Should map nethzRemark to extensionAttribute2" {
-            Mock Get-ADUser {
+            Mock Get-ADObject {
                 return @()
             }
 
             Get-SharedMailboxCandidates -CustomAttribute "nethzRemark" -CustomAttributeValue "Test"
 
-            Assert-MockCalled Get-ADUser -Times 1 -ParameterFilter {
-                $Filter -like "*(extensionAttribute2=Test)*"
+            Assert-MockCalled Get-ADObject -Times 1 -ParameterFilter {
+                $LDAPFilter -like "*(extensionAttribute2=Test)*"
             }
         }
 
         It "Should use extensionAttribute* as-is if already mapped name" {
-            Mock Get-ADUser {
+            Mock Get-ADObject {
                 return @()
             }
 
             Get-SharedMailboxCandidates -CustomAttribute "extensionAttribute5" -CustomAttributeValue "Value"
 
-            Assert-MockCalled Get-ADUser -Times 1 -ParameterFilter {
-                $Filter -like "*(extensionAttribute5=Value)*"
+            Assert-MockCalled Get-ADObject -Times 1 -ParameterFilter {
+                $LDAPFilter -like "*(extensionAttribute5=Value)*"
             }
         }
     }
 
     Context "Error handling" {
         It "Should return empty array on AD query failure" {
-            Mock Get-ADUser {
+            Mock Get-ADObject {
                 throw [System.Exception]"AD connection failed"
             }
 
@@ -257,7 +257,7 @@ Describe "GetSharedMailboxCandidates" {
         }
 
         It "Should return empty array on permission denied" {
-            Mock Get-ADUser {
+            Mock Get-ADObject {
                 throw [System.UnauthorizedAccessException]"Access denied"
             }
 
@@ -268,21 +268,21 @@ Describe "GetSharedMailboxCandidates" {
 
     Context "Account status variations" {
         It "Should handle 'Any' account status" {
-            Mock Get-ADUser {
+            Mock Get-ADObject {
                 return @()
             }
 
             Get-SharedMailboxCandidates -AccountStatus "Any"
 
-            Assert-MockCalled Get-ADUser -Times 1 -ParameterFilter {
-                $Filter -notlike "*(userAccountControl:*"
+            Assert-MockCalled Get-ADObject -Times 1 -ParameterFilter {
+                $LDAPFilter -notlike "*(userAccountControl:*"
             }
         }
     }
 
     Context "Multiple candidates" {
         It "Should return multiple candidates in correct order" {
-            Mock Get-ADUser {
+            Mock Get-ADObject {
                 return @(
                     [PSCustomObject]@{ sAMAccountName = "smbx_a"; DisplayName = "A"; mail = "a@ethz.ch"; Description = "Shared Mailbox Persona"; DistinguishedName = "CN=smbx_a,OU=Users,DC=ethz,DC=ch"; userAccountControl = 514 },
                     [PSCustomObject]@{ sAMAccountName = "smbx_b"; DisplayName = "B"; mail = "b@ethz.ch"; Description = "Shared Mailbox Persona"; DistinguishedName = "CN=smbx_b,OU=Users,DC=ethz,DC=ch"; userAccountControl = 514 },

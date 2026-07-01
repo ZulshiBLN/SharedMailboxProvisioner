@@ -23,7 +23,7 @@ Application (client) ID for app-based authentication. Optional - falls back to t
 value from config.<Environment>.json if not supplied. Omit both to use interactive auth.
 
 .PARAMETER Environment
-Config environment name used to resolve config.<Environment>.json (see Get-Configuration).
+Config environment name used to resolve config.<Environment>.json (see _Get-Configuration).
 Default: "dev"
 
 .PARAMETER ConfigPath
@@ -106,7 +106,7 @@ function Connect-ExchangeOnlineEnv {
 
     # Resolve Tenant/AppId/CertificateThumbprint from config if not explicitly supplied
     if (-not $Tenant -or -not $AppId -or -not $CertificateThumbprint) {
-        $config = Get-Configuration -ConfigPath $ConfigPath -Environment $Environment
+        $config = _Get-Configuration -ConfigPath $ConfigPath -Environment $Environment
 
         if ($config) {
             if (-not $Tenant) {
@@ -203,7 +203,6 @@ function Connect-ExchangeOnlineEnv {
     # Connect with retry logic
     $maxRetries = 3
     $attempt = 0
-    $lastError = $null
 
     while ($attempt -lt $maxRetries) {
         $attempt++
@@ -216,7 +215,6 @@ function Connect-ExchangeOnlineEnv {
             return $true
         }
         catch {
-            $lastError = $_
             $errorMessage = $_.Exception.Message
 
             if ($attempt -lt $maxRetries) {
@@ -234,5 +232,3 @@ function Connect-ExchangeOnlineEnv {
 
     return $false
 }
-
-Export-ModuleMember -Function Connect-ExchangeOnlineEnv

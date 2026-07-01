@@ -4,9 +4,9 @@ Unit tests for _ValidateSharedMailboxGroup function
 #>
 
 # Import functions
-$projectRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
-$functionPath1 = Join-Path $projectRoot "functions" "Private" "_ParseSharedMailboxGroupDescription.ps1"
-$functionPath2 = Join-Path $projectRoot "functions" "Private" "_ValidateSharedMailboxGroup.ps1"
+$projectRoot = Split-Path -Parent $PSScriptRoot
+$functionPath1 = Join-Path (Join-Path $projectRoot "functions") "Private\_ParseSharedMailboxGroupDescription.ps1"
+$functionPath2 = Join-Path (Join-Path $projectRoot "functions") "Private\_ValidateSharedMailboxGroup.ps1"
 . $functionPath1
 . $functionPath2
 

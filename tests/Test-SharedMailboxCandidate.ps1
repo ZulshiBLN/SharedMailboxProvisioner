@@ -4,12 +4,12 @@ Unit tests for Test-SharedMailboxCandidate function
 #>
 
 # Import functions
-$projectRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
-$functionPath1 = Join-Path $projectRoot "functions" "Private" "_ValidateEmailFormat.ps1"
-$functionPath2 = Join-Path $projectRoot "functions" "Private" "_ValidateDisplayName.ps1"
-$functionPath3 = Join-Path $projectRoot "functions" "Private" "_CheckForDuplicateEmails.ps1"
-$functionPath4 = Join-Path $projectRoot "functions" "Private" "_ValidateDomainInExchangeOnline.ps1"
-$functionPath5 = Join-Path $projectRoot "functions" "Private" "Test-SharedMailboxCandidate.ps1"
+$projectRoot = Split-Path -Parent $PSScriptRoot
+$functionPath1 = Join-Path (Join-Path $projectRoot "functions") "Private\_ValidateEmailFormat.ps1"
+$functionPath2 = Join-Path (Join-Path $projectRoot "functions") "Private\_ValidateDisplayName.ps1"
+$functionPath3 = Join-Path (Join-Path $projectRoot "functions") "Private\_CheckForDuplicateEmails.ps1"
+$functionPath4 = Join-Path (Join-Path $projectRoot "functions") "Private\_ValidateDomainInExchangeOnline.ps1"
+$functionPath5 = Join-Path (Join-Path $projectRoot "functions") "Public\Test-SharedMailboxCandidate.ps1"
 
 . $functionPath1
 . $functionPath2

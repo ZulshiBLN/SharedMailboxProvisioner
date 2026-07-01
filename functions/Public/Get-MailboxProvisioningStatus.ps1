@@ -192,5 +192,3 @@ function Get-MailboxProvisioningStatus {
         return @()
     }
 }
-
-Export-ModuleMember -Function Get-MailboxProvisioningStatus

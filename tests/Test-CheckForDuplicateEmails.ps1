@@ -4,8 +4,8 @@ Unit tests for _CheckForDuplicateEmails function
 #>
 
 # Import function
-$projectRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
-$functionPath = Join-Path $projectRoot "functions" "Private" "_CheckForDuplicateEmails.ps1"
+$projectRoot = Split-Path -Parent $PSScriptRoot
+$functionPath = Join-Path (Join-Path $projectRoot "functions") "Private\_CheckForDuplicateEmails.ps1"
 . $functionPath
 
 Describe "CheckForDuplicateEmails" {
@@ -145,7 +145,7 @@ Describe "CheckForDuplicateEmails" {
             _CheckForDuplicateEmails -EmailAddress "test@ethz.ch"
 
             Assert-MockCalled Get-ADObject -Times 1 -ParameterFilter {
-                $Filter -like "*(|*test@ethz.ch*)*"
+                $LDAPFilter -like "*(|*test@ethz.ch*)*"
             }
         }
     }

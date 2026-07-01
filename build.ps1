@@ -12,9 +12,6 @@ Run validation checks (PSScriptAnalyzer, formatting, BOM)
 .PARAMETER AnalyzeOnly
 Skip formatting checks, only run PSScriptAnalyzer
 
-.PARAMETER Fix
-Attempt to fix common formatting issues (experimental)
-
 .EXAMPLE
 .\build.ps1 -Validate
 Runs all validation checks
@@ -32,8 +29,7 @@ Exit codes:
 
 param(
     [switch]$Validate,
-    [switch]$AnalyzeOnly,
-    [switch]$Fix
+    [switch]$AnalyzeOnly
 )
 
 Set-StrictMode -Version Latest
@@ -44,7 +40,7 @@ $SettingsPath = Join-Path $ProjectRoot 'PSScriptAnalyzerSettings.psd1'
 
 # Color codes (ASCII only, no Unicode)
 $Success = '[OK]'
-$Error = '[ERROR]'
+$ErrorLabel = '[ERROR]'
 $Warning = '[WARN]'
 $Info = '[INFO]'
 
@@ -55,7 +51,7 @@ function Write-Status {
             $Success
         }
         'ERROR' {
-            $Error
+            $ErrorLabel
         }
         'WARN' {
             $Warning
@@ -109,7 +105,8 @@ function Test-PSScriptAnalyzer {
 
         if (-not $psFiles) {
             Write-Status "No PowerShell files found to analyze" 'WARN'
-            return $true
+            $script:LastCheckPassed = $true
+            return
         }
 
         $results = @()
@@ -126,16 +123,16 @@ function Test-PSScriptAnalyzer {
                 Write-Output "  Line $($issue.Line): [$($issue.Severity)] $($issue.RuleName) - $($issue.Message)"
                 Write-Output "    File: $($issue.ScriptPath)"
             }
-            return $false
+            $script:LastCheckPassed = $false
         }
         else {
             Write-Status "All files passed PSScriptAnalyzer checks" 'OK'
-            return $true
+            $script:LastCheckPassed = $true
         }
     }
     catch {
         Write-Status "PSScriptAnalyzer error: $_" 'ERROR'
-        return $false
+        $script:LastCheckPassed = $false
     }
 }
 
@@ -180,11 +177,11 @@ function Test-Indentation {
 
     if ($issues -gt 0) {
         Write-Status "Found $issues indentation error(s)" 'ERROR'
-        return $false
+        $script:LastCheckPassed = $false
     }
     else {
         Write-Status "Indentation check passed" 'OK'
-        return $true
+        $script:LastCheckPassed = $true
     }
 }
 
@@ -216,7 +213,8 @@ function Test-BOM {
         Write-Status "All files have UTF-8 BOM" 'OK'
     }
 
-    return $true
+    # Advisory only, does not gate the build: no file in the repo currently carries a BOM.
+    $script:LastCheckPassed = $true
 }
 
 function Test-Bracing {
@@ -249,13 +247,13 @@ function Test-Bracing {
     }
 
     if ($issues -gt 0) {
-        Write-Status "Found $issues bracing issue(s)" 'WARN'
-    }
-    else {
-        Write-Status "Bracing check passed" 'OK'
+        Write-Status "Found $issues bracing issue(s)" 'ERROR'
+        $script:LastCheckPassed = $false
+        return
     }
 
-    return $true
+    Write-Status "Bracing check passed" 'OK'
+    $script:LastCheckPassed = $true
 }
 
 # Main execution
@@ -266,17 +264,26 @@ if ($Validate) {
 
     $allPassed = $true
 
-    if (-not (Test-PSScriptAnalyzer)) {
+    # Test-* functions are called as bare statements (not captured via (...) or
+    # $var = ...) so their diagnostic Write-Output lines print normally. Capturing
+    # a function's output swallows every Write-Output call into the captured
+    # array, and a non-empty array is always truthy, so "-not (Test-X)" would
+    # never detect a failure. Pass/fail is instead read from $script:LastCheckPassed.
+    Test-PSScriptAnalyzer
+    if (-not $script:LastCheckPassed) {
         $allPassed = $false
     }
     if (-not $AnalyzeOnly) {
-        if (-not (Test-Indentation)) {
+        Test-Indentation
+        if (-not $script:LastCheckPassed) {
             $allPassed = $false
         }
-        if (-not (Test-Bracing)) {
+        Test-Bracing
+        if (-not $script:LastCheckPassed) {
             $allPassed = $false
         }
-        if (-not (Test-BOM)) {
+        Test-BOM
+        if (-not $script:LastCheckPassed) {
             $allPassed = $false
         }
     }
@@ -298,7 +305,8 @@ elseif ($AnalyzeOnly) {
     Write-Output "PSScriptAnalyzer Linting Only"
     Write-Output "======================================"
 
-    if (Test-PSScriptAnalyzer) {
+    Test-PSScriptAnalyzer
+    if ($script:LastCheckPassed) {
         exit 0
     }
     else {
@@ -311,7 +319,6 @@ else {
     Write-Output "Usage:"
     Write-Output "  .\build.ps1 -Validate       # Run all validation checks"
     Write-Output "  .\build.ps1 -AnalyzeOnly    # Run only PSScriptAnalyzer"
-    Write-Output "  .\build.ps1 -Fix             # Attempt to fix issues (experimental)"
     Write-Output ""
     Write-Output "For pre-commit hook integration:"
     Write-Output "  .\build.ps1 -Validate"

@@ -4,8 +4,8 @@ Unit tests for Invoke-MailboxPermissionQueue function
 #>
 
 # Import function
-$projectRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
-$functionPath = Join-Path $projectRoot "functions" "Public" "Invoke-MailboxPermissionQueue.ps1"
+$projectRoot = Split-Path -Parent $PSScriptRoot
+$functionPath = Join-Path (Join-Path $projectRoot "functions") "Public\Invoke-MailboxPermissionQueue.ps1"
 . $functionPath
 
 Describe "InvokeMailboxPermissionQueue" {

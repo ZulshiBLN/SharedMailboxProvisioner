@@ -14,14 +14,40 @@ Validation includes:
 - ProxyAddresses structure
 - TargetAddress check
 
-Returns: $true if all checks pass, $false if any check fails
-Also writes validation result to specified AD attribute
+Returns a PSCustomObject with SamAccountName, IsValid, ValidationErrors, and
+ValidationChecks (per-check breakdown).
 
+.PARAMETER ADUser
+AD user object to validate. Must expose mail, DisplayName, sAMAccountName,
+TargetAddress, and proxyAddresses properties (as returned by Get-ADUser -Properties).
+
+.PARAMETER AcceptedDomains
+Domains to accept for the user's mail address. If not provided, domain
+acceptance is checked against Exchange Online's AcceptedDomains list instead.
+
+.PARAMETER ValidationAttribute
+Reserved for a not-yet-implemented feature (writing the validation result back
+to this AD attribute name). Currently accepted but has no effect - see
+docs/Pre-Release/COMPLIANCE-AUDIT-PHASE-PRERELEASE.md Known Gaps.
+
+.EXAMPLE
+Test-SharedMailboxCandidate -ADUser $aduser
+Validates a single AD user object using Exchange Online's AcceptedDomains list.
+
+.EXAMPLE
+Test-SharedMailboxCandidate -ADUser $aduser -AcceptedDomains @("ethz.ch", "ethz.onmicrosoft.com")
+Validates using an explicit accepted-domains list instead of querying Exchange Online.
+
+.NOTES
 Per ADR-006: Active Directory Integration & Candidate Selection
+Combines Tier 1 (_ValidateEmailFormat, _ValidateDisplayName), Tier 2 (group
+validation is separate, see Get-SharedMailboxACLGroup), and Tier 3
+(_ValidateDomainInExchangeOnline, _CheckForDuplicateEmails) checks.
 #>
 
 function Test-SharedMailboxCandidate {
     [CmdletBinding()]
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSReviewUnusedParameter', 'ValidationAttribute', Justification = 'Accepted but not yet wired to an AD attribute write - see COMPLIANCE-AUDIT-PHASE-PRERELEASE.md Known Gaps')]
     param(
         [Parameter(Mandatory = $true)]
         $ADUser,

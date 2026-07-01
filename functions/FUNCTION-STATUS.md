@@ -44,7 +44,7 @@ Tracking of all functions: implementation status, test coverage, usage.
 
 | Function | Status | Tests | ADR | Usage | Notes |
 |----------|--------|-------|-----|-------|-------|
-| `Test-SharedMailboxCandidate` | [COMPLETE] | [YES] (15) | ADR-006 | Validate user for provisioning readiness | Uses: `_ValidateEmailFormat`, `_ValidateDisplayName`, `_ValidateDomainInExchangeOnline`, `_CheckForDuplicateEmails`, `_Write-Log`. Renamed from `Validate-SharedMailboxCandidate` to the approved verb `Test-`. `tests/Test-ValidateSharedMailboxCandidate.ps1` |
+| `Test-SharedMailboxCandidate` | [COMPLETE] | [YES] (15) | ADR-006 | Validate user for provisioning readiness | Uses: `_ValidateEmailFormat`, `_ValidateDisplayName`, `_ValidateDomainInExchangeOnline`, `_CheckForDuplicateEmails`, `_Write-Log`. Renamed from `Validate-SharedMailboxCandidate` to the approved verb `Test-`. `tests/Test-SharedMailboxCandidate.ps1` |
 
 ---
 

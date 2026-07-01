@@ -5,7 +5,8 @@ Format raw data for human-readable output.
 Helper function for report formatting (percentages, durations, dates, CSV escaping).
 #>
 
-function ConvertTo-MailboxReportFormat {
+function _ConvertTo-MailboxReportFormat {
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseApprovedVerbs', '', Justification = 'Verb is approved (ConvertTo) - PSScriptAnalyzer cannot parse verb-noun past the leading underscore when analyzing a standalone file. See COMPLIANCE-AUDIT-PHASE-PRERELEASE.md Finding 2.2')]
     param(
         [Parameter(Mandatory = $true)]
         [PSCustomObject]$ReportData,

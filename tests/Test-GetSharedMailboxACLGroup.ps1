@@ -4,8 +4,8 @@ Unit tests for Get-SharedMailboxACLGroup function
 #>
 
 # Import functions
-$projectRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
-$functionPath3 = Join-Path $projectRoot "functions" "Public" "Get-SharedMailboxACLGroup.ps1"
+$projectRoot = Split-Path -Parent $PSScriptRoot
+$functionPath3 = Join-Path (Join-Path $projectRoot "functions") "Public\Get-SharedMailboxACLGroup.ps1"
 
 . $functionPath3
 
@@ -13,7 +13,7 @@ Describe "GetSharedMailboxACLGroup" {
 
     Context "Successful group retrieval" {
         It "Should find and return valid group for smbx user" {
-            Mock Get-ADGroup {
+            Mock Get-ADObject {
                 return [PSCustomObject]@{
                     Name = "smbx_acl_12345678"
                     SamAccountName = "smbx_acl_12345678"
@@ -29,11 +29,11 @@ Describe "GetSharedMailboxACLGroup" {
             $result.Name | Should -Be "smbx_acl_12345678"
             $result.IsValid | Should -Be $true
 
-            Assert-MockCalled Get-ADGroup -Times 1
+            Assert-MockCalled Get-ADObject -Times 1
         }
 
         It "Should construct correct group name from smbx user" {
-            Mock Get-ADGroup {
+            Mock Get-ADObject {
                 return [PSCustomObject]@{
                     Name = "smbx_acl_test99"
                     SamAccountName = "smbx_acl_test99"
@@ -49,7 +49,7 @@ Describe "GetSharedMailboxACLGroup" {
         }
 
         It "Should handle different suffix formats" {
-            Mock Get-ADGroup {
+            Mock Get-ADObject {
                 return [PSCustomObject]@{
                     Name = "smbx_acl_user_2024_001"
                     SamAccountName = "smbx_acl_user_2024_001"
@@ -67,7 +67,7 @@ Describe "GetSharedMailboxACLGroup" {
 
     Context "Group not found" {
         It "Should return null when group doesn't exist" {
-            Mock Get-ADGroup {
+            Mock Get-ADObject {
                 return $null
             }
 
@@ -76,7 +76,7 @@ Describe "GetSharedMailboxACLGroup" {
         }
 
         It "Should handle empty AD search results" {
-            Mock Get-ADGroup {
+            Mock Get-ADObject {
                 return @()
             }
 
@@ -87,7 +87,7 @@ Describe "GetSharedMailboxACLGroup" {
 
     Context "Group validation failures - GroupScope" {
         It "Should reject group if not Universal scope" {
-            Mock Get-ADGroup {
+            Mock Get-ADObject {
                 return [PSCustomObject]@{
                     Name = "smbx_acl_12345678"
                     SamAccountName = "smbx_acl_12345678"
@@ -102,7 +102,7 @@ Describe "GetSharedMailboxACLGroup" {
         }
 
         It "Should reject group if DomainLocal scope" {
-            Mock Get-ADGroup {
+            Mock Get-ADObject {
                 return [PSCustomObject]@{
                     Name = "smbx_acl_12345678"
                     SamAccountName = "smbx_acl_12345678"
@@ -119,7 +119,7 @@ Describe "GetSharedMailboxACLGroup" {
 
     Context "Group validation failures - Mail attribute" {
         It "Should reject group without mail attribute" {
-            Mock Get-ADGroup {
+            Mock Get-ADObject {
                 return [PSCustomObject]@{
                     Name = "smbx_acl_12345678"
                     SamAccountName = "smbx_acl_12345678"
@@ -134,7 +134,7 @@ Describe "GetSharedMailboxACLGroup" {
         }
 
         It "Should reject group with null mail" {
-            Mock Get-ADGroup {
+            Mock Get-ADObject {
                 return [PSCustomObject]@{
                     Name = "smbx_acl_12345678"
                     SamAccountName = "smbx_acl_12345678"
@@ -151,7 +151,7 @@ Describe "GetSharedMailboxACLGroup" {
 
     Context "Group validation failures - Description" {
         It "Should reject group without description" {
-            Mock Get-ADGroup {
+            Mock Get-ADObject {
                 return [PSCustomObject]@{
                     Name = "smbx_acl_12345678"
                     SamAccountName = "smbx_acl_12345678"
@@ -166,7 +166,7 @@ Describe "GetSharedMailboxACLGroup" {
         }
 
         It "Should reject group with wrong description prefix" {
-            Mock Get-ADGroup {
+            Mock Get-ADObject {
                 return [PSCustomObject]@{
                     Name = "smbx_acl_12345678"
                     SamAccountName = "smbx_acl_12345678"
@@ -181,7 +181,7 @@ Describe "GetSharedMailboxACLGroup" {
         }
 
         It "Should accept description starting with 'Permission group for shared mailbox'" {
-            Mock Get-ADGroup {
+            Mock Get-ADObject {
                 return [PSCustomObject]@{
                     Name = "smbx_acl_12345678"
                     SamAccountName = "smbx_acl_12345678"
@@ -216,7 +216,7 @@ Describe "GetSharedMailboxACLGroup" {
 
     Context "AD search parameters" {
         It "Should pass SearchBase parameter when provided" {
-            Mock Get-ADGroup {
+            Mock Get-ADObject {
                 return [PSCustomObject]@{
                     Name = "smbx_acl_12345678"
                     SamAccountName = "smbx_acl_12345678"
@@ -227,15 +227,15 @@ Describe "GetSharedMailboxACLGroup" {
             }
 
             $searchBase = "OU=Groups,DC=ethz,DC=ch"
-            $result = Get-SharedMailboxACLGroup -SamAccountName "smbx_12345678" -SearchBase $searchBase
+            $null = Get-SharedMailboxACLGroup -SamAccountName "smbx_12345678" -SearchBase $searchBase
 
-            Assert-MockCalled Get-ADGroup -Times 1 -ParameterFilter {
+            Assert-MockCalled Get-ADObject -Times 1 -ParameterFilter {
                 $SearchBase -eq "OU=Groups,DC=ethz,DC=ch"
             }
         }
 
         It "Should work without SearchBase parameter" {
-            Mock Get-ADGroup {
+            Mock Get-ADObject {
                 return [PSCustomObject]@{
                     Name = "smbx_acl_12345678"
                     SamAccountName = "smbx_acl_12345678"
@@ -252,7 +252,7 @@ Describe "GetSharedMailboxACLGroup" {
 
     Context "Error handling" {
         It "Should handle AD connection failures" {
-            Mock Get-ADGroup {
+            Mock Get-ADObject {
                 throw [System.Exception]"AD connection failed"
             }
 
@@ -261,7 +261,7 @@ Describe "GetSharedMailboxACLGroup" {
         }
 
         It "Should handle permission denied errors" {
-            Mock Get-ADGroup {
+            Mock Get-ADObject {
                 throw [System.UnauthorizedAccessException]"Access denied"
             }
 
@@ -272,7 +272,7 @@ Describe "GetSharedMailboxACLGroup" {
 
     Context "Return object structure" {
         It "Should return object with all expected properties" {
-            Mock Get-ADGroup {
+            Mock Get-ADObject {
                 return [PSCustomObject]@{
                     Name = "smbx_acl_12345678"
                     SamAccountName = "smbx_acl_12345678"
@@ -294,7 +294,7 @@ Describe "GetSharedMailboxACLGroup" {
         }
 
         It "Should include AD group object in result" {
-            Mock Get-ADGroup {
+            Mock Get-ADObject {
                 return [PSCustomObject]@{
                     Name = "smbx_acl_12345678"
                     SamAccountName = "smbx_acl_12345678"
@@ -311,7 +311,7 @@ Describe "GetSharedMailboxACLGroup" {
         }
 
         It "Should include all group properties in result" {
-            Mock Get-ADGroup {
+            Mock Get-ADObject {
                 return [PSCustomObject]@{
                     Name = "smbx_acl_12345678"
                     SamAccountName = "smbx_acl_12345678"
@@ -330,7 +330,7 @@ Describe "GetSharedMailboxACLGroup" {
 
     Context "Suffix extraction" {
         It "Should correctly extract suffix from smbx_ prefix" {
-            Mock Get-ADGroup {
+            Mock Get-ADObject {
                 return [PSCustomObject]@{
                     Name = "smbx_acl_abc123"
                     SamAccountName = "smbx_acl_abc123"
@@ -345,7 +345,7 @@ Describe "GetSharedMailboxACLGroup" {
         }
 
         It "Should handle numeric suffixes" {
-            Mock Get-ADGroup {
+            Mock Get-ADObject {
                 return [PSCustomObject]@{
                     Name = "smbx_acl_99999"
                     SamAccountName = "smbx_acl_99999"
@@ -360,7 +360,7 @@ Describe "GetSharedMailboxACLGroup" {
         }
 
         It "Should handle underscore in suffix" {
-            Mock Get-ADGroup {
+            Mock Get-ADObject {
                 return [PSCustomObject]@{
                     Name = "smbx_acl_user_test_123"
                     SamAccountName = "smbx_acl_user_test_123"

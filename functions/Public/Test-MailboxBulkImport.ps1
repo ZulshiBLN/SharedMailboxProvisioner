@@ -377,5 +377,3 @@ function _GenerateBulkImportPreviewReport {
 
     return $html
 }
-
-Export-ModuleMember -Function Test-MailboxBulkImport

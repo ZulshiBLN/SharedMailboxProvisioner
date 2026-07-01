@@ -15,8 +15,9 @@ Configuration hierarchy (precedence):
   4. Hardcoded defaults
 #>
 
-function Get-Configuration {
+function _Get-Configuration {
     [CmdletBinding()]
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseApprovedVerbs', '', Justification = 'Verb is approved (Get) - PSScriptAnalyzer cannot parse verb-noun past the leading underscore when analyzing a standalone file. See COMPLIANCE-AUDIT-PHASE-PRERELEASE.md Finding 2.2')]
     param(
         [Parameter(Mandatory = $false)]
         [string]$ConfigPath = "",
@@ -77,8 +78,10 @@ function Get-Configuration {
     return [PSCustomObject]$config
 }
 
-function Get-ServiceAccountCredential {
+function _Get-ServiceAccountCredential {
     [CmdletBinding()]
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidUsingPlainTextForPassword', 'CredentialName', Justification = 'Lookup key/name for Key Vault or Credential Manager, not a literal secret value. See COMPLIANCE-AUDIT-PHASE-PRERELEASE.md Known Gaps')]
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseApprovedVerbs', '', Justification = 'Verb is approved (Get) - PSScriptAnalyzer cannot parse verb-noun past the leading underscore when analyzing a standalone file. See COMPLIANCE-AUDIT-PHASE-PRERELEASE.md Finding 2.2')]
     param(
         [Parameter(Mandatory = $false)]
         [string]$EnvironmentName = "dev",

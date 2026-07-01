@@ -150,5 +150,3 @@ function Invoke-MailboxProvisioningRetry {
         return $false
     }
 }
-
-Export-ModuleMember -Function Invoke-MailboxProvisioningRetry

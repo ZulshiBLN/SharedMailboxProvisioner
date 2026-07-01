@@ -178,5 +178,3 @@ function Get-SharedMailboxCandidatesWithGroups {
         return @()
     }
 }
-
-Export-ModuleMember -Function Get-SharedMailboxCandidatesWithGroups

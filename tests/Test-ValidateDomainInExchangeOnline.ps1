@@ -4,8 +4,8 @@ Unit tests for _ValidateDomainInExchangeOnline function
 #>
 
 # Import function
-$projectRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
-$functionPath = Join-Path $projectRoot "functions" "Private" "_ValidateDomainInExchangeOnline.ps1"
+$projectRoot = Split-Path -Parent $PSScriptRoot
+$functionPath = Join-Path (Join-Path $projectRoot "functions") "Private\_ValidateDomainInExchangeOnline.ps1"
 . $functionPath
 
 Describe "ValidateDomainInExchangeOnline" {
