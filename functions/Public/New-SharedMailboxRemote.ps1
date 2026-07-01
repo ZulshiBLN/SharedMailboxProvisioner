@@ -239,7 +239,8 @@ function _GetExchangePSSession {
         return $PSSession
     }
     catch {
-        Write-Verbose "Current user context failed, trying credential file fallback..."
+        Write-Verbose "Current user context failed: $($_.Exception.Message)"
+        Write-Verbose "Trying credential file fallback..."
 
         # Fallback to credential file
         if (-not (Test-Path -Path $CredentialPath)) {

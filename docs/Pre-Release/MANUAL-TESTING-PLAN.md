@@ -145,7 +145,8 @@ try {
     Write-Output "[OK] Connected with current user context"
 }
 catch {
-    Write-Output "[INFO] Current user context failed, falling back to credential file"
+    Write-Output "[INFO] Current user context failed: $($_.Exception.Message)"
+    Write-Output "[INFO] Falling back to credential file..."
     $credential = Import-Clixml -Path $credentialPath -ErrorAction Stop
     $session = New-PSSession -ConfigurationName Microsoft.Exchange -ConnectionUri $onPremUri -Credential $credential -ErrorAction Stop
 }
