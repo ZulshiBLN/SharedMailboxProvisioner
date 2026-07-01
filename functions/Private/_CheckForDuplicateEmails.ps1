@@ -34,8 +34,10 @@ function _CheckForDuplicateEmails {
 
     try {
         # Prepare Get-ADObject parameters for efficient search
+        # LDAPFilter (not Filter) is required here - Filter expects PowerShell expression
+        # syntax (-eq, -like, ...), not a raw LDAP filter string.
         $getAdParams = @{
-            Filter = "(|(mail=$EmailAddress)(proxyAddresses=*$EmailAddress*))"
+            LDAPFilter = "(|(mail=$EmailAddress)(proxyAddresses=*$EmailAddress*))"
             ErrorAction = 'Stop'
             Properties = @('mail', 'proxyAddresses', 'sAMAccountName')
         }

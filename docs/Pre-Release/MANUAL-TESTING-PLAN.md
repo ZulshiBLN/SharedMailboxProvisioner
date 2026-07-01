@@ -272,7 +272,7 @@ SamAccountName    : smbx_001
 **Validation Checklist:**
 - [x] Can query AD domain info (2026-07-01: `Get-ADDomain`/`Get-ADForest` confirmed, domain `d.ethz.ch`, NetBIOSName `D` - matches the on-prem Service Account domain from Step 0.2/0.4)
 - [x] Can list users in an AD OU (2026-07-01: confirmed against a general OU, `OU=EthUsers,DC=d,DC=ethz,DC=ch`, 5 real users returned)
-- [ ] Test candidates visible (`smbx_*` accounts in the actual test-candidate OU) - not yet checked; the OU used above (`EthUsers`) was a general OU, not the dedicated shared-mailbox test-candidate OU. Re-run the `-Filter "Name -like 'smbx_*'"` query above against the real test OU once it's confirmed.
+- [x] Test candidates visible (`smbx_*` accounts) (2026-07-01: `Get-ADUser -SearchBase "DC=d,DC=ethz,DC=ch" -Filter "SamAccountName -like 'smbx_*'"` returned 20+ disabled `smbx_*` accounts under `OU=EthUsers,DC=d,DC=ethz,DC=ch`, all with Surname "Shared Mailbox" and `Enabled: False` - matches the expected candidate pattern)
 
 **If FAIL:**
 ```powershell
@@ -338,9 +338,11 @@ All connections verified!
 ```
 
 **Validation Checklist:**
-- [ ] EXO connection working
-- [ ] AD connection working
-- [ ] Module loaded and accessible
+- [x] EXO connection working (2026-07-01: `[EXO] Connected`; the `Get-ETHMailbox -ResultSize 1` call also emits a benign EXO warning "There are more results available..." when the tenant has more than 1 mailbox - not an error)
+- [x] AD connection working (2026-07-01: `[AD] Connected`)
+- [x] Module loaded and accessible (2026-07-01: `[Module] Loaded`)
+
+`Test-SharedMailboxProvisionerConnections` returned `$allConnected = True`, printing `All connections verified!`.
 
 **If ANY FAIL:**
 - **STOP** - do not proceed with testing
@@ -359,8 +361,8 @@ All connections verified!
 | One-Time Setup (0.2) | Pass | 2026-07-01: credential file + `config.prod.json` created via `Initialize-ProvisioningConnections.ps1` |
 | EXO Connected | Pass | 2026-07-01: cert-store app auth via `Connect-ExchangeOnlineEnv`, tenant `ethz.onmicrosoft.com`, prefix `ETH` |
 | EXO On-Prem (if needed) | Pass | 2026-07-01: current user context against `mailm120`, `Get-ExchangeServer`/`Get-Mailbox` both returned data |
-| AD Connected | Pass | 2026-07-01: `Get-ADDomain`/`Get-ADForest` confirmed against `d.ethz.ch`; `smbx_*` test-candidate OU still to be checked separately |
-| All Verified (0.6) | Pending | Output not yet confirmed |
+| AD Connected | Pass | 2026-07-01: `Get-ADDomain`/`Get-ADForest` confirmed against `d.ethz.ch`; 20+ `smbx_*` test candidates confirmed under `OU=EthUsers` |
+| All Verified (0.6) | Pass | 2026-07-01: `Test-SharedMailboxProvisionerConnections` returned `True` (`[EXO] Connected`, `[AD] Connected`, `[Module] Loaded`) |
 
 **If all marked Pass:** Proceed to Pre-Test Checklist
 **If any marked Fail:** STOP and fix connections

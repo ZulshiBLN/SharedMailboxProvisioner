@@ -30,7 +30,7 @@ Tracking of all functions: implementation status, test coverage, usage.
 | `_ValidateEmailFormat` | [COMPLETE] | [YES] (22) | ADR-006 | RFC 5321 email format validation. `tests/Test-ValidateEmailFormat.ps1` |
 | `_ValidateDisplayName` | [COMPLETE] | [YES] (21) | ADR-006 | DisplayName character validation. `tests/Test-ValidateDisplayName.ps1` |
 | `_ValidateDomainInExchangeOnline` | [COMPLETE] | [YES] (18) | ADR-006 | Check domain against AcceptedDomains list. `tests/Test-ValidateDomainInExchangeOnline.ps1` |
-| `_CheckForDuplicateEmails` | [COMPLETE] | [YES] (19) | ADR-006 | Detect duplicate emails in AD. `tests/Test-CheckForDuplicateEmails.ps1` |
+| `_CheckForDuplicateEmails` | [COMPLETE] | [YES] (19), mocks wrong cmdlet - see note | ADR-006 | Detect duplicate emails in AD. **Fixed 2026-07-01:** was passing a raw LDAP filter string via `Get-ADObject -Filter` (which expects PowerShell expression syntax, not LDAP syntax) instead of `-LDAPFilter` - real AD calls always threw a syntax error, never caught by tests since they mock `Get-ADUser`, a cmdlet this function doesn't call. `tests/Test-CheckForDuplicateEmails.ps1` |
 
 ### Bulk Import & Reporting Helpers (Tier 7-8)
 | Function | Status | Tests | ADR | Notes |
@@ -62,8 +62,8 @@ Tracking of all functions: implementation status, test coverage, usage.
 
 | Function | Status | Tests | ADR | Usage | Notes |
 |----------|--------|-------|-----|-------|-------|
-| `Get-SharedMailboxACLGroup` | [COMPLETE] | [YES] (25) | ADR-006 | Lookup & validate ACL group for candidate | Uses: `_ParseSharedMailboxGroupDescription`, `_ValidateSharedMailboxGroup`. Optimized with `Get-ADObject`. `tests/Test-GetSharedMailboxACLGroup.ps1` |
-| `Get-SharedMailboxCandidates` | [COMPLETE] | [YES] (20) | ADR-006 | Query AD for eligible candidates | Get-ADObject optimized for large AD. `tests/Test-GetSharedMailboxCandidates.ps1` |
+| `Get-SharedMailboxACLGroup` | [COMPLETE] | [YES] (25), mocks wrong cmdlet - see note | ADR-006 | Lookup & validate ACL group for candidate | Uses: `_ParseSharedMailboxGroupDescription`, `_ValidateSharedMailboxGroup`. Optimized with `Get-ADObject`. **Fixed 2026-07-01:** same `-Filter`/`-LDAPFilter` bug as `Get-SharedMailboxCandidates` below, plus the filter was missing its `(&...)` wrapper (`"(sAMAccountName=X)(objectClass=group)"` is not valid as a single top-level LDAP expression). `tests/Test-GetSharedMailboxACLGroup.ps1` |
+| `Get-SharedMailboxCandidates` | [COMPLETE] | [YES] (20), mocks wrong cmdlet - see note | ADR-006 | Query AD for eligible candidates | Get-ADObject optimized for large AD. **Fixed 2026-07-01, found during live Pre-Release testing:** was calling `Get-ADObject -Filter $ldapFilter` with a raw LDAP filter string - `-Filter` expects PowerShell expression syntax (`-eq`, `-like`, ...), not LDAP syntax; real AD queries always failed with "Error parsing query: ... syntax error". Fixed to use `-LDAPFilter`. Never caught by tests, which mock `Get-ADUser` - a cmdlet this function doesn't call (it calls `Get-ADObject`). `tests/Test-GetSharedMailboxCandidates.ps1` |
 | `Get-SharedMailboxCandidatesWithGroups` | [COMPLETE] | [YES] (10) | ADR-006 | Candidates combined with validated ACL groups | Uses: `Get-SharedMailboxCandidates`, `Get-SharedMailboxACLGroup`. `tests/Test-GetSharedMailboxCandidatesWithGroups.ps1` |
 
 ---

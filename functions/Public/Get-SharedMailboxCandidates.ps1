@@ -110,8 +110,10 @@ function Get-SharedMailboxCandidates {
         Write-Verbose "LDAP filter: $ldapFilter"
 
         # Prepare Get-ADObject parameters (more efficient than Get-ADUser for large directories)
+        # LDAPFilter (not Filter) is required here - Filter expects PowerShell expression
+        # syntax (-eq, -like, ...), not raw LDAP filter strings like $ldapFilter.
         $getAdParams = @{
-            Filter = $ldapFilter
+            LDAPFilter = $ldapFilter
             ErrorAction = 'Stop'
             Properties = @('mail', 'DisplayName', 'Description', 'DistinguishedName', 'userAccountControl')
         }

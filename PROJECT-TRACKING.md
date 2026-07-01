@@ -152,6 +152,11 @@ Second same-day follow-up: `TenantId` swapped for `CertificateThumbprint` in `co
 
 ## KNOWN ISSUES
 
+### RESOLVED 2026-07-01: Get-ADObject called with -Filter instead of -LDAPFilter (candidate discovery pipeline broken against real AD)
+- Found live during Pre-Release Workflow 1 testing: `Get-SharedMailboxCandidates` failed every real AD query with `Error parsing query: '(&(objectClass=user)...)' ... 'syntax error'`. Root cause: `Get-ADObject`'s `-Filter` parameter expects PowerShell expression syntax (`-eq`, `-like`, ...), not raw LDAP filter strings - that's what `-LDAPFilter` is for. All three affected functions (`Get-SharedMailboxCandidates`, `Get-SharedMailboxACLGroup`, `_CheckForDuplicateEmails`) built raw LDAP strings and passed them via `-Filter`. `Get-SharedMailboxACLGroup` additionally had a malformed filter missing its `(&...)` wrapper. Fixed all three to use `-LDAPFilter`.
+- **Why this was never caught:** the corresponding Pester tests (`Test-GetSharedMailboxCandidates.ps1`, `Test-GetSharedMailboxACLGroup.ps1`, `Test-CheckForDuplicateEmails.ps1`) all `Mock Get-ADUser`, but the production code calls `Get-ADObject` (switched at some point for large-AD performance, per existing code comments) - the mocks never actually intercepted the real call path, so the tests could never have exercised the actual LDAP filter string against anything that would validate its syntax.
+- **NOT FIXED:** the test files themselves still mock the wrong cmdlet. They weren't rewritten in this pass (would need to mock `Get-ADObject` and assert on `-LDAPFilter` instead of `-Filter`) - re-running `New-SharedMailboxRemote.ps1`'s and `Invoke-MailboxPermissionQueue.ps1`'s own `Get-ADObject -Filter "sAMAccountName -eq '...' -and ..."` calls were checked too and are correct (real PowerShell expression syntax, not LDAP), so those two were not touched.
+
 ### RESOLVED 2026-07-01: Module version mismatch
 - `SharedMailboxProvisioner.psd1` declared `ModuleVersion = '0.8.2'` while docs treated `v0.9.0-beta.1` as current. Fixed: `ModuleVersion = '0.9.0'` + `PrivateData.PSData.Prerelease = 'beta1'` (PSGallery convention; `ModuleVersion` itself can't hold a `-beta.1` suffix).
 

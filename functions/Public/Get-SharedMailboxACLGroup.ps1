@@ -58,12 +58,14 @@ function Get-SharedMailboxACLGroup {
     try {
         # Build filter for efficient search in large AD
         # Using Get-ADObject with objectClass filter is faster than Get-ADGroup for large directories
-        $ldapFilter = "(sAMAccountName=$expectedGroupName)(objectClass=group)"
+        $ldapFilter = "(&(sAMAccountName=$expectedGroupName)(objectClass=group))"
         Write-Verbose "LDAP filter: $ldapFilter"
 
         # Prepare Get-ADObject parameters (more efficient for large ADs)
+        # LDAPFilter (not Filter) is required here - Filter expects PowerShell expression
+        # syntax (-eq, -like, ...), not a raw LDAP filter string.
         $getAdParams = @{
-            Filter = $ldapFilter
+            LDAPFilter = $ldapFilter
             ErrorAction = 'Stop'
             Properties = @('mail', 'Description', 'GroupScope')
         }
