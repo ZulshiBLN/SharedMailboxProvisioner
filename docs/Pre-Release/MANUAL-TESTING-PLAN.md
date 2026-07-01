@@ -65,17 +65,21 @@ $tenant                = "<tenant>.onmicrosoft.com"       # Replace with actual 
 $appId                 = "<app-registration-client-id>"  # Application (client) ID
 $certificateThumbprint = "<certificate-thumbprint>"       # From the installed cert, e.g. via Get-ChildItem Cert:\CurrentUser\My
 
+# If staging requires an outbound proxy, add: -ProxyUrl "http://proxyserver:8080"
+# Default -Prefix "ETH" renames cloud cmdlets (Get-Mailbox -> Get-ETHMailbox, etc.)
+# so this session can stay open alongside the on-premises session from Step 0.3
+# (which imports unprefixed cmdlets) without name collisions.
 Connect-ExchangeOnlineEnv -Tenant $tenant -AppId $appId -CertificateThumbprint $certificateThumbprint
 
 # Verify connection
 Get-ConnectionInformation
-Get-Mailbox -ResultSize 1  # Quick test
+Get-ETHMailbox -ResultSize 1  # Quick test (prefixed cloud cmdlet)
 ```
 
 **Expected Output:**
 ```
 [INFO] Connecting to Exchange Online (attempt 1/3)...
-[OK] Connected to Exchange Online successfully (tenant: contoso.onmicrosoft.com)
+[OK] Connected to Exchange Online successfully (tenant: contoso.onmicrosoft.com, prefix: ETH)
 
 ConnectionId      : ...
 Organization      : contoso.onmicrosoft.com
@@ -90,7 +94,7 @@ Shared Mailbox 1 sharedmb1@contoso.com
 **Validation Checklist:**
 - [ ] `Connect-ExchangeOnlineEnv` prints `[OK] Connected to Exchange Online successfully`
 - [ ] `Get-ConnectionInformation` shows an active session for the correct tenant
-- [ ] Can list mailboxes (at least 1)
+- [ ] `Get-ETHMailbox` (prefixed) can list mailboxes (at least 1)
 
 **If FAIL:**
 ```powershell
@@ -206,9 +210,9 @@ Get-ADOrganizationalUnit -Filter "Name -eq 'SharedMailboxTest'"
 function Test-SharedMailboxProvisionerConnections {
     Write-Host "Testing all connections..." -ForegroundColor Cyan
     
-    # Test EXO
+    # Test EXO (prefixed cmdlet - avoids hitting the unprefixed on-premises session)
     try {
-        $eox = Get-Mailbox -ResultSize 1 -ErrorAction Stop
+        $eox = Get-ETHMailbox -ResultSize 1 -ErrorAction Stop
         Write-Host "[EXO] ✓ Connected" -ForegroundColor Green
     } catch {
         Write-Host "[EXO] ✗ Failed: $_" -ForegroundColor Red

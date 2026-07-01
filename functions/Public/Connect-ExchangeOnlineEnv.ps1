@@ -27,6 +27,17 @@ Required together with -AppId for app-based (certificate) authentication.
 .PARAMETER SkipConnectIfAlready
 If connection already exists, skip reconnect (default: false, always reconnect)
 
+.PARAMETER ProxyUrl
+Optional proxy server URL (e.g. "http://proxyserver:8080"). When set, configures
+HTTP_PROXY/HTTPS_PROXY environment variables and .NET's DefaultWebProxy for this
+session (using the current user's default network credentials) before connecting.
+
+.PARAMETER Prefix
+Prefix applied to all EXO cmdlet nouns (e.g. "ETH" -> Get-ETHMailbox instead of
+Get-Mailbox). Lets an on-premises Exchange session (Import-PSSession, unprefixed
+cmdlets) and this cloud EXO session stay open in parallel without cmdlet name
+collisions. Default: "ETH". Pass an empty string to use unprefixed cloud cmdlets.
+
 .EXAMPLE
 Connect-ExchangeOnlineEnv -Tenant "contoso.onmicrosoft.com"
 Connects to Exchange Online for contoso tenant (interactive auth)
@@ -34,6 +45,15 @@ Connects to Exchange Online for contoso tenant (interactive auth)
 .EXAMPLE
 Connect-ExchangeOnlineEnv -Tenant "12345678-1234-1234-1234-123456789012" -AppId "app-guid" -CertificateThumbprint "AB12CD34..."
 Connects using app-based (certificate) authentication, certificate read from the local cert store
+
+.EXAMPLE
+Connect-ExchangeOnlineEnv -Tenant "contoso.onmicrosoft.com" -AppId "app-guid" -CertificateThumbprint "AB12CD34..." -ProxyUrl "http://proxyserver:8080"
+Connects through a corporate proxy
+
+.EXAMPLE
+Connect-ExchangeOnlineEnv -Tenant "contoso.onmicrosoft.com" -AppId "app-guid" -CertificateThumbprint "AB12CD34..." -Prefix "ETH"
+Connects with prefixed cmdlets (Get-ETHMailbox, etc.), so an on-premises Import-PSSession
+with unprefixed cmdlets (Get-Mailbox) can stay open at the same time
 
 .NOTES
 Requires: ExchangeOnlineManagement >= 3.1.0
@@ -54,8 +74,25 @@ function Connect-ExchangeOnlineEnv {
         [string]$CertificateThumbprint = "",
 
         [Parameter(Mandatory = $false)]
-        [switch]$SkipConnectIfAlready
+        [switch]$SkipConnectIfAlready,
+
+        [Parameter(Mandatory = $false)]
+        [string]$ProxyUrl = "",
+
+        [Parameter(Mandatory = $false)]
+        [string]$Prefix = "ETH"
     )
+
+    # Configure proxy before any outbound call (module install, PSGallery, EXO auth)
+    if ($ProxyUrl) {
+        Write-Verbose "Configuring proxy: $ProxyUrl"
+        $env:HTTP_PROXY = $ProxyUrl
+        $env:HTTPS_PROXY = $ProxyUrl
+
+        $proxy = New-Object System.Net.WebProxy($ProxyUrl, $true)
+        $proxy.Credentials = [System.Net.CredentialCache]::DefaultNetworkCredentials
+        [System.Net.WebRequest]::DefaultWebProxy = $proxy
+    }
 
     # Ensure ExchangeOnlineManagement module is available
     $eoxModule = Get-Module -Name ExchangeOnlineManagement -ListAvailable | Sort-Object Version -Descending | Select-Object -First 1
@@ -116,6 +153,10 @@ function Connect-ExchangeOnlineEnv {
         $connectParams['CertificateThumbprint'] = $CertificateThumbprint
     }
 
+    if ($Prefix) {
+        $connectParams['Prefix'] = $Prefix
+    }
+
     # Connect with retry logic
     $maxRetries = 3
     $attempt = 0
@@ -127,7 +168,7 @@ function Connect-ExchangeOnlineEnv {
             Write-Output "[INFO] Connecting to Exchange Online (attempt $attempt/$maxRetries)..."
             Connect-ExchangeOnline @connectParams | Out-Null
 
-            Write-Output "[OK] Connected to Exchange Online successfully (tenant: $Tenant)"
+            Write-Output "[OK] Connected to Exchange Online successfully (tenant: $Tenant, prefix: $Prefix)"
             Write-Log -Message "Connected to Exchange Online" -Level INFO -Operation "Connect-ExchangeOnlineEnv" -Status "SUCCESS"
             return $true
         }
