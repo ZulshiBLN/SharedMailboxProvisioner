@@ -58,14 +58,14 @@ $PSVersionTable.PSVersion  # Should be 5.1+
 
 ```powershell
 # Connect to Exchange Online via App Registration (certificate-based auth)
-# Required environment variables (set beforehand, never hardcode secrets):
-#   $env:EXO_CERT_PATH     - Path to the .pfx certificate file
-#   $env:EXO_CERT_PASSWORD - Certificate password
+# Certificate must already be installed in the local certificate store
+# (CurrentUser or LocalMachine, matching whichever account runs this).
 
-$tenant = "<tenant>.onmicrosoft.com"        # Replace with actual tenant
-$appId  = "<app-registration-client-id>"   # Replace with actual AppId (GUID)
+$tenant                = "<tenant>.onmicrosoft.com"       # Replace with actual tenant
+$appId                 = "<app-registration-client-id>"  # Application (client) ID
+$certificateThumbprint = "<certificate-thumbprint>"       # From the installed cert, e.g. via Get-ChildItem Cert:\CurrentUser\My
 
-Connect-ExchangeOnlineEnv -Tenant $tenant -AppId $appId
+Connect-ExchangeOnlineEnv -Tenant $tenant -AppId $appId -CertificateThumbprint $certificateThumbprint
 
 # Verify connection
 Get-ConnectionInformation
@@ -97,8 +97,7 @@ Shared Mailbox 1 sharedmb1@contoso.com
 # Troubleshoot connection
 $error[0]  # Show last error
 # Common issues:
-# - Certificate not found/expired: verify $env:EXO_CERT_PATH points to a valid, non-expired .pfx
-# - Wrong certificate password: verify $env:EXO_CERT_PASSWORD
+# - Certificate not found/expired: verify $certificateThumbprint matches a valid, non-expired cert in Cert:\CurrentUser\My (or LocalMachine\My)
 # - Wrong AppId or tenant: double-check the App Registration's Application (client) ID and tenant name/ID
 # - Missing consent: Azure AD > App Registration > API permissions > verify Exchange.ManageAsApp has admin consent granted
 # - Licensing: Ensure the mailbox(es) the app manages have valid EXO licenses

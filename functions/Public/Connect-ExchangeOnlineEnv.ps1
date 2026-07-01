@@ -18,7 +18,11 @@ Per ADR-004: Logging & Audit Trail
 Organization name (e.g., 'contoso.onmicrosoft.com') or TenantId (GUID)
 
 .PARAMETER AppId
-Optional App ID for app-based authentication (interactive auth by default)
+Optional Application (client) ID for app-based authentication (interactive auth by default)
+
+.PARAMETER CertificateThumbprint
+Thumbprint of the authentication certificate, already installed in the local certificate store.
+Required together with -AppId for app-based (certificate) authentication.
 
 .PARAMETER SkipConnectIfAlready
 If connection already exists, skip reconnect (default: false, always reconnect)
@@ -28,8 +32,8 @@ Connect-ExchangeOnlineEnv -Tenant "contoso.onmicrosoft.com"
 Connects to Exchange Online for contoso tenant (interactive auth)
 
 .EXAMPLE
-Connect-ExchangeOnlineEnv -Tenant "12345678-1234-1234-1234-123456789012" -AppId "app-guid"
-Connects using app-based authentication
+Connect-ExchangeOnlineEnv -Tenant "12345678-1234-1234-1234-123456789012" -AppId "app-guid" -CertificateThumbprint "AB12CD34..."
+Connects using app-based (certificate) authentication, certificate read from the local cert store
 
 .NOTES
 Requires: ExchangeOnlineManagement >= 3.1.0
@@ -45,6 +49,9 @@ function Connect-ExchangeOnlineEnv {
 
         [Parameter(Mandatory = $false)]
         [string]$AppId = "",
+
+        [Parameter(Mandatory = $false)]
+        [string]$CertificateThumbprint = "",
 
         [Parameter(Mandatory = $false)]
         [switch]$SkipConnectIfAlready
@@ -104,10 +111,9 @@ function Connect-ExchangeOnlineEnv {
         ShowBanner = $false
     }
 
-    if ($AppId) {
+    if ($AppId -and $CertificateThumbprint) {
         $connectParams['AppId'] = $AppId
-        $connectParams['CertificateFilePath'] = $env:EXO_CERT_PATH
-        $connectParams['CertificatePassword'] = $env:EXO_CERT_PASSWORD
+        $connectParams['CertificateThumbprint'] = $CertificateThumbprint
     }
 
     # Connect with retry logic
