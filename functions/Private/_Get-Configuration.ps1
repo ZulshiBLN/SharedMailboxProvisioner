@@ -26,26 +26,29 @@ function Get-Configuration {
     )
 
     # Determine config file path
+    # Join-Path in Windows PowerShell 5.1 only accepts a single -Path/-ChildPath pair,
+    # so multi-segment paths must be built via chained calls.
     if (-not $ConfigPath) {
         if (-not (Test-Path $PSScriptRoot)) {
-            $ConfigPath = Join-Path (Get-Location) "config" "config.$Environment.json"
+            $configDir = Join-Path (Get-Location) "config"
         }
         else {
-            $ConfigPath = Join-Path $PSScriptRoot ".." ".." "config" "config.$Environment.json"
+            $moduleRoot = Join-Path $PSScriptRoot ".."
+            $moduleRoot = Join-Path $moduleRoot ".."
+            $configDir = Join-Path $moduleRoot "config"
         }
+
+        $ConfigPath = Join-Path $configDir "config.$Environment.json"
     }
 
     # Default configuration (fallback)
     $defaultConfig = @{
         TenantId = ""
-        OrganizationName = "Organization"
-        PrimarySmtpDomain = ""
+        Organization = ""
+        AppId = ""
         DefaultMailboxQuota = "50GB"
-        ComplianceLabels = @("Internal")
-        DelegatedAdministration = $false
         LogRetentionDays = 90
-        MaxRetries = 3
-        InitialBackoffMs = 100
+        MaxRetries = 5
     }
 
     # Load from JSON if exists
@@ -76,25 +79,10 @@ function Get-Configuration {
         return $null
     }
 
-    if (-not $config.PrimarySmtpDomain -or $config.PrimarySmtpDomain -eq "") {
-        Write-Error "Configuration error: PrimarySmtpDomain is required"
-        return $null
-    }
-
     # Validate format of required fields
     if (-not (_ValidateGuid -Value $config.TenantId)) {
         Write-Error "Configuration error: TenantId must be a valid GUID (got: $($config.TenantId))"
         return $null
-    }
-
-    if (-not (_ValidateDomain -Value $config.PrimarySmtpDomain)) {
-        Write-Error "Configuration error: PrimarySmtpDomain must be a valid domain (got: $($config.PrimarySmtpDomain))"
-        return $null
-    }
-
-    # Convert compliance labels array (JSON might load as single string)
-    if ($config.ComplianceLabels -is [string]) {
-        $config.ComplianceLabels = @($config.ComplianceLabels)
     }
 
     Write-Verbose "Configuration validated successfully"
@@ -111,16 +99,6 @@ function _ValidateGuid {
     catch {
         return $false
     }
-}
-
-function _ValidateDomain {
-    param([string]$Value)
-
-    # Basic domain validation (not comprehensive, but sufficient for SMTP domains)
-    if ($Value -match '^([a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}$') {
-        return $true
-    }
-    return $false
 }
 
 function Get-ServiceAccountCredential {

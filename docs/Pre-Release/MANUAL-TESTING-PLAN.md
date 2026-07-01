@@ -61,15 +61,21 @@ $PSVersionTable.PSVersion  # Should be 5.1+
 # Certificate must already be installed in the local certificate store
 # (CurrentUser or LocalMachine, matching whichever account runs this).
 
-$tenant                = "<tenant>.onmicrosoft.com"       # Replace with actual tenant
-$appId                 = "<app-registration-client-id>"  # Application (client) ID
 $certificateThumbprint = "<certificate-thumbprint>"       # From the installed cert, e.g. via Get-ChildItem Cert:\CurrentUser\My
+
+# Option A: Explicit Tenant/AppId
+$tenant = "<tenant>.onmicrosoft.com"       # Replace with actual tenant
+$appId  = "<app-registration-client-id>"  # Application (client) ID
 
 # If staging requires an outbound proxy, add: -ProxyUrl "http://proxyserver:8080"
 # Default -Prefix "ETH" renames cloud cmdlets (Get-Mailbox -> Get-ETHMailbox, etc.)
 # so this session can stay open alongside the on-premises session from Step 0.3
 # (which imports unprefixed cmdlets) without name collisions.
 Connect-ExchangeOnlineEnv -Tenant $tenant -AppId $appId -CertificateThumbprint $certificateThumbprint
+
+# Option B: Tenant/AppId resolved from config (set up once via
+# scripts\Initialize-OnPremCredential.ps1 - see Step 0.3). Omit -Tenant/-AppId entirely:
+# Connect-ExchangeOnlineEnv -Environment prod -CertificateThumbprint $certificateThumbprint
 
 # Verify connection
 Get-ConnectionInformation
@@ -115,24 +121,47 @@ $error[0]  # Show last error
 
 **Only if your environment has Exchange On-Premises and you need to sync mailboxes**
 
-```powershell
-# Connect to Exchange On-Premises
-$onPremServer = "exchangeserver.contoso.local"  # Replace with your server
-$onPremCred = Get-Credential  # Service account with Exchange admin rights
+**One-time setup (first run only):** `New-SharedMailboxRemote` falls back to an encrypted
+credential file if the current user context can't open a PSSession. Create it once, run
+AS the Service Account with elevated privileges - this also populates
+`config.<Environment>.json` used by `Connect-ExchangeOnlineEnv` (Step 0.2, Option B):
 
-$session = New-PSSession -ConfigurationName Microsoft.Exchange `
-    -ConnectionUri "http://$onPremServer/PowerShell/" `
-    -Authentication Kerberos `
-    -Credential $onPremCred
+```powershell
+.\scripts\Initialize-OnPremCredential.ps1 -UserName "ETHZ\SvcExchangeAdmin" -Environment prod `
+    -TenantId "<tenant-guid>" -Organization "<tenant>.onmicrosoft.com" -AppId "<app-registration-client-id>"
+```
+
+This creates `config\Credential_ETHZ_SvcExchangeAdmin.clixml`.
+
+```powershell
+# Verify on-premises connectivity - mirrors the same current-context-first,
+# credential-file-fallback pattern New-SharedMailboxRemote uses internally
+# (functions/Public/New-SharedMailboxRemote.ps1 -> _GetExchangePSSession).
+$onPremUri = "http://exchangeserver.contoso.local/PowerShell/"  # Replace with your server
+$credentialPath = "config\Credential_ETHZ_SvcExchangeAdmin.clixml"  # From the setup step above
+
+try {
+    $session = New-PSSession -ConfigurationName Microsoft.Exchange -ConnectionUri $onPremUri -ErrorAction Stop
+    Write-Output "[OK] Connected with current user context"
+}
+catch {
+    Write-Output "[INFO] Current user context failed, falling back to credential file"
+    $credential = Import-Clixml -Path $credentialPath -ErrorAction Stop
+    $session = New-PSSession -ConfigurationName Microsoft.Exchange -ConnectionUri $onPremUri -Credential $credential -ErrorAction Stop
+}
 
 Import-PSSession $session -ErrorAction Stop -DisableNameChecking
 
-# Verify connection
-Get-ExchangeServer  # Should show on-prem servers
+# Verify connection (unprefixed on-prem cmdlets, e.g. Get-Mailbox - distinct from
+# Get-ETHMailbox in Step 0.2 thanks to the "ETH" prefix on the cloud session)
+Get-ExchangeServer
+Get-Mailbox -ResultSize 1
 ```
 
 **Expected Output:**
 ```
+[OK] Connected with current user context   (or the credential-file fallback message)
+
 Name           Site             ServerRole
 ----           ----             ----------
 EX01           Default-Site-1   Mailbox, CAServer
@@ -140,8 +169,9 @@ EX02           Default-Site-1   Mailbox, CAServer
 ```
 
 **Validation Checklist:**
-- [ ] Connected to on-prem Exchange
+- [ ] Connected to on-prem Exchange (current user context or credential file fallback)
 - [ ] Can list on-prem Exchange servers
+- [ ] `Get-Mailbox` (unprefixed) returns a result without colliding with `Get-ETHMailbox` from Step 0.2
 - [ ] Session active and imported
 
 **If FAIL or NOT APPLICABLE:**
@@ -150,8 +180,10 @@ EX02           Default-Site-1   Mailbox, CAServer
 # If needed but fails:
 $error[0]  # Check error details
 # Common issues:
+# - Credential file missing: run scripts\Initialize-OnPremCredential.ps1 first (see above)
 # - Server name wrong: Verify FQDN
-# - Kerberos auth: Check domain membership
+# - Current user context failing: expected if not running as the Service Account - the
+#   credential-file fallback should still succeed
 # - Network: Check connectivity to server
 ```
 

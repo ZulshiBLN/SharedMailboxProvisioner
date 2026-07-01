@@ -12,8 +12,7 @@ Tracking of all functions: implementation status, test coverage, usage.
 |----------|--------|-------|-----|-------|
 | `_RetryExchangeOperation` | [COMPLETE] | [YES] (5) | ADR-003 | Retry logic with exponential backoff. Core for all EXO calls. `tests/Test-RetryExchangeOperation.ps1` |
 | `_Write-Log` | [COMPLETE] | [YES] (4) | ADR-004 | Centralized audit & error logging. Used by all operations. `tests/Test-WriteLog.ps1` |
-| `_Get-Configuration` | [COMPLETE] | [YES] (5) | ADR-005 | Config loading & validation. `tests/Test-GetConfiguration.ps1` |
-| `_Initialize-ScheduledTaskCredential` | [COMPLETE] | [NONE] | ADR-002 | Interactive encrypted-credential setup for ScheduledTask execution. No automated test (interactive by design). |
+| `_Get-Configuration` | [COMPLETE] | [YES] (5) | ADR-005 | Config loading & validation. Schema simplified 2026-07-01: only `TenantId` (required, GUID), `Organization`/`AppId` (EXO app-based auth), `DefaultMailboxQuota`, `LogRetentionDays`, `MaxRetries` (default 5, not yet wired to any retry logic). Dropped unused fields `OrganizationName`, `PrimarySmtpDomain`, `ComplianceLabels`, `DelegatedAdministration`, `InitialBackoffMs` - none had a downstream consumer. `tests/Test-GetConfiguration.ps1` |
 
 ---
 
@@ -53,7 +52,7 @@ Tracking of all functions: implementation status, test coverage, usage.
 
 | Function | Status | Tests | ADR | Usage | Notes |
 |----------|--------|-------|-----|-------|-------|
-| `Connect-ExchangeOnlineEnv` | [COMPLETE] | [NONE] | ADR-002 | Establish Exchange Online connection | Wrapper for EXO-V3 module, auto-install, exponential backoff, connection pooling. No dedicated test file (external module dependency). |
+| `Connect-ExchangeOnlineEnv` | [COMPLETE] | [NONE] | ADR-002 | Establish Exchange Online connection | Wrapper for EXO-V3 module, auto-install, exponential backoff, connection pooling. Supports cert-store app auth (`-AppId`/`-CertificateThumbprint`), proxy (`-ProxyUrl`), cmdlet `-Prefix` (default "ETH", avoids collisions with an unprefixed on-prem session), and Tenant/AppId fallback from `config.<Environment>.json` via `_Get-Configuration`. No dedicated test file (external module dependency). |
 | `New-SharedMailboxRemote` | [COMPLETE] | [YES] (11) | ADR-001, ADR-003 | Create remote shared mailbox on-premises | Uses: PSSession management, hybrid JSON/CSV backlog. `tests/Test-NewSharedMailboxRemote.ps1` |
 | `Invoke-MailboxPermissionQueue` | [COMPLETE] | [YES] (11) | ADR-001, ADR-003 | Process provisioning backlog, assign permissions | Async retry queue, 60-min EXO sync handling. `tests/Test-InvokeMailboxPermissionQueue.ps1` |
 
@@ -108,6 +107,7 @@ Cross-tier coverage: `tests/Test-Tier7-Integration.ps1` (10 tests) exercises Imp
 | Script | Status | Tests | Purpose | Notes |
 |--------|--------|-------|---------|-------|
 | `scripts/Provision-BulkMailboxesFromCSV.ps1` | [COMPLETE] | [YES] (via Test-Tier7-Integration.ps1) | Manual bulk provision from CSV | Admin CLI. Dry-run preview, explicit confirmation. **MANUAL ONLY - never automated/scheduled.** Uses: `Import-MailboxCandidatesFromCSV`, `Test-MailboxBulkImport`, `New-SharedMailboxRemote`, `Invoke-MailboxPermissionQueue` |
+| `scripts/Initialize-OnPremCredential.ps1` | [COMPLETE] | [NONE] | One-time Service Account credential + EXO config setup | Admin CLI, added 2026-07-01, replaces the former private `_Initialize-ScheduledTaskCredential`. Creates `config/Credential_{UserName}.clixml` (consumed by `New-SharedMailboxRemote -CredentialPath`) and writes `TenantId`/`Organization`/`AppId` into `config/config.<Environment>.json` (consumed by `Connect-ExchangeOnlineEnv`). **MANUAL ONLY**, must run as the target Service Account, elevated. No automated test (interactive by design). |
 
 No further scripts are planned at this time (the "Remove-MailboxBatch" / "Sync-MailboxMembers" / "Export-MailboxAudit" script ideas from the original Tier plan were superseded by `Export-MailboxAuditLog` and the existing bulk-provisioning script; revisit only if a concrete need arises).
 
@@ -137,7 +137,7 @@ All planned Tiers (1-8, 10-11) are complete; Tier 9 was formally removed (see `P
 
 Remaining gaps identified in this refresh:
 - [ ] `_ConvertTo-MailboxReportFormat` has no dedicated unit test.
-- [ ] `_Initialize-ScheduledTaskCredential` and `Connect-ExchangeOnlineEnv` have no automated tests (both depend on interactive/external-module behavior); covered so far only by manual verification.
+- [ ] `scripts/Initialize-OnPremCredential.ps1` and `Connect-ExchangeOnlineEnv` have no automated tests (both depend on interactive/external-module behavior); covered so far only by manual verification.
 - [ ] Local dev environment only has Pester 3.4.0; a Pester 5.x install is needed to actually execute the suite and confirm all counted `It` blocks pass.
 - [ ] Performance validation for 100+ mailbox batches (deferred, no scale testing done yet).
 
@@ -152,14 +152,14 @@ Remaining gaps identified in this refresh:
 | 2 | [COMPLETE] | 3 | 62 | Group Validation: `_ParseSharedMailboxGroupDescription`, `_ValidateSharedMailboxGroup`, `Get-SharedMailboxACLGroup` |
 | 3 | [COMPLETE] | 3 | 52 | Data Quality: `_CheckForDuplicateEmails`, `_ValidateDomainInExchangeOnline`, `Test-SharedMailboxCandidate` |
 | 4 | [COMPLETE] | 2 | 30 | Candidate Discovery: `Get-SharedMailboxCandidates`, `Get-SharedMailboxCandidatesWithGroups` |
-| 5 | [COMPLETE] | 3 | 22 | Exchange Provisioning: `New-SharedMailboxRemote` (11), `Invoke-MailboxPermissionQueue` (11), `_Initialize-ScheduledTaskCredential` (untested) |
+| 5 | [COMPLETE] | 2 | 22 | Exchange Provisioning: `New-SharedMailboxRemote` (11), `Invoke-MailboxPermissionQueue` (11). Credential setup moved to `scripts/Initialize-OnPremCredential.ps1` (2026-07-01). |
 | 6 | [COMPLETE] | 1 | 9 | Batch Orchestration: `Invoke-SharedMailboxProvisioning` |
 | 7 | [COMPLETE] | 2 + 1 script | 37 | Bulk Import: `Import-MailboxCandidatesFromCSV` (14), `Test-MailboxBulkImport` (13), `Provision-BulkMailboxesFromCSV.ps1` (10, via integration test) |
 | 8 | [COMPLETE] | 3 | 31 | Reporting & Audit: `Get-MailboxProvisioningReport`, `Export-MailboxAuditLog`, `Get-MailboxProvisioningMetrics` |
 | 9 | [REMOVED] | - | - | Integration Testing - not applicable (see rationale in `PROJECT-TRACKING.md`) |
 | 10 | [COMPLETE] | 5 | 48 | Operational Tooling: `Get-MailboxProvisioningStatus`, `Resolve-MailboxProvisioningFailure`, `Invoke-MailboxProvisioningRetry`, `Set-MailboxProvisioningSchedule`, `Get-MailboxProvisioningHealth` |
 | 11 | [COMPLETE] | - (5 docs, ~130 pages) | - | Documentation: README, USER-GUIDE, ADMIN-GUIDE, OPERATIONS-RUNBOOK, API-REFERENCE |
-| **Total** | **COMPLETE** | **18 public + 12 private + 1 script** | **348** | 27 test files, 5,939 lines (functions + script) |
+| **Total** | **COMPLETE** | **18 public + 11 private + 2 scripts** | **348** | 27 test files. Line/function counts as of 2026-06-30; not recounted after the 2026-07-01 credential/config changes. |
 
 **Code Quality Metrics:**
 - Build Status: PASSED (0 PSScriptAnalyzer violations, verified 2026-07-01)

@@ -12,6 +12,7 @@ config.prod.json
 *.pfx
 *.pem
 *.key
+*.clixml
 secrets.json
 credentials.json
 

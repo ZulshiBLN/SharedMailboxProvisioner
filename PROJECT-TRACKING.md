@@ -64,7 +64,7 @@ Candidate discovery, validation, and Exchange Online provisioning. 10 functions,
 | 2 | Group Validation | `_ParseSharedMailboxGroupDescription`, `_ValidateSharedMailboxGroup`, `Get-SharedMailboxACLGroup` | ACL group lookup, optimized with `Get-ADObject` |
 | 3 | Data Quality | `_ValidateDomainInExchangeOnline`, `_CheckForDuplicateEmails`, `Test-SharedMailboxCandidate` | Combined candidate validation (renamed from `Validate-` to approved verb `Test-`) |
 | 4 | Candidate Discovery | `Get-SharedMailboxCandidates`, `Get-SharedMailboxCandidatesWithGroups` | AD query for eligible candidates |
-| 5 | Exchange Provisioning | `New-SharedMailboxRemote`, `_Initialize-ScheduledTaskCredential`, `Invoke-MailboxPermissionQueue` | Hybrid JSON/CSV backlog, 60-min EXO sync handling |
+| 5 | Exchange Provisioning | `New-SharedMailboxRemote`, `Invoke-MailboxPermissionQueue` | Hybrid JSON/CSV backlog, 60-min EXO sync handling. Credential setup moved to `scripts/Initialize-OnPremCredential.ps1` (2026-07-01, see Known Issues/Changelog below). |
 | 6 | Batch Orchestration | `Invoke-SharedMailboxProvisioning` | Main entry point: discover -> create -> assign permissions |
 
 **Commits:** 2c8a116, 824159f, 8ee5634, 6507d81, 8de6a0a, ba4bc2e, d9b6461, d09a1f7, ab9ec6b
@@ -123,20 +123,55 @@ Real-world validation before v1.0.0 launch. See `docs/Pre-Release/PHASE-PRERELEA
 
 **Manual Testing Plan** for 2026-07-03 is drafted in detail (`docs/Pre-Release/MANUAL-TESTING-PLAN.md`): connection setup + 6 workflows (Find/Validate, Provisioning, Permissions, Reporting, Recovery/Retry, Health/Status), 19 tests total.
 
+### 2026-07-01 Smoke Test Day 1 - EXO connectivity changes
+Live smoke testing against the real ETHZ tenant surfaced that the environment authenticates
+via App Registration + certificate (already in the local cert store, not a `.pfx`/password
+pair) and needs an outbound proxy. `Connect-ExchangeOnlineEnv` was extended accordingly:
+- `-CertificateThumbprint` (cert-store based, replaces the earlier file+password design)
+- `-ProxyUrl` (configures `HTTP_PROXY`/`HTTPS_PROXY` + `.NET` `DefaultWebProxy` for the session)
+- `-Prefix` (default `"ETH"`) so cloud cmdlets (`Get-ETHMailbox`, etc.) don't collide with an
+  unprefixed on-premises `Import-PSSession` open in the same window
+- `-Tenant`/`-AppId` are now optional, falling back to `Organization`/`AppId` in
+  `config.<Environment>.json` (new `-Environment`/`-ConfigPath` params)
+
+New admin script `scripts/Initialize-OnPremCredential.ps1` (replaces the private
+`_Initialize-ScheduledTaskCredential`) creates the on-prem Service Account credential file
+at `config/Credential_{UserName}.clixml` and writes `TenantId`/`Organization`/`AppId` into
+`config/config.<Environment>.json` in one step. `.gitignore` was extended with `*.clixml`
+since neither `config/` nor `data/` previously excluded credential files.
+
+Confirmed working live: `Connect-ExchangeOnlineEnv -Tenant ethz.onmicrosoft.com -AppId ... -CertificateThumbprint ... -ProxyUrl proxy.ethz.ch:3128` connected successfully (`ModulePrefix: ETH`, `CertificateAuthentication: True`), and `Get-ETHMailbox -ResultSize 1` returned a real mailbox.
+
+Config schema also simplified same day: `OrganizationName`, `PrimarySmtpDomain`, `ComplianceLabels`, `DelegatedAdministration`, `InitialBackoffMs` removed from `config.template.json`/`_Get-Configuration.ps1` defaults - none had any downstream consumer (grepped the whole codebase to confirm). `PrimarySmtpDomain`'s mandatory validation (and the now-unused `_ValidateDomain` helper) removed accordingly. `MaxRetries` default raised 3 -> 5; still not wired to any actual retry logic (`_RetryExchangeOperation` has its own separate, hardcoded defaults) - kept in schema for future use only.
+
 ---
 
 ## KNOWN ISSUES
 
-### Module version mismatch
-- `SharedMailboxProvisioner.psd1` still declares `ModuleVersion = '0.8.2'`, while CLAUDE.md, the roadmap, and the testing plan all treat `v0.9.0-beta.1` as current.
-- **Action:** Bump `ModuleVersion` (and any release tagging) when formally entering Pre-Release, or clarify the versioning point in RELEASE-PROCESS.md.
+### RESOLVED 2026-07-01: Module version mismatch
+- `SharedMailboxProvisioner.psd1` declared `ModuleVersion = '0.8.2'` while docs treated `v0.9.0-beta.1` as current. Fixed: `ModuleVersion = '0.9.0'` + `PrivateData.PSData.Prerelease = 'beta1'` (PSGallery convention; `ModuleVersion` itself can't hold a `-beta.1` suffix).
+
+### RESOLVED 2026-07-01: _Get-Configuration.ps1 Join-Path bug
+- Default config path resolution used `Join-Path $PSScriptRoot ".." ".." "config" "config.$Environment.json"` - Windows PowerShell 5.1's `Join-Path` only accepts one `-Path`/`-ChildPath` pair, not 4 positional segments. This silently broke `Get-Configuration` any time `-ConfigPath` wasn't explicitly passed. Fixed via chained `Join-Path` calls. Found while wiring `Connect-ExchangeOnlineEnv`'s new config-based Tenant/AppId fallback (see below).
 
 ### FUNCTION-STATUS.md drift
-- `functions/FUNCTION-STATUS.md` predates several Tier implementations and Beta-Phase renames (e.g. still lists `_ValidateGuid`, `Get-ServiceAccountCredential`, `Remove-OldLogs`, `_ValidateProxyAddresses` as functions, none of which exist as files; several Tier 3 items marked `[PLANNED]` are actually `[COMPLETE]`).
-- **Action:** Refresh separately when doing a function-inventory pass.
+- `functions/FUNCTION-STATUS.md` predates several Tier implementations and Beta-Phase renames. Largely refreshed 2026-07-01, but note `_ValidateGuid`/`Get-ServiceAccountCredential` do exist - as nested helper functions inside `_Get-Configuration.ps1`, not as their own files, which is why an earlier pass called them missing.
+- **Action:** Low priority, cosmetic.
 
 ### Test runner version
 - Local environment only has Pester 3.4.0 (PowerShell 5.1 built-in), which is not compatible with the modern Pester syntax used in `tests/`. `build.ps1 -Validate` (PSScriptAnalyzer) passes clean, but full `Invoke-Pester` runs need Pester 5.x installed to verify.
+
+### NOT FIXED: Hardcoded `C:\Repos\SharedMailboxProvisioner\...` default paths
+- `New-SharedMailboxRemote.ps1` defaults `-BacklogPath` and `-CredentialPath` to `C:\Repos\SharedMailboxProvisioner\data\...`, which doesn't match this repo's actual location (`S:\Scheduled Tasks\Exchange SE\SharedMailboxProvisioner`). Any caller relying on the defaults instead of passing explicit paths would silently write to/read from the wrong (nonexistent) location.
+- **Action:** Not fixed yet (found 2026-07-01 while building the credential/config init script); needs an explicit decision on whether defaults should be `$PSScriptRoot`-relative or dropped entirely in favor of mandatory parameters.
+
+### NOT FIXED: `_GetExchangePSSession` reads a config shape `_Get-Configuration` never produces
+- `New-SharedMailboxRemote.ps1`'s internal `_GetExchangePSSession` reads `$config.exchange.onPremises.uri` for the on-prem `-ExchangeURI` default, but `_Get-Configuration.ps1`'s schema is flat (no nested `exchange.onPremises.uri` object). This means the "current user context" PSSession attempt likely always fails silently (no URI) and falls through to the credential-file path.
+- **Action:** Not fixed yet; needs either a schema addition to config or an explicit `-ExchangeURI` requirement.
+
+### NOT FIXED: EXO connectivity checks may not detect modern (REST) sessions
+- Both `Get-MailboxProvisioningHealth`'s `_CheckEXOHealth` and `Invoke-MailboxPermissionQueue`'s pre-connect check use `Get-PSSession -Name/-ConfigurationName "*ExchangeOnline*"`/`"Microsoft.Exchange"`, which likely doesn't match modern EXO-V3 REST-based connections (no classic named PSSession unless `-UseRPSSession` is used). Found during Pre-Release smoke testing 2026-07-01.
+- **Action:** Not fixed yet; would need `Get-ConnectionInformation`-based detection instead.
 
 ---
 
@@ -172,9 +207,8 @@ Phase Beta (Tier 7-8,10-11): COMPLETE & TESTED (12 functions + 1 script, ~2,743 
 Pre-Release Phase:           ACTIVE (Week 1 of 3, staging deployment underway)
 
 Total Public Functions:      18
-Total Private Functions:     12
-Total Admin Scripts:         1
-Total Lines (functions+script): 5,939
+Total Private Functions:     11 (was 12; _Initialize-ScheduledTaskCredential removed 2026-07-01, superseded by scripts/Initialize-OnPremCredential.ps1)
+Total Admin Scripts:         2 (Provision-BulkMailboxesFromCSV.ps1, Initialize-OnPremCredential.ps1)
 Total Test Files:            27
 Total Test Cases:            348 (counted from `It` blocks in tests/)
 Build Validation:            PASSED (0 PSScriptAnalyzer violations, 2026-07-01)

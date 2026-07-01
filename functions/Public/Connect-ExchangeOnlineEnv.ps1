@@ -15,10 +15,19 @@ Per ADR-002: PowerShell-Version & Exchange Online Compatibility
 Per ADR-004: Logging & Audit Trail
 
 .PARAMETER Tenant
-Organization name (e.g., 'contoso.onmicrosoft.com') or TenantId (GUID)
+Organization name (e.g., 'contoso.onmicrosoft.com') or TenantId (GUID). Optional - falls back
+to the 'Organization' (or 'TenantId') value from config.<Environment>.json if not supplied.
 
 .PARAMETER AppId
-Optional Application (client) ID for app-based authentication (interactive auth by default)
+Application (client) ID for app-based authentication. Optional - falls back to the 'AppId'
+value from config.<Environment>.json if not supplied. Omit both to use interactive auth.
+
+.PARAMETER Environment
+Config environment name used to resolve config.<Environment>.json (see Get-Configuration).
+Default: "dev"
+
+.PARAMETER ConfigPath
+Optional explicit path to a config JSON file, overriding the Environment-based lookup.
 
 .PARAMETER CertificateThumbprint
 Thumbprint of the authentication certificate, already installed in the local certificate store.
@@ -43,6 +52,11 @@ Connect-ExchangeOnlineEnv -Tenant "contoso.onmicrosoft.com"
 Connects to Exchange Online for contoso tenant (interactive auth)
 
 .EXAMPLE
+Connect-ExchangeOnlineEnv -CertificateThumbprint "AB12CD34..."
+Connects using Tenant/AppId resolved from config.dev.json (set up via
+scripts/Initialize-OnPremCredential.ps1)
+
+.EXAMPLE
 Connect-ExchangeOnlineEnv -Tenant "12345678-1234-1234-1234-123456789012" -AppId "app-guid" -CertificateThumbprint "AB12CD34..."
 Connects using app-based (certificate) authentication, certificate read from the local cert store
 
@@ -64,14 +78,20 @@ Retry logic: Max 3 attempts with exponential backoff
 function Connect-ExchangeOnlineEnv {
     [CmdletBinding()]
     param(
-        [Parameter(Mandatory = $true)]
-        [string]$Tenant,
+        [Parameter(Mandatory = $false)]
+        [string]$Tenant = "",
 
         [Parameter(Mandatory = $false)]
         [string]$AppId = "",
 
         [Parameter(Mandatory = $false)]
         [string]$CertificateThumbprint = "",
+
+        [Parameter(Mandatory = $false)]
+        [string]$Environment = "dev",
+
+        [Parameter(Mandatory = $false)]
+        [string]$ConfigPath = "",
 
         [Parameter(Mandatory = $false)]
         [switch]$SkipConnectIfAlready,
@@ -82,6 +102,25 @@ function Connect-ExchangeOnlineEnv {
         [Parameter(Mandatory = $false)]
         [string]$Prefix = "ETH"
     )
+
+    # Resolve Tenant/AppId from config if not explicitly supplied
+    if (-not $Tenant -or -not $AppId) {
+        $config = Get-Configuration -ConfigPath $ConfigPath -Environment $Environment
+
+        if ($config) {
+            if (-not $Tenant) {
+                $Tenant = if ($config.Organization) { $config.Organization } else { $config.TenantId }
+            }
+            if (-not $AppId) {
+                $AppId = $config.AppId
+            }
+        }
+    }
+
+    if (-not $Tenant) {
+        Write-Error "Tenant not specified and no 'Organization'/'TenantId' found in config.$Environment.json"
+        return $false
+    }
 
     # Configure proxy before any outbound call (module install, PSGallery, EXO auth)
     if ($ProxyUrl) {
