@@ -24,21 +24,21 @@ SharedMailboxProvisioner bietet automatisierte Provisioning-Operationen für Exc
 # Aus PowerShell Gallery (zukünftig)
 Install-Module -Name SharedMailboxProvisioner
 
-# Lokal aus Projekt
-Import-Module "C:\Repos\SharedMailboxProvisioner\SharedMailboxProvisioner.psd1"
+# Lokal aus Projekt (nachdem das Repo geklont und der Ordner betreten wurde)
+Import-Module .\SharedMailboxProvisioner.psd1
 ```
 
 ### Usage
 
 ```powershell
-# Connect to Exchange Online
-Connect-ExchangeOnline -Tenant "mytenant.onmicrosoft.com"
+# Connect to Exchange Online (Tenant/AppId/CertificateThumbprint from config.<Environment>.json if omitted)
+Connect-ExchangeOnlineEnv -Tenant "mytenant.onmicrosoft.com"
 
-# Create a SharedMailbox
-New-SharedMailbox -DisplayName "Sales Team" -PrimarySmtpAddress "sales@contoso.com"
+# Discover shared mailbox candidates in Active Directory
+$candidates = Get-SharedMailboxCandidates
 
-# Add members
-Add-SharedMailboxMember -Identity "sales@contoso.com" -Members @("user1@contoso.com", "user2@contoso.com")
+# Run the full provisioning pipeline: create remote mailboxes + assign permissions
+Invoke-SharedMailboxProvisioning
 ```
 
 ## Documentation
@@ -49,34 +49,33 @@ Add-SharedMailboxMember -Identity "sales@contoso.com" -Members @("user1@contoso.
 
 ## Project Status
 
-**Version:** v0.8.2 (Beta-Phase-Complete, Pre-Release-Ready)  
-**Status:** Phase Beta COMPLETE (2026-06-30) – Ready for UAT
+**Version:** v0.9.0-beta.1 (Pre-Release Phase Active)  
+**Status:** Pre-Release Phase, Week 1 of 3 – Staging deployment & real-world validation underway
 
 ### Implementation Progress
 
 **Phase Alpha (Tier 1-6) - COMPLETE:**
-- [x] Tier 1: Data Quality Validation (2 functions, 43 tests)
-- [x] Tier 2: Group Validation (3 functions, 62 tests)
-- [x] Tier 3: Data Quality (3 functions, 52 tests)
-- [x] Tier 4: Candidate Discovery (2 functions, 30 tests)
-- [x] Tier 5: Exchange Provisioning (3 functions, 84 tests)
-- [x] Tier 6: Batch Orchestration (1 function, 10 tests)
+- [x] Tier 1: Data Quality Validation
+- [x] Tier 2: Group Validation
+- [x] Tier 3: Data Quality
+- [x] Tier 4: Candidate Discovery
+- [x] Tier 5: Exchange Provisioning
+- [x] Tier 6: Batch Orchestration
 
-**Phase Beta (Tier 7) - COMPLETE:**
-- [x] Tier 7: Manual Bulk Import (2 functions + 1 script, 26 tests)
+**Phase Beta (Tier 7-8, 10-11) - COMPLETE:**
+- [x] Tier 7: Manual Bulk Import (2 functions + 1 script)
   - Import-MailboxCandidatesFromCSV: CSV reader with validation
   - Test-MailboxBulkImport: Dry-run validation + HTML report
   - Provision-BulkMailboxesFromCSV.ps1: CLI admin tool (MANUAL ONLY, never automated)
+- [x] Tier 8: Reporting & Audit (4 functions)
+- [x] Tier 10: Operational Tooling (5 functions)
+- [x] Tier 11: Documentation
 
-**Phase Beta (Tier 8-11) - PLANNED:**
-- [ ] Tier 8: Reporting & Audit (4 functions)
-- [ ] Tier 9: Integration Testing (3 test suites)
-- [ ] Tier 10: Operational Tooling (5 functions)
-- [ ] Tier 11: Documentation (4 guides)
+Tier 9 (Integration Testing) was explicitly removed as not applicable to this environment - see `PROJECT-TRACKING.md`.
 
-**Build Status:** ✅ All files pass PSScriptAnalyzer, K&R bracing, and indentation validation.
-**Code Compliance:** 100% (STRUCTURE.md + CLAUDE.md + ADR-001 through ADR-006)
-**Test Coverage:** 307 test cases, 2/10 Tier 7 integration tests passing (mocking refinement ongoing)  
+**Build Status:** Build validation passed (0 PSScriptAnalyzer violations, 2026-07-01).
+**Total Functions:** 18 Public + 11 Private.
+**Test Coverage:** 345 test cases across 27 test files; 72/345 (21%) passing under Pester 5.x (first real run 2026-07-01) - see `PROJECT-TRACKING.md` for details and known gaps.
 
 ## License
 

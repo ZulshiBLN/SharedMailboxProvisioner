@@ -1,7 +1,7 @@
 # SharedMailboxProvisioner - Operations Runbook
 
-**Version:** v0.8.2 | **Status:** Beta-Phase-Complete, Pre-Release-Ready  
-**Last Updated:** 2026-06-30
+**Version:** v0.9.0-beta.1 | **Status:** Pre-Release Phase Active  
+**Last Updated:** 2026-07-01
 
 ---
 
@@ -110,10 +110,35 @@ if ($task.State -ne "Running") {
 }
 
 # Step 2: Check EXO Connection
+# CAVEAT (open, tracked defect - do not skip this): Get-MailboxProvisioningHealth
+# -CheckEXO looks for Get-PSSession | Where ConfigurationName -eq "Microsoft.Exchange" -
+# a classic remoting marker. Modern EXO-V3 REST-based Connect-ExchangeOnline /
+# Connect-ExchangeOnlineEnv sessions do NOT set this marker, so this check can
+# report "DISCONNECTED" even when EXO is fully healthy (false positive), or miss
+# a real disconnect (false negative). DO NOT treat this as the sole signal during
+# P0 triage. Always cross-check with a real, lightweight EXO cmdlet call below.
 $exoHealth = Get-MailboxProvisioningHealth -CheckEXO
-if ($exoHealth.Details.Status -ne "CONNECTED") {
-    Write-Host "[ALERT] EXO disconnected - reconnecting" -ForegroundColor Red
-    Connect-ExchangeOnlineEnv
+$exoReallyConnected = $false
+try {
+    # Adjust cmdlet noun to your configured -Prefix (default "ETH")
+    Get-ETHMailbox -ResultSize 1 -ErrorAction Stop | Out-Null
+    $exoReallyConnected = $true
+}
+catch {
+    $exoReallyConnected = $false
+}
+
+if ($exoHealth.Details.Status -ne "CONNECTED" -or -not $exoReallyConnected) {
+    if ($exoHealth.Details.Status -eq "CONNECTED" -and -not $exoReallyConnected) {
+        Write-Host "[ALERT] Health check said CONNECTED but live cmdlet call failed - trust the live call" -ForegroundColor Red
+    }
+    elseif ($exoHealth.Details.Status -ne "CONNECTED" -and $exoReallyConnected) {
+        Write-Host "[INFO] Health check says DISCONNECTED but live cmdlet call succeeded - likely the known EXO-V3 health-check gap, connection is actually fine" -ForegroundColor Yellow
+    }
+    else {
+        Write-Host "[ALERT] EXO disconnected - reconnecting" -ForegroundColor Red
+        Connect-ExchangeOnlineEnv
+    }
 }
 
 # Step 3: Verify AD Connection
@@ -346,15 +371,21 @@ $deadLetters | Export-Csv "C:\DeadLetters-$(Get-Date -Format 'yyyy-MM-dd').csv" 
 
 ### Escalation Template
 
+**Caveat:** as noted in the P0 procedure above, `Get-MailboxProvisioningHealth -CheckEXO`'s "EXO Connection" status is not reliable against EXO-V3 REST sessions (known, tracked gap). When filling in the Investigation block below, pair it with a live cmdlet result (e.g. `Get-ETHMailbox -ResultSize 1`) so the escalation report isn't built on a potentially false signal.
+
 ```powershell
 # Prepare escalation report
+$exoLiveOk = $false
+try { Get-ETHMailbox -ResultSize 1 -ErrorAction Stop | Out-Null; $exoLiveOk = $true } catch { $exoLiveOk = $false }
+
 $report = @{
     TimeDetected = Get-Date
     Severity = "P1"
     Symptoms = "System not provisioning mailboxes"
     Investigation = @(
         "Checked ScheduledTask: $(Get-ScheduledTask -TaskName 'SharedMailboxProvisioning' | Select -ExpandProperty State)"
-        "EXO Connection: $((Get-MailboxProvisioningHealth -CheckEXO).Details.Status)"
+        "EXO Connection (health check, may be unreliable - see caveat): $((Get-MailboxProvisioningHealth -CheckEXO).Details.Status)"
+        "EXO Connection (live cmdlet cross-check): $(if ($exoLiveOk) { 'CONNECTED' } else { 'FAILED' })"
         "AD Connection: $((Get-MailboxProvisioningHealth -CheckAD).Details.Status)"
     )
     ProposedAction = "Restart service account session, re-run ScheduledTask"
@@ -558,4 +589,4 @@ Incoming On-Call:
 
 ---
 
-**Document Version:** 1.0 | **Last Updated:** 2026-06-30
+**Document Version:** 1.1 | **Last Updated:** 2026-07-01

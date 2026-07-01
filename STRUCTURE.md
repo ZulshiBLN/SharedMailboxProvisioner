@@ -183,6 +183,7 @@ function Test-Provisioning {
 
 **Regel 10.2:** Pre-Commit Hook blockiert Commits mit Linting-Fehlern
 - Fehler müssen vor Commit behoben werden
+- Hinweis: Dieser Mechanismus war am 2026-07-01 zeitweise nicht funktionsfähig (Hook nicht installiert, `build.ps1`-Absturz, Gate konnte strukturell nie fehlschlagen) und wurde noch am selben Tag behoben und verifiziert - siehe `docs/Pre-Release/COMPLIANCE-AUDIT-PHASE-PRERELEASE.md` für Details
 
 ---
 

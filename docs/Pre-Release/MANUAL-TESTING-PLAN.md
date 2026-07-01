@@ -34,8 +34,14 @@ This document provides a **step-by-step guide** for manual testing of all critic
 
 ### Step 0.1: Import Module
 
+**Path convention:** Throughout this document, `$repoRoot` refers to the root of your local
+`SharedMailboxProvisioner` checkout. Set it once for your session before running any commands below:
 ```powershell
-$modulePath = "S:\Scheduled Tasks\Exchange SE\SharedMailboxProvisioner\SharedMailboxProvisioner.psd1"
+$repoRoot = "<path to your SharedMailboxProvisioner checkout>"
+```
+
+```powershell
+$modulePath = "$repoRoot\SharedMailboxProvisioner.psd1"
 Import-Module $modulePath -Force -ErrorAction Stop
 
 Get-Module SharedMailboxProvisioner | Format-Table Name, Version
@@ -82,7 +88,7 @@ single step, via `scripts\Initialize-ProvisioningConnections.ps1`.
   provided the account is a local admin).
 
 ```powershell
-cd "S:\Scheduled Tasks\Exchange SE\SharedMailboxProvisioner"
+cd $repoRoot
 
 .\scripts\Initialize-ProvisioningConnections.ps1 -UserName "D\SvcExchangeAdmin" -Environment prod `
     -Organization "<tenant>.onmicrosoft.com" `
@@ -374,7 +380,7 @@ All connections verified!
 **15 minutes before testing starts:**
 
 - [ ] Staging environment accessible (EXO + AD)
-- [ ] Module loaded: `Import-Module "S:\Scheduled Tasks\Exchange SE\SharedMailboxProvisioner\SharedMailboxProvisioner.psd1"`
+- [ ] Module loaded: `Import-Module "$repoRoot\SharedMailboxProvisioner.psd1"`
 - [ ] 10 test candidates visible in AD (real test-candidate OU, not a placeholder)
 - [ ] Provisioning queue empty (`$backlog = @()`)
 - [ ] Logging directory accessible
@@ -555,7 +561,7 @@ Read-Host
 
 # Provision-BulkMailboxesFromCSV.ps1 is a standalone script under scripts/, not an
 # exported module function - invoke it via its path, not by name.
-$provisionResult = & "S:\Scheduled Tasks\Exchange SE\SharedMailboxProvisioner\scripts\Provision-BulkMailboxesFromCSV.ps1" `
+$provisionResult = & "$repoRoot\scripts\Provision-BulkMailboxesFromCSV.ps1" `
     -CsvPath $csvPath -DryRun $false
 
 $provisionResult.Count  # Should be 10
@@ -784,7 +790,7 @@ $failures | Format-Table SamAccountName, Status, ErrorCode
 
 **Choice B: Intentionally Cause Failure** (only if no real failures occurred, not recommended in production)
 ```powershell
-$backlogPath = "S:\Scheduled Tasks\Exchange SE\SharedMailboxProvisioner\data\mailbox-provisioning-queue.json"
+$backlogPath = "$repoRoot\data\mailbox-provisioning-queue.json"
 $backlog = Get-Content -Path $backlogPath -Raw | ConvertFrom-Json
 $failMailbox = $backlog[0]
 $failMailbox.Status = "FAILED_PERMISSIONS"
@@ -1099,10 +1105,10 @@ are standalone files, not exported module functions - they must be invoked by pa
 path is relative to your current working directory, not the module's location.
 **Solution:**
 ```powershell
-cd "S:\Scheduled Tasks\Exchange SE\SharedMailboxProvisioner"
+cd $repoRoot
 .\scripts\Initialize-ProvisioningConnections.ps1 -UserName "D\SvcExchangeAdmin" ...
 # or, from any directory:
-& "S:\Scheduled Tasks\Exchange SE\SharedMailboxProvisioner\scripts\Initialize-ProvisioningConnections.ps1" -UserName "D\SvcExchangeAdmin" ...
+& "$repoRoot\scripts\Initialize-ProvisioningConnections.ps1" -UserName "D\SvcExchangeAdmin" ...
 ```
 
 ---

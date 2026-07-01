@@ -148,6 +148,9 @@ Same-day follow-up: script renamed `Initialize-OnPremCredential.ps1` -> `Initial
 
 Second same-day follow-up: `TenantId` swapped for `CertificateThumbprint` in `config.template.json`/`_Get-Configuration.ps1`/`Initialize-ProvisioningConnections.ps1`/`Connect-ExchangeOnlineEnv.ps1`. `Connect-ExchangeOnlineEnv` now also resolves `-CertificateThumbprint` from config (not just `-Tenant`/`-AppId`), so a fully config-driven call needs zero explicit parameters. `_ValidateGuid` helper removed (no caller left once `TenantId`'s validation was dropped). Also fixed `tests/Test-GetConfiguration.ps1`, found broken independent of this change: wrong require path (`Get-Configuration.ps1` instead of `_Get-Configuration.ps1`) and assertions against the pre-simplification schema - test count 5 -> 2, total suite 348 -> 345.
 
+### 2026-07-01 Documentation Audit and fix pass
+A full documentation audit (`docs/Pre-Release/DOCUMENTATION-AUDIT-PHASE-PRERELEASE.md`) found `README.md`, `docs/USER-GUIDE.md`, and `docs/API-REFERENCE.md` badly out of date against the actual function signatures (roughly 10 of 18 public functions had wrong/nonexistent parameters or wrong return types documented, including a `Test-SharedMailboxCandidate` example that would always evaluate truthy regardless of validation result), and `docs/ADMIN-GUIDE.md`/`docs/OPERATIONS-RUNBOOK.md` documented an entirely fictional config schema and scheduled-task wrapper script, plus a P0 incident procedure that relied on the already-tracked EXO-V3 health-check gap (see Known Issues below) with no caveat. All 15 findings were fixed the same day: function signatures/return types/examples regenerated from source across `README.md`/`docs/API-REFERENCE.md`/`docs/USER-GUIDE.md`; the fictional config section and scheduled-task setup in `docs/ADMIN-GUIDE.md`/`docs/OPERATIONS-RUNBOOK.md` replaced with the real schema and an honest description of the manual setup process; a live-cmdlet cross-check (`Get-ETHMailbox -ResultSize 1`) wired into the P0 runbook's EXO health-check step; a newly-found 4th no-op parameter (`Set-MailboxProvisioningSchedule -MaxRetries`) disclosed alongside the 3 already-tracked ones; a dead link in `DECISIONS.md` and stale ADR numbering/unlinked caveats in the Alpha/Beta compliance docs corrected; and hardcoded absolute paths in `README.md` and `docs/Pre-Release/MANUAL-TESTING-PLAN.md` generalized for portability. See the audit doc's Resolution Addendum for the full breakdown. Note: this was a documentation-only fix pass - the underlying code defects (EXO-V3 health-check gap, hardcoded `C:\Repos\...` path defaults, dead on-prem PSSession auto-detect, the 4 no-op parameters themselves) remain open, tracked below in Known Issues.
+
 ---
 
 ## KNOWN ISSUES
@@ -163,12 +166,14 @@ Second same-day follow-up: `TenantId` swapped for `CertificateThumbprint` in `co
 ### RESOLVED 2026-07-01: _Get-Configuration.ps1 Join-Path bug
 - Default config path resolution used `Join-Path $PSScriptRoot ".." ".." "config" "config.$Environment.json"` - Windows PowerShell 5.1's `Join-Path` only accepts one `-Path`/`-ChildPath` pair, not 4 positional segments. This silently broke `Get-Configuration` any time `-ConfigPath` wasn't explicitly passed. Fixed via chained `Join-Path` calls. Found while wiring `Connect-ExchangeOnlineEnv`'s new config-based Tenant/AppId fallback (see below).
 
-### FUNCTION-STATUS.md drift
-- `functions/FUNCTION-STATUS.md` predates several Tier implementations and Beta-Phase renames. Largely refreshed 2026-07-01, but note `_ValidateGuid`/`Get-ServiceAccountCredential` do exist - as nested helper functions inside `_Get-Configuration.ps1`, not as their own files, which is why an earlier pass called them missing.
-- **Action:** Low priority, cosmetic.
+### RESOLVED 2026-07-01: FUNCTION-STATUS.md drift / Private function naming inconsistency
+- `functions/FUNCTION-STATUS.md` predates several Tier implementations and Beta-Phase renames; an earlier pass thought `_ValidateGuid`/`Get-ServiceAccountCredential` were missing - they existed as nested helper functions inside `_Get-Configuration.ps1`, not as their own files. `_ValidateGuid` was since removed entirely (see `TenantId` removal note above). `Get-ServiceAccountCredential` was renamed to `_Get-ServiceAccountCredential` (along with `Get-Configuration` -> `_Get-Configuration` and `ConvertTo-MailboxReportFormat` -> `_ConvertTo-MailboxReportFormat`) to actually match the underscore-prefix convention their file names already implied - see `docs/Pre-Release/COMPLIANCE-AUDIT-PHASE-PRERELEASE.md` Finding 2.2.
 
-### Test runner version
-- Local environment only has Pester 3.4.0 (PowerShell 5.1 built-in), which is not compatible with the modern Pester syntax used in `tests/`. `build.ps1 -Validate` (PSScriptAnalyzer) passes clean, but full `Invoke-Pester` runs need Pester 5.x installed to verify.
+### RESOLVED 2026-07-01: Test runner version (Pester 5.x now installed) - revealed the suite has never actually passed
+- Installed Pester 5.8.0 (previously only 3.4.0, built into PS 5.1, was available - incompatible with this suite's modern `Should -Be`/`Mock`/`-ParameterFilter` syntax). This let the suite run for the first time in the project's history.
+- Fixing two path bugs was required just to get files loading: a `Join-Path` call with 3-4 positional arguments (PS-5.1-incompatible, same bug class as the already-fixed `_Get-Configuration.ps1`/`setup-hooks.ps1` issues) in 13 files, and a `$projectRoot` calculation that resolved one directory level too high (`Split-Path -Parent (Split-Path -Parent $PSScriptRoot)` instead of a single call) in 16 files. Both fixed; see `docs/Pre-Release/COMPLIANCE-AUDIT-PHASE-PRERELEASE.md` Addendum 3 for the full file list and root cause.
+- **With both fixed, the real result is 345 tests, 72 passing, 273 failing.** Spot-checked failure causes include real (non-mocked) `Write-Log` calls hitting actual `C:\ProgramData\...` paths and failing with Access Denied, at least one real mock/assertion shape mismatch, and likely broader Pester 3-vs-5 behavioral differences never previously exercised.
+- **Action:** NOT triaged further - getting this suite green is a substantial, separate effort and should be tracked as its own initiative, not folded into other work. Filed here as the honest current baseline now that it's measurable for the first time.
 
 ### NOT FIXED: Hardcoded `C:\Repos\SharedMailboxProvisioner\...` default paths
 - `New-SharedMailboxRemote.ps1` defaults `-BacklogPath` and `-CredentialPath` to `C:\Repos\SharedMailboxProvisioner\data\...`, which doesn't match this repo's actual location (`S:\Scheduled Tasks\Exchange SE\SharedMailboxProvisioner`). Any caller relying on the defaults instead of passing explicit paths would silently write to/read from the wrong (nonexistent) location.
@@ -210,8 +215,8 @@ Second same-day follow-up: `TenantId` swapped for `CertificateThumbprint` in `co
 
 ```
 Setup Phase:                 COMPLETE
-Phase Alpha (Tier 1-6):      COMPLETE & TESTED (10 functions, ~1,378 lines)
-Phase Beta (Tier 7-8,10-11): COMPLETE & TESTED (12 functions + 1 script, ~2,743 lines)
+Phase Alpha (Tier 1-6):      COMPLETE, CODE-REVIEWED (10 functions, ~1,378 lines) - test pass rate below
+Phase Beta (Tier 7-8,10-11): COMPLETE, CODE-REVIEWED (12 functions + 1 script, ~2,743 lines) - test pass rate below
   Tier 9 (Integration Tests): REMOVED (not applicable, see rationale above)
 Pre-Release Phase:           ACTIVE (Week 1 of 3, staging deployment underway)
 
@@ -220,9 +225,12 @@ Total Private Functions:     11 (was 12; _Initialize-ScheduledTaskCredential rem
 Total Admin Scripts:         2 (Provision-BulkMailboxesFromCSV.ps1, Initialize-ProvisioningConnections.ps1)
 Total Test Files:            27
 Total Test Cases:            345 (counted from `It` blocks in tests/; was 348 before Test-GetConfiguration.ps1 rewrite, 2026-07-01)
+Test Pass Rate:              72/345 (21%) - Pester 5.x run for the first time 2026-07-01, see "Test runner version" above. Previously unmeasured (Pester 3.4.0 could not run this suite at all).
 Build Validation:            PASSED (0 PSScriptAnalyzer violations, 2026-07-01)
 Module Loading:              VERIFIED
 ```
+
+"COMPLETE" above refers to implementation and manual/PSScriptAnalyzer review per the Alpha/Beta compliance audits, not to a passing automated test suite - see the Test Pass Rate line and `docs/Pre-Release/COMPLIANCE-AUDIT-PHASE-PRERELEASE.md` Addendum 3.
 
 ---
 

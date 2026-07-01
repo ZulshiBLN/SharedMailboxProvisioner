@@ -1,7 +1,7 @@
 # SharedMailboxProvisioner Documentation
 
-**Version:** v0.8.2 | **Status:** Beta-Phase-Complete, Pre-Release-Ready  
-**Last Updated:** 2026-06-30
+**Version:** v0.9.0-beta.1 | **Status:** Pre-Release Phase  
+**Last Updated:** 2026-07-01
 
 ---
 
@@ -99,6 +99,29 @@ Complete function reference:
 1. **Read:** [USER-GUIDE.md#introduction](USER-GUIDE.md#introduction)
 2. **Install:** [USER-GUIDE.md#installation--setup](USER-GUIDE.md#installation--setup)
 3. **Test:** [USER-GUIDE.md#step-4-test-connection](USER-GUIDE.md#step-4-test-connection)
+
+### Connecting to Exchange Online (2026-07-01 auth model)
+
+`Connect-ExchangeOnlineEnv` supports certificate-based app authentication and a
+corporate outbound proxy, and can resolve its connection details entirely from
+config instead of explicit parameters:
+
+- `-Tenant` / `-AppId` are now **optional** - if omitted, they fall back to the
+  `Organization` / `AppId` values in `config.<Environment>.json`
+- `-CertificateThumbprint` authenticates against a certificate already installed
+  in the local certificate store (no `.pfx`/password file); also falls back to
+  config if omitted
+- `-ProxyUrl` configures `HTTP_PROXY`/`HTTPS_PROXY` and .NET's `DefaultWebProxy`
+  for the session before connecting
+- `-Prefix` (default `"ETH"`) prefixes cloud cmdlet nouns (e.g. `Get-ETHMailbox`)
+  so an unprefixed on-premises `Import-PSSession` can stay open in the same
+  window without cmdlet name collisions
+
+Run `scripts\Initialize-ProvisioningConnections.ps1` once per environment to
+write `Organization`/`AppId`/`CertificateThumbprint` into
+`config.<Environment>.json` and create the on-premises Service Account
+credential file - after that, `Connect-ExchangeOnlineEnv` (no parameters)
+resolves everything from config. See [SETUP.md](SETUP.md) Step 3 and Step 7.
 
 ### Deploy to Production (1 hour)
 
@@ -339,7 +362,7 @@ Documentation is maintained alongside code. Updates happen:
 
 ---
 
-**Documentation Version:** 0.8.2 | **Module Version:** v0.8.2 | **Status:** Beta-Phase-Complete, Pre-Release-Ready
+**Documentation Version:** 0.9.0-beta.1 | **Module Version:** v0.9.0-beta.1 | **Status:** Pre-Release Phase
 
 ---
 

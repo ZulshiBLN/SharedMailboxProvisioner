@@ -23,6 +23,8 @@ Phase Alpha implementation is **100% complete** with all 14 functions delivered,
 | Code Review | Complete | ✅ Approved |
 | Production Ready | YES | ✅ Ready |
 
+**Note (added 2026-07-01):** see docs/Pre-Release/COMPLIANCE-AUDIT-PHASE-PRERELEASE.md — this claim was based on manual `build.ps1 -Validate` runs; the automated pre-commit gate was found to be non-functional until fixed that day, so this figure was not actually enforced at the time it was recorded.
+
 ---
 
 ## Phase Alpha Functions (14 Total)
@@ -55,7 +57,7 @@ Phase Alpha implementation is **100% complete** with all 14 functions delivered,
 
 ### Tier 5: Exchange Online Provisioning (3 Functions)
 - ✅ `New-SharedMailboxRemote.ps1` (625 lines, 29 tests) - **Hybrid JSON/CSV backlog**
-- ✅ `Initialize-ScheduledTaskCredential.ps1` (164 lines) - **Encrypted credential storage**
+- ✅ `Initialize-ScheduledTaskCredential.ps1` (164 lines) - **Encrypted credential storage** (Superseded 2026-07-01 by scripts/Initialize-ProvisioningConnections.ps1 — see PROJECT-TRACKING.md)
 - ✅ `Invoke-MailboxPermissionQueue.ps1` (402 lines, 28 tests) - **Async retry queue for 60-min sync**
 
 **Status:** Complete, production architecture, handles Azure AD Connect sync lag
@@ -73,7 +75,7 @@ Phase Alpha implementation is **100% complete** with all 14 functions delivered,
 - ✅ K&R Bracing: 100% compliant
 - ✅ 4-Space Indentation: 100% consistent
 - ✅ No Invoke-Expression: 0 violations
-- ✅ No Write-Host: 0 violations (ASCII-only per ADR-010)
+- ✅ No Write-Host: 0 violations (ASCII-only per ADR-007)
 - ✅ No hardcoded secrets: 0 violations
 
 ### Documentation (CLAUDE.md)
@@ -87,7 +89,7 @@ Phase Alpha implementation is **100% complete** with all 14 functions delivered,
 - ✅ ADR-004: Logging & Audit Trail compliant
 - ✅ ADR-005: Credential Management (PSSession + clixml fallback)
 - ✅ ADR-006: Active Directory Integration (Get-ADObject optimization)
-- ✅ ADR-010: Output Handling (ASCII-only strings)
+- ✅ ADR-007: Output Handling (ASCII-only strings)
 
 ### Performance (Optimization)
 - ✅ Get-ADObject: Applied to all AD queries (3 functions)
@@ -252,7 +254,7 @@ d09a1f7 Feat: Implement Tier 5 - Exchange Online Provisioning
 ### Deployment Steps (Phase Beta)
 1. Code review by team lead
 2. ScheduledTask configuration in production environment
-3. Service Account credential setup (Initialize-ScheduledTaskCredential)
+3. Service Account credential setup (Initialize-ScheduledTaskCredential) (Superseded 2026-07-01 by scripts/Initialize-ProvisioningConnections.ps1 — see PROJECT-TRACKING.md)
 4. Initial test run on non-critical mailboxes
 5. Monitor retry queue for 60+ minutes
 6. Enable on production candidates after validation

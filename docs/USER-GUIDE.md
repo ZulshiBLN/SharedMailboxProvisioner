@@ -1,7 +1,7 @@
 # SharedMailboxProvisioner - User Guide
 
-**Version:** v0.8.2 | **Status:** Beta-Phase-Complete, Pre-Release-Ready  
-**Last Updated:** 2026-06-30
+**Version:** v0.9.0-beta.1 | **Status:** Pre-Release Phase - Real-World Testing & Validation
+**Last Updated:** 2026-07-01
 
 ---
 
@@ -72,19 +72,25 @@ Import-Module .\SharedMailboxProvisioner.psd1
 ### Step 2: Connect to Exchange Online
 
 ```powershell
-# Interactive connection (will prompt for MFA)
-Connect-ExchangeOnlineEnv
+# Connects using Tenant/AppId/CertificateThumbprint resolved from config.dev.json
+# (set up via scripts/Initialize-ProvisioningConnections.ps1)
+$connected = Connect-ExchangeOnlineEnv
 
-# Verify connection
-Get-PSSession | Where-Object { $_.ConfigurationName -eq "Microsoft.Exchange" }
+# Or specify the tenant explicitly (interactive auth)
+$connected = Connect-ExchangeOnlineEnv -Tenant "contoso.onmicrosoft.com"
+
+# Connect-ExchangeOnlineEnv returns a boolean, not a PSSession object
+if ($connected) {
+    Write-Output "Connected"
+}
 ```
 
 ### Step 3: Configure AD Criteria
 
 Define which users should be provisioned. By default, the tool looks for:
-- **SamAccountName prefix:** `smbx_` (e.g., `smbx_001`)
-- **Organization Unit:** Specify in configuration
-- **Custom attributes:** Via `-CustomAttribute` parameter
+- **SamAccountName prefix:** `smbx_` (e.g., `smbx_001`) - override via `-SamAccountNamePrefix`
+- **Search base (OU):** Specify via `-SearchBase`; defaults to the entire domain
+- **Custom attributes:** Via `-CustomAttribute` / `-CustomAttributeValue` parameters
 
 ### Step 4: Test Connection
 
@@ -93,11 +99,13 @@ Define which users should be provisioned. By default, the tool looks for:
 Get-MailboxProvisioningHealth -CheckAll
 
 # Expected output:
-# CheckTime       : 2026-06-30 14:30:45
+# CheckTime       : 2026-07-01 14:30:45
 # OverallStatus   : HEALTHY
 # Issues          : {}
 # Details         : {Active Directory: CONNECTED, Exchange Online: CONNECTED, ScheduledTask: RUNNING}
 ```
+
+**Caution:** The `-CheckEXO` check looks for a classic remoting `Get-PSSession` marker that modern EXO-V3 REST-based connections do not reliably set. It can report `DISCONNECTED` even when `Connect-ExchangeOnlineEnv` succeeded. Do not treat it as authoritative on its own.
 
 ---
 
@@ -106,21 +114,24 @@ Get-MailboxProvisioningHealth -CheckAll
 ### Quick Start: Single Mailbox
 
 ```powershell
-# 1. Discover candidates matching criteria
-$candidates = Get-SharedMailboxCandidates -Filter "SamAccountName -like 'smbx_*'"
+# 1. Discover candidates matching default criteria (SamAccountNamePrefix "smbx_")
+$candidates = Get-SharedMailboxCandidatesWithGroups
 
 # 2. View candidate details
-$candidates | Format-Table SamAccountName, Email, Department -AutoSize
+$candidates | Format-Table SamAccountName, Mail, ACLGroupName -AutoSize
 
-# 3. Provision a single mailbox
+# 3. Provision a single mailbox (real mandatory params: SamAccountName, DisplayName,
+#    PrimarySmtpAddress, RemoteRoutingAddress, ACLGroupName - there is no -Email param)
 $candidate = $candidates[0]
 New-SharedMailboxRemote -SamAccountName $candidate.SamAccountName `
                         -DisplayName $candidate.DisplayName `
-                        -Email $candidate.Email
+                        -PrimarySmtpAddress $candidate.Mail `
+                        -RemoteRoutingAddress "$($candidate.SamAccountName)@ethz.mail.onmicrosoft.com" `
+                        -ACLGroupName $candidate.ACLGroupName
 
-# 4. Assign permissions
-Invoke-MailboxPermissionQueue -MailboxEmail $candidate.Email `
-                              -ACLGroupName "IT_SharedMailbox_Admins"
+# 4. Assign permissions - processes the ENTIRE backlog queue in one call,
+#    not a single mailbox/group pair (no -MailboxEmail / -ACLGroupName params exist)
+Invoke-MailboxPermissionQueue
 
 # 5. Check status
 Get-MailboxProvisioningStatus -SamAccountName $candidate.SamAccountName
@@ -129,28 +140,30 @@ Get-MailboxProvisioningStatus -SamAccountName $candidate.SamAccountName
 ### Quick Start: Automatic Provisioning
 
 ```powershell
-# Trigger automatic discovery & provisioning
-Invoke-SharedMailboxProvisioning
+# Trigger automatic discovery & provisioning (no -Filter, -TargetOU, or -DryRun params exist)
+$result = Invoke-SharedMailboxProvisioning
 
 # Expected workflow:
-# 1. Discovers candidates in AD
-# 2. Creates mailboxes in Exchange Online
-# 3. Assigns permissions from groups
-# 4. Logs all operations
-# 5. Returns summary report
+# 1. Discovers candidates in AD (with valid ACL groups)
+# 2. Creates remote mailboxes on-premises
+# 3. Assigns permissions from groups (unless -SkipPermissionQueue $true)
+# 4. Prints a summary to output
+# 5. Returns a summary object
 ```
 
 ### Output Example
 
+Fields shown are the actual return object properties from `Invoke-SharedMailboxProvisioning`:
+
 ```
-Mailbox Provisioning Summary
-========================================
-Discovery: Found 5 eligible candidates
-Provision: 5 mailboxes created successfully
-Permissions: 5 permissions assigned
-Failures: 0
-Audit Logged: Yes
-Duration: 2 minutes 15 seconds
+CandidatesFound      : 5
+MailboxesCreated     : 4
+MailboxesFailed      : 1
+PermissionsAssigned  : 4
+PermissionsRetrying  : 0
+PermissionsFailed    : 0
+Duration             : 00:02:15
+Summary              : Created 4/5 mailboxes, assigned 4 permissions
 ```
 
 ---
@@ -217,7 +230,7 @@ smbx_003,Shared Mailbox 003,smbx003@contoso.com,SEC_SharedMailbox_Admins,,Depart
 | SamAccountName | YES | AD account name (must have smbx_ prefix) |
 | DisplayName | YES | User-friendly name for mailbox |
 | Email | YES | Email address (must be valid format) |
-| ACLGroup | NO | AD group for permissions (default: IT_SharedMailbox_Admins) |
+| ACLGroup | NO | AD group for permissions |
 | AdminGroup | NO | Additional admin group |
 | Description | NO | Purpose/notes |
 
@@ -244,31 +257,45 @@ smbx_003,Shared Mailbox 003,smbx003@contoso.com,SEC_SharedMailbox_Admins,,Depart
 ) | Export-Csv "C:\candidates.csv" -NoTypeInformation
 ```
 
-#### Step 2: Validate CSV
+#### Step 2: Import and Validate CSV
 
 ```powershell
-# Check for issues before provisioning
-Test-MailboxBulkImport -CsvPath "C:\candidates.csv" -GenerateReport
+# Import-MailboxCandidatesFromCSV always validates each row - there is no -DryRun switch.
+# Note the capital "S" in -CSVPath.
+$import = Import-MailboxCandidatesFromCSV -CSVPath "C:\candidates.csv"
 
-# Output: HTML report showing validation results, conflicts, warnings
+Write-Output "Valid: $($import.SuccessCount), Invalid: $($import.FailureCount)"
 ```
 
-#### Step 3: Dry Run
+#### Step 3: Preview Impact (dry-run, no provisioning)
 
 ```powershell
-# Preview what will happen without making changes
-Import-MailboxCandidatesFromCSV -CsvPath "C:\candidates.csv" -DryRun -Verbose
+# Test-MailboxBulkImport takes an array of already-imported candidate objects via
+# -Candidates (not a CSV path). This step performs no provisioning.
+$impact = Test-MailboxBulkImport -Candidates $import.Candidates
 
-# Output: Summary of mailboxes to create, permissions to assign, conflicts
+Write-Output "Can proceed: $($impact.CanProceed)"
+Write-Output "Valid: $($impact.ValidCandidates.Count), Conflicts: $($impact.ConflictingCandidates)"
+
+# Output: HTML preview report saved to $env:TEMP\bulk-import-preview-<timestamp>.html by default
+# (or wherever -ReportPath points)
 ```
 
 #### Step 4: Execute
 
 ```powershell
-# Run actual provisioning
-Import-MailboxCandidatesFromCSV -CsvPath "C:\candidates.csv"
+# Provisioning itself happens per-candidate via New-SharedMailboxRemote, then permissions
+# via Invoke-MailboxPermissionQueue. There is no single "execute the CSV" function -
+# Import-MailboxCandidatesFromCSV only imports/validates, it does not provision.
+foreach ($candidate in $impact.ValidCandidates) {
+    New-SharedMailboxRemote -SamAccountName $candidate.SamAccountName `
+        -DisplayName $candidate.DisplayName `
+        -PrimarySmtpAddress $candidate.Email `
+        -RemoteRoutingAddress "$($candidate.SamAccountName)@ethz.mail.onmicrosoft.com" `
+        -ACLGroupName $candidate.ACLGroup
+}
 
-# Output: Success/failure for each candidate
+Invoke-MailboxPermissionQueue
 ```
 
 ### Monitoring Progress
@@ -286,27 +313,28 @@ Get-MailboxProvisioningStatus -SamAccountName "smbx_001" -ShowTimeline
 # Email            : finance@contoso.com
 # CurrentStatus    : SUCCESS
 # RetryCount       : 0
-# CreatedAt        : 2026-06-30 10:00:00
-# CompletedAt      : 2026-06-30 10:05:00
-# Timeline         : [CREATED] 10:00:00 > [MAILBOX_CREATED] 10:02:00 > [COMPLETED] 10:05:00
+# CreatedAt        : 2026-07-01 10:00:00
+# CompletedAt      : 2026-07-01 10:05:00
+# Timeline         : [CREATED] 10:00:00 > [RETRIED] ... > [COMPLETED] 10:05:00
 ```
 
 ### Error Recovery
 
 ```powershell
-# Diagnose failures
-Resolve-MailboxProvisioningFailure -DiagnoseAll
+# Diagnose all failures - simply omit -SamAccountName (the default behavior already
+# analyzes every failed entry; -DiagnoseAll is accepted but currently adds nothing extra)
+Resolve-MailboxProvisioningFailure
 
 # Output shows:
 # - Failed mailbox names
 # - Reason for failure
-# - Whether retryable
-# - Recommended action
+# - Whether retryable (.CanRetry)
+# - Recommended action (.RecommendedAction)
 
-# Retry failed mailboxes
+# Retry all failed mailboxes (respecting the max retry limit)
 Invoke-MailboxProvisioningRetry -RetryAll
 
-# Or retry specific mailbox
+# Or retry a specific mailbox
 Invoke-MailboxProvisioningRetry -SamAccountName "smbx_001"
 ```
 
@@ -325,8 +353,10 @@ Get-MailboxProvisioningHealth -CheckAll
 # Details:
 #   - Active Directory: CONNECTED
 #   - Exchange Online: CONNECTED
-#   - ScheduledTask: RUNNING (LastRun: 1 min ago)
+#   - ScheduledTask: RUNNING
 ```
+
+**Caution:** The Exchange Online check relies on a classic remoting `Get-PSSession` marker that modern EXO-V3 REST-based connections do not reliably set. It can report the connection as `DISCONNECTED` even when it is actually fine - do not treat this check alone as authoritative, especially during incident response.
 
 ### Provisioning Metrics
 
@@ -345,14 +375,17 @@ Get-MailboxProvisioningMetrics
 ### Audit Reports
 
 ```powershell
-# Generate HTML report
-Get-MailboxProvisioningReport | Export-MailboxAuditLog -Format HTML -OutputPath "C:\report.html"
+# Generate HTML report (Format and OutputPath are both optional; Format defaults to HTML)
+Export-MailboxAuditLog -Format HTML -OutputPath "C:\report.html"
 
-# Generate CSV for analysis
-Export-MailboxAuditLog -Format CSV -OutputPath "C:\audit.csv" -FilterStatus "FAILED"
+# Generate CSV for analysis, errors only
+Export-MailboxAuditLog -Format CSV -OutputPath "C:\audit.csv" -FilterStatus "ERROR"
 
 # Filter by date range
-Export-MailboxAuditLog -StartDate "2026-06-01" -EndDate "2026-06-30" -Format HTML
+Export-MailboxAuditLog -StartDate "2026-06-24" -EndDate "2026-07-01" -Format HTML -OutputPath "C:\report.html"
+
+# Omit -OutputPath to get the formatted content back as a string instead of writing a file
+$html = Export-MailboxAuditLog -Format HTML
 ```
 
 ---
@@ -433,7 +466,7 @@ Get-Content -Path "$env:ProgramData\SharedMailboxProvisioner\Logs\provisioning-*
 A: Every 15 minutes (configurable via ScheduledTask)
 
 **Q: Can I change the SamAccountName prefix from "smbx_"?**  
-A: Yes, modify the `-Filter` parameter in Get-SharedMailboxCandidates
+A: Yes, pass the `-SamAccountNamePrefix` parameter to `Get-SharedMailboxCandidates` (there is no `-Filter` parameter)
 
 **Q: What if I have 1000 candidates to import?**  
 A: Use bulk import with batch processing. Tool handles up to 100 at a time.
@@ -448,7 +481,7 @@ A: Not automatically. Contact IT to manually remove from Exchange Online.
 A: Exchange Online admin + AD reader + local admin on ScheduledTask server
 
 **Q: Is there a trial/test mode?**  
-A: Yes, use `Test-MailboxBulkImport -GenerateReport` for dry-run
+A: Yes, `Test-MailboxBulkImport -Candidates $import.Candidates` validates a batch and reports impact without provisioning anything (`-GenerateReport` defaults to `$true` and produces an HTML preview)
 
 **Q: How do I monitor provisioning remotely?**  
 A: Use `Get-MailboxProvisioningStatus` and `Get-MailboxProvisioningHealth` from any admin PC
@@ -464,4 +497,4 @@ For issues, questions, or feedback:
 
 ---
 
-**Document Version:** 1.0 | **Last Updated:** 2026-06-30
+**Document Version:** 1.0 | **Last Updated:** 2026-07-01

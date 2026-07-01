@@ -154,7 +154,7 @@ Phase Beta implementation is **100% complete** with all 12 functions + 1 admin s
 #### Architecture Compliance (DECISIONS.md)
 - ✅ ADR-001: Modular design (Tiers 7-8, 10-11)
 - ✅ ADR-004: Logging & Audit Trail
-- ✅ ADR-010: Output Handling (ASCII-only)
+- ✅ ADR-007: Output Handling (ASCII-only)
 
 #### Module Integration (PSD1)
 - ✅ FunctionsToExport: All 18 public functions listed (25+ total including Phase Alpha)
@@ -206,6 +206,8 @@ Phase Beta implementation is **100% complete** with all 12 functions + 1 admin s
 | **DECISIONS.md Alignment** | 100% ✅ | All ADRs respected |
 
 **Phase Beta: ✅ OFFICIALLY APPROVED FOR PRODUCTION DEPLOYMENT 🚀**
+
+**Note (added 2026-07-01):** see docs/Pre-Release/COMPLIANCE-AUDIT-PHASE-PRERELEASE.md — this claim was based on manual `build.ps1 -Validate` runs; the automated pre-commit gate was found to be non-functional until fixed that day, so this figure was not actually enforced at the time it was recorded.
 
 ---
 
@@ -381,6 +383,8 @@ Phase Beta implementation is **100% complete** with all 12 functions + 1 admin s
 - Upgrade path not tested with real users
 
 **Rating: 75% ⚠️**
+
+**Note (added 2026-07-01):** see docs/Pre-Release/COMPLIANCE-AUDIT-PHASE-PRERELEASE.md — the "Module Compiles" / PSScriptAnalyzer-clean claims above were based on manual `build.ps1 -Validate` runs; the automated pre-commit gate was found to be non-functional until fixed that day, so this figure was not actually enforced at the time it was recorded.
 
 ---
 

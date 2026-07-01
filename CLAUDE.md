@@ -99,7 +99,7 @@ PowerShell Automation für Exchange Online SharedMailbox Provisioning & Manageme
 **Regel 5.1 - Build & Validate vor jedem Commit**
 - PSScriptAnalyzer Validierung vor Commit
 - `.\build.ps1 -Validate` ausführen
-- Hook blockiert Commits mit Linting-Fehlern
+- Hook blockiert Commits mit Linting-Fehlern (Historie zu einem zeitweiligen Ausfall dieses Mechanismus am 2026-07-01: siehe `docs/Pre-Release/COMPLIANCE-AUDIT-PHASE-PRERELEASE.md`)
 
 **Regel 5.2 - CLAUDE.md aktuell halten**
 - Nach Änderungen updaten wenn neue Konventionen etablieren

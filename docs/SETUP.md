@@ -52,15 +52,51 @@ file via `scripts\Initialize-ProvisioningConnections.ps1`):
 - `AppId`: Application (client) ID of the App Registration used for EXO app auth
 - `CertificateThumbprint`: Thumbprint of the auth certificate, already installed in the local certificate store
 
-None of these are hard-required by `Get-Configuration` itself - `Connect-ExchangeOnlineEnv` validates what it actually needs at connect time.
+None of these are hard-required by `_Get-Configuration` itself - `Connect-ExchangeOnlineEnv` validates what it actually needs at connect time.
 
 ---
 
 ## Step 3: Setup Service Account Credentials
 
-Choose ONE method:
+There are two independent mechanisms in this codebase. Use **Option A** below
+first - it's the mechanism `New-SharedMailboxRemote` actually reads today via
+its `-CredentialPath` parameter. Options B-D are an alternate/fallback chain
+(`_Get-ServiceAccountCredential`) that other code paths can use instead; choose
+ONE of B/C/D if you need that fallback chain.
 
-### Option A: Windows Credential Manager (Local Development)
+### Option A: Initialize-ProvisioningConnections.ps1 (clixml, actually used by New-SharedMailboxRemote)
+
+Run this once per environment, as the Service Account, elevated:
+
+```powershell
+.\scripts\Initialize-ProvisioningConnections.ps1 -UserName "D\SvcExchangeAdmin" -Environment dev `
+    -Organization "myorg.onmicrosoft.com" `
+    -AppId "12345678-1234-1234-1234-123456789012" `
+    -CertificateThumbprint "AB12CD34EF56AB12CD34EF56AB12CD34EF56AB12"
+```
+
+This does two things in one step:
+- Prompts for the Service Account password and saves it as an encrypted clixml
+  credential file at `config\Credential_{UserName}.clixml` (via `Export-Clixml`,
+  DPAPI-encrypted and tied to the running user/account). `New-SharedMailboxRemote`
+  reads this file via its `-CredentialPath` parameter as the fallback when the
+  current user context cannot establish an on-premises Exchange PSSession.
+- Writes `Organization`/`AppId`/`CertificateThumbprint` into
+  `config\config.<Environment>.json`, so `Connect-ExchangeOnlineEnv` can resolve
+  the EXO app connection without explicit parameters (see Step 7).
+
+Must be run as the target Service Account with elevated privileges. `.gitignore`
+excludes `*.clixml`, so the generated credential file never lands in Git.
+
+### Alternate/fallback chain: `_Get-ServiceAccountCredential`
+
+`_Get-ServiceAccountCredential` (in `functions/Private/_Get-Configuration.ps1`)
+tries Azure Key Vault, then Windows Credential Manager, then an environment
+variable, in that order, and returns whichever it finds first. This is a
+separate mechanism from Option A above - use it only if your code path calls
+`_Get-ServiceAccountCredential` directly. Choose ONE of the following:
+
+### Option B: Windows Credential Manager (Local Development)
 
 ```powershell
 # Open Credential Manager
@@ -72,7 +108,7 @@ Start rundll32.exe keycred.dll,KRShowKeyMgr
 # - Password: [your-app-password or token]
 ```
 
-### Option B: Azure Key Vault (Production)
+### Option C: Azure Key Vault (Production)
 
 ```powershell
 # Prerequisites: Az PowerShell module
@@ -86,7 +122,7 @@ $secret = ConvertTo-SecureString -String "your-app-password" -AsPlainText -Force
 Set-AzKeyVaultSecret -VaultName "kv-dev" -Name "SharedMailboxProvisioner-ServiceAccount" -SecretValue $secret
 ```
 
-### Option C: Environment Variable (Testing Only – Not Recommended)
+### Option D: Environment Variable (Testing Only – Not Recommended)
 
 ```powershell
 # Set environment variable (expires with shell)
@@ -148,7 +184,7 @@ $result = _RetryExchangeOperation -ScriptBlock { "Success" } -OperationName "Tes
 # Expected: "Success"
 
 # Test configuration loading
-$config = Get-Configuration -ConfigPath "config\config.dev.json"
+$config = _Get-Configuration -ConfigPath "config\config.dev.json"
 Write-Output "Organization: $($config.Organization)"
 ```
 
@@ -248,7 +284,7 @@ PSCustomObject @{
 # Source data quality validation functions
 . .\functions\Private\_CheckForDuplicateEmails.ps1
 . .\functions\Private\_ValidateDomainInExchangeOnline.ps1
-. .\functions\Public\Validate-SharedMailboxCandidate.ps1
+. .\functions\Public\Test-SharedMailboxCandidate.ps1
 
 # Test duplicate email detection
 $hasDuplicate = _CheckForDuplicateEmails -EmailAddress "user@ethz.ch" -ExcludeUser "smbx_test"
@@ -259,19 +295,19 @@ $isValid = _ValidateDomainInExchangeOnline -Domain "ethz.ch" -AcceptedDomains @(
 # Returns: $true if domain in list, $false if not accepted
 
 # Test comprehensive candidate validation
-$validation = Validate-SharedMailboxCandidate -ADUser $adUserObject -AcceptedDomains @("ethz.ch")
+$validation = Test-SharedMailboxCandidate -ADUser $adUserObject -AcceptedDomains @("ethz.ch")
 # Returns: PSCustomObject with IsValid, ValidationErrors, ValidationChecks
 
 # Run Pester tests for Tier 3
 Invoke-Pester tests/Test-CheckForDuplicateEmails.ps1
 Invoke-Pester tests/Test-ValidateDomainInExchangeOnline.ps1
-Invoke-Pester tests/Test-ValidateSharedMailboxCandidate.ps1
+Invoke-Pester tests/Test-SharedMailboxCandidate.ps1
 ```
 
 **Available Tier 3 Validation Functions:**
 - `_CheckForDuplicateEmails`: Detect duplicate emails in Active Directory
 - `_ValidateDomainInExchangeOnline`: Validate domain against Exchange Online AcceptedDomains
-- `Validate-SharedMailboxCandidate`: Comprehensive validation combining all checks (public function)
+- `Test-SharedMailboxCandidate`: Comprehensive validation combining all checks (public function)
 
 ### Tier 4: Candidate Discovery (IMPLEMENTED)
 
@@ -366,12 +402,35 @@ Invoke-Pester tests/Test-GetSharedMailboxCandidatesWithGroups.ps1
 # Source the connect function
 . .\functions\Public\Connect-ExchangeOnlineEnv.ps1
 
-# Connect interactively
+# Connect interactively (no app auth) - Tenant only
 Connect-ExchangeOnlineEnv -Tenant "mytenant.onmicrosoft.com"
 
-# Test connection
-Get-Mailbox -Filter "RecipientType -eq 'SharedMailbox'" | Select-Object -First 5
+# Connect with app-based (certificate) authentication through a corporate proxy
+Connect-ExchangeOnlineEnv -Tenant "mytenant.onmicrosoft.com" `
+    -AppId "12345678-1234-1234-1234-123456789012" `
+    -CertificateThumbprint "AB12CD34EF56AB12CD34EF56AB12CD34EF56AB12" `
+    -ProxyUrl "http://proxyserver:8080" `
+    -Prefix "ETH"
+
+# Connect with everything resolved from config (no explicit parameters needed)
+# once Step 3 Option A / Initialize-ProvisioningConnections.ps1 has been run
+Connect-ExchangeOnlineEnv
+
+# Test connection (cmdlets are prefixed per -Prefix, default "ETH")
+Get-ETHMailbox -Filter "RecipientType -eq 'SharedMailbox'" | Select-Object -First 5
 ```
+
+- `-Tenant`/`-AppId`/`-CertificateThumbprint` are all optional and fall back to
+  `Organization`/`AppId`/`CertificateThumbprint` in `config.<Environment>.json`
+  if omitted (see Step 2). Omitting `-Tenant` entirely requires the config
+  fallback to succeed, or the function errors out.
+- `-AppId` and `-CertificateThumbprint` are required together for app-based
+  (certificate) authentication; without both, the connection falls back to
+  interactive auth.
+- `-ProxyUrl` is only needed behind a corporate outbound proxy.
+- `-Prefix` (default `"ETH"`) prefixes cloud cmdlet nouns so an on-premises
+  `Import-PSSession` (unprefixed cmdlets) can stay open in the same window;
+  pass `-Prefix ""` for unprefixed cloud cmdlets.
 
 ---
 
@@ -435,8 +494,8 @@ SharedMailboxProvisioner/
 │   │
 │   ├── Private/                    # Internal helpers
 │   │   ├── _RetryExchangeOperation.ps1
-│   │   ├── Write-Log.ps1
-│   │   └── Get-Configuration.ps1
+│   │   ├── _Write-Log.ps1
+│   │   └── _Get-Configuration.ps1
 │   │
 │   └── FUNCTION-STATUS.md          # Function tracking
 │
@@ -447,8 +506,9 @@ SharedMailboxProvisioner/
 │   ├── Test-ValidateEmailFormat.ps1        # RFC 5321 validation tests
 │   └── Test-ValidateDisplayName.ps1        # DisplayName validation tests
 │
-├── scripts/                        # Orchestration scripts (future)
-│   └── (placeholder)
+├── scripts/                        # Admin CLI scripts (manual-only, never scheduled)
+│   ├── Provision-BulkMailboxesFromCSV.ps1      # Bulk CSV provisioning CLI
+│   └── Initialize-ProvisioningConnections.ps1  # One-time credential + EXO config setup
 │
 ├── docs/                           # Documentation
 │   └── SETUP.md (this file)
@@ -492,13 +552,13 @@ Copy-Item config\config.template.json config\config.dev.json
 
 ```powershell
 # Check EXO app connection fields
-$config = Get-Configuration -ConfigPath "config\config.dev.json"
+$config = _Get-Configuration -ConfigPath "config\config.dev.json"
 $config.Organization             # Should be your tenant's *.onmicrosoft.com domain
 $config.AppId                    # Should be a GUID
 $config.CertificateThumbprint    # Should match a cert in Cert:\CurrentUser\My or Cert:\LocalMachine\My
 
 # Check credential availability
-$cred = Get-ServiceAccountCredential -EnvironmentName "dev"
+$cred = _Get-ServiceAccountCredential -EnvironmentName "dev"
 # If null: Setup credentials per Step 3
 ```
 
@@ -536,6 +596,6 @@ git commit --no-verify
 
 ---
 
-**Last Updated:** 2026-06-29  
+**Last Updated:** 2026-07-01  
 **PowerShell Version:** 5.1+  
 **Exchange Online Module:** ExchangeOnlineManagement 3.1.0+

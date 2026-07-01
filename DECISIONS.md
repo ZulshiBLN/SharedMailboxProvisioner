@@ -354,7 +354,7 @@ Zwei-Schichten-Konfiguration:
    - **Never in Environment Variables** (visible in `Get-ChildItem env:` & logs)
    - **Loaded via Helper Function:**
      ```powershell
-     $cred = Get-ServiceAccountCredential -EnvironmentName "prod"
+     $cred = _Get-ServiceAccountCredential -EnvironmentName "prod"
      ```
 
 3. **Config Validation at Startup:**
@@ -383,7 +383,7 @@ Zwei-Schichten-Konfiguration:
    │   ├── config.test.json          # .gitignore (test only)
    │   └── config.prod.json          # .gitignore (prod only)
    └── functions/Private/
-       └── Get-Configuration.ps1     # Load & validate config
+       └── _Get-Configuration.ps1    # Load & validate config
    ```
 
 **Consequences:**
@@ -469,7 +469,7 @@ SharedMailbox provisioning starts with identifying eligible candidates in Active
 - **[CONSIDERED] Lazy Loading:** Load group details only if needed → can defer if performance not issue
 
 **Implementation:**
-- See [IMPLEMENTATION-PLAN-SharedMailboxCandidates.md](docs/IMPLEMENTATION-PLAN-SharedMailboxCandidates.md) for detailed specs
+- See [IMPLEMENTATION-PLAN-PHASE-ALPHA.md](docs/Alpha-Phase/IMPLEMENTATION-PLAN-PHASE-ALPHA.md) for detailed specs (the standalone `IMPLEMENTATION-PLAN-SharedMailboxCandidates.md` referenced here originally was never created; delivery specs for these functions live in the Phase Alpha plan instead)
 - 5 functions: Get-SharedMailboxCandidates, Get-SharedMailboxCandidatesWithGroups, Get-SharedMailboxACLGroup, _ValidateSharedMailboxGroup, _ParseSharedMailboxGroupDescription
 - ~800-1000 lines of code
 - Full test coverage with mock AD objects

@@ -1,7 +1,7 @@
 # SharedMailboxProvisioner - Administrator Guide
 
-**Version:** v0.8.2 | **Status:** Beta-Phase-Complete, Pre-Release-Ready  
-**Last Updated:** 2026-06-30
+**Version:** v0.9.0-beta.1 | **Status:** Pre-Release Phase Active  
+**Last Updated:** 2026-07-01
 
 ---
 
@@ -30,7 +30,7 @@
 │  TIER 1-4: DISCOVERY & VALIDATION                            │
 │  ├─ Active Directory query (Get-SharedMailboxCandidates)    │
 │  ├─ Email validation (RFC 5321)                              │
-│  ├─ Domain verification (AcceptedDomains)                    │
+│  ├─ Candidate validation (Test-SharedMailboxCandidate)       │
 │  └─ Group membership checks                                  │
 │                                                               │
 │  TIER 5: EXCHANGE PROVISIONING                               │
@@ -120,19 +120,21 @@ This pragmatic decision maintains code quality while focusing on real-world vali
 
 #### 3. Configuration
 
-**Location:** `$env:ProgramData\SharedMailboxProvisioner\config\settings.json`
+**Location:** `config/config.<Environment>.json` (e.g. `config/config.prod.json`), relative to the module root. Templated at `config/config.template.json`. Loaded via `_Get-Configuration -Environment <name>` (default environment: `dev`).
 
-**Structure:**
+**Structure (real, flat schema - verified against `config/config.template.json` and `functions/Private/_Get-Configuration.ps1`):**
 ```json
 {
-  "ScheduledTaskInterval": 15,
-  "MaxRetries": 5,
-  "RetryDelaySeconds": 300,
-  "BatchSize": 10,
+  "Organization": "contoso.onmicrosoft.com",
+  "AppId": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
+  "CertificateThumbprint": "AB12CD34EF56AB12CD34EF56AB12CD34EF56AB12",
+  "DefaultMailboxQuota": "50GB",
   "LogRetentionDays": 90,
-  "AcceptedDomains": ["contoso.com", "contoso.onmicrosoft.com"]
+  "MaxRetries": 5
 }
 ```
+
+**Note:** There is no `settings.json` file and no `$env:ProgramData\...\config\` directory in the current implementation. Keys such as `ScheduledTaskInterval`, `RetryDelaySeconds`, `BatchSize`, `AcceptedDomains`, `DefaultACLGroup`, `ServiceAccount`, and `AzureADConnectSyncWaitMinutes` are **not implemented** - they do not exist anywhere in the config schema or the code that reads it. If you need scheduled-task interval control, use `Set-MailboxProvisioningSchedule -Interval` (see [Installation & Deployment](#installation--deployment)) instead of editing a config file.
 
 ---
 
@@ -179,10 +181,13 @@ New-ADUser -Name $accountName -AccountPassword $password -Enabled $true `
 
 ```powershell
 # Create required directories
+# NOTE: there is no "config" subdirectory here - the real config file
+# (config/config.<Environment>.json) lives in the module's own repo tree,
+# not under ProgramData. See "Configuration" below.
 $basePath = "$env:ProgramData\SharedMailboxProvisioner"
 New-Item -ItemType Directory -Path "$basePath\data" -Force
 New-Item -ItemType Directory -Path "$basePath\Audit" -Force
-New-Item -ItemType Directory -Path "$basePath\config" -Force
+New-Item -ItemType Directory -Path "$basePath\Errors" -Force
 New-Item -ItemType Directory -Path "$basePath\Logs" -Force
 
 # Set permissions (restrict to service account + admins)
@@ -192,22 +197,38 @@ icacls "$basePath" /grant "ServiceAccount$:(OI)(CI)M" /inheritance:e
 
 #### Step 4: Create ScheduledTask
 
-```powershell
-# Register automatic provisioning task
-$taskName = "SharedMailboxProvisioning"
-$scriptPath = "C:\Scripts\Invoke-MailboxProvisioning.ps1"
+**Important:** the module does not ship a ready-made wrapper script. `Invoke-SharedMailboxProvisioning` is a synchronous PowerShell function meant to be *the command a Scheduled Task runs*, but there is currently no `C:\Scripts\Invoke-MailboxProvisioning.ps1` (or equivalent) in the repository (confirmed - `scripts/` only contains `Provision-BulkMailboxesFromCSV.ps1` and `Initialize-ProvisioningConnections.ps1`). `Set-MailboxProvisioningSchedule` only **reconfigures the trigger interval of an already-existing task** - it does not create one. Until a wrapper ships, admins must create their own action script.
 
-# Create task action
+```powershell
+# 1. Create a minimal action script that imports the module and calls the
+#    real orchestrator. Save this as, e.g., C:\Scripts\Invoke-MailboxProvisioning.ps1
+#    (path is your choice - just keep it consistent with the task action below).
+#
+#    Import-Module SharedMailboxProvisioner
+#    Connect-ExchangeOnlineEnv -Tenant "contoso.onmicrosoft.com" -AppId "<app-id>" `
+#      -CertificateThumbprint "<thumbprint>" -Environment "prod"
+#    Invoke-SharedMailboxProvisioning
+
+$taskName = "SharedMailboxProvisioning"
+$scriptPath = "C:\Scripts\Invoke-MailboxProvisioning.ps1"   # your own script, see above
+
+# 2. Create task action
 $action = New-ScheduledTaskAction -Execute "powershell.exe" `
   -Argument "-NoProfile -ExecutionPolicy Bypass -File `"$scriptPath`""
 
-# Create trigger (every 15 minutes)
+# 3. Create trigger (every 15 minutes)
 $trigger = New-ScheduledTaskTrigger -RepetitionInterval (New-TimeSpan -Minutes 15) `
   -RepetitionDuration (New-TimeSpan -Days 365) -At "08:00" -Daily
 
-# Register task
+# 4. Register task (this is the "already-existing task" that Set-MailboxProvisioningSchedule
+#    expects to find later)
 Register-ScheduledTask -TaskName $taskName -Action $action -Trigger $trigger `
   -RunLevel Highest -User "DOMAIN\$accountName" -Password $password
+
+# 5. Once the task exists, use Set-MailboxProvisioningSchedule to adjust its
+#    interval or enable/disable state going forward - it will NOT create the
+#    task for you if it's missing.
+Set-MailboxProvisioningSchedule -TaskName $taskName -Interval 30
 ```
 
 #### Step 5: Configure Azure AD Connect Sync
@@ -227,7 +248,7 @@ Start-ADSyncSyncCycle -PolicyType Delta
 Get-MailboxProvisioningHealth -CheckAll
 
 # Test candidate discovery
-$candidates = Get-SharedMailboxCandidates -Filter "SamAccountName -like 'smbx_*'"
+$candidates = Get-SharedMailboxCandidates -SamAccountNamePrefix "smbx_"
 Write-Output "Found $($candidates.Count) candidates"
 
 # Verify ScheduledTask
@@ -241,39 +262,35 @@ Get-ScheduledTask -TaskName "SharedMailboxProvisioning" |
 
 ### Global Settings
 
-**File:** `$env:ProgramData\SharedMailboxProvisioner\config\settings.json`
+**File:** `config/config.<Environment>.json` (e.g. `config/config.prod.json`), loaded via `_Get-Configuration -Environment <name>`. There is no `$env:ProgramData\...\config\settings.json` file - see [Data Storage - Configuration](#3-configuration) above for the real, verified schema.
 
 ```json
 {
-  "ScheduledTaskInterval": 15,           // Minutes between runs
-  "MaxRetries": 5,                       // Max retry attempts per mailbox
-  "RetryDelaySeconds": 300,              // Delay between retries (5 min)
-  "BatchSize": 10,                       // Mailboxes per batch
-  "LogRetentionDays": 90,                // Keep logs for 90 days
-  "AcceptedDomains": [
-    "contoso.com",
-    "contoso.onmicrosoft.com"
-  ],
-  "DefaultACLGroup": "IT_SharedMailbox_Admins",
-  "ServiceAccount": "DOMAIN\\svc-mailbox-provisioner",
-  "AzureADConnectSyncWaitMinutes": 60
+  "Organization": "contoso.onmicrosoft.com",   // Tenant / org name
+  "AppId": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
+  "CertificateThumbprint": "AB12CD34EF56AB12CD34EF56AB12CD34EF56AB12",
+  "DefaultMailboxQuota": "50GB",
+  "LogRetentionDays": 90,
+  "MaxRetries": 5
 }
 ```
 
+The following keys appear in older/draft documentation but are **not implemented** anywhere in the current schema or code: `ScheduledTaskInterval`, `RetryDelaySeconds`, `BatchSize`, `AcceptedDomains`, `DefaultACLGroup`, `ServiceAccount`, `AzureADConnectSyncWaitMinutes`. Do not rely on them.
+
 ### Candidate Criteria
 
-Modify discovery criteria in Get-SharedMailboxCandidates:
+Modify discovery criteria in Get-SharedMailboxCandidates (real parameters - there is no `-Filter` parameter):
 
 ```powershell
 # Default: SamAccountName starts with "smbx_"
-$candidates = Get-SharedMailboxCandidates -Filter "SamAccountName -like 'smbx_*'"
+$candidates = Get-SharedMailboxCandidates -SamAccountNamePrefix "smbx_"
 
 # Custom criteria
-$candidates = Get-SharedMailboxCandidates -Filter @{
-    SamAccountName = "smbx_*"
-    Department = "Finance"
-    Country = "US"
-}
+$candidates = Get-SharedMailboxCandidates `
+    -SamAccountNamePrefix "smbx_" `
+    -DescriptionStartsWith "Shared Mailbox Persona" `
+    -CustomAttribute "extensionAttribute1" -CustomAttributeValue "Finance" `
+    -AccountStatus Enabled
 ```
 
 ### Logging Configuration
@@ -312,11 +329,9 @@ $batchSize = 10  # Modify in Invoke-SharedMailboxProvisioning
 # Every 30 min:           Balanced
 # Every 60 min:           Minimal impact, less responsive
 
-# Change via PowerShell
-$task = Get-ScheduledTask -TaskName "SharedMailboxProvisioning"
-$trigger = $task.Triggers[0]
-$trigger.Repetition.Interval = "PT30M"  # 30 minutes
-Set-ScheduledTask -TaskName $task.TaskName -Trigger $trigger
+# Use the module's own cmdlet - it only reconfigures an EXISTING task's
+# trigger, it does not create the task (see "Installation & Deployment" Step 4)
+Set-MailboxProvisioningSchedule -TaskName "SharedMailboxProvisioning" -Interval 30
 ```
 
 ### Retry Strategy
@@ -353,6 +368,8 @@ $metrics = Get-MailboxProvisioningMetrics
 ## Monitoring & Alerting
 
 ### Health Checks
+
+**Caveat - EXO check reliability:** the `CheckEXO` component of `Get-MailboxProvisioningHealth` relies on a `Get-PSSession`/`ConfigurationName -eq "Microsoft.Exchange"` marker that EXO-V3 REST-based sessions do not set (open, tracked defect - see [Troubleshooting - EXO Connection Failures](#exo-connection-failures)). A "DEGRADED" overall status driven purely by the EXO sub-check may be a false positive. For P0/incident use, cross-check with a live cmdlet call (e.g. `Get-ETHMailbox -ResultSize 1`) before paging anyone based on this alone.
 
 ```powershell
 # Daily health check
@@ -428,12 +445,21 @@ Start-ScheduledTask -TaskName "SharedMailboxProvisioning"
 
 ### EXO Connection Failures
 
+**Caveat:** `Get-MailboxProvisioningHealth -CheckEXO` looks for an active `Get-PSSession` with `ConfigurationName -eq "Microsoft.Exchange"` - a classic remoting marker. Modern EXO-V3 REST-based `Connect-ExchangeOnline`/`Connect-ExchangeOnlineEnv` sessions do **not** set this marker, so this check can report "DISCONNECTED" even when the connection is healthy (open, unfixed, tracked issue - see PROJECT-TRACKING.md). Do not treat it as the sole signal; cross-check with a real EXO cmdlet call.
+
 ```powershell
 # Reconnect
 Connect-ExchangeOnlineEnv
 
-# Test connection
-Get-Mailbox -ResultSize 1
+# Test connection - more reliable than Get-MailboxProvisioningHealth -CheckEXO
+# (adjust cmdlet noun to your configured -Prefix, default "ETH")
+try {
+    Get-ETHMailbox -ResultSize 1 -ErrorAction Stop | Out-Null
+    Write-Output "[OK] EXO connection confirmed via live cmdlet call"
+}
+catch {
+    Write-Warning "EXO connection failed: $_"
+}
 
 # Check service status
 Test-NetConnection -ComputerName outlook.office365.com -Port 443
@@ -478,11 +504,17 @@ $backupPath = "\\fileserver\backups\mailbox-provisioner"
 Copy-Item -Path "$env:ProgramData\SharedMailboxProvisioner" `
   -Destination $backupPath -Recurse -Force
 
+# Also back up the real config file separately - it lives in the module's
+# repo tree, not under ProgramData:
+Copy-Item -Path "config\config.prod.json" -Destination "$backupPath\config.prod.json" -Force
+
 # Include:
 # - data/mailbox-provisioning-queue.json (state)
-# - config/settings.json (configuration)
+# - config/config.<Environment>.json (configuration - NOT under ProgramData)
 # - Audit/audit-*.log (audit trail)
 ```
+
+**Important - hardcoded path defaults:** `New-SharedMailboxRemote -BacklogPath` and `-CredentialPath` default to `C:\Repos\SharedMailboxProvisioner\data\mailbox-provisioning-queue.json` and `C:\Repos\SharedMailboxProvisioner\data\serviceaccount.clixml` respectively - a source-checkout path that will not match most real deployments. Always pass explicit `-BacklogPath`/`-CredentialPath` values matching your actual deployment location (e.g. under `$env:ProgramData\SharedMailboxProvisioner\data\`) rather than relying on these defaults; otherwise backup/recovery paths documented here will silently diverge from what the code is actually reading and writing.
 
 ### Recovery Procedures
 
@@ -556,6 +588,8 @@ Exchange Online:
 
 ### Credential Management
 
+**Note:** `New-SharedMailboxRemote`'s on-premises PSSession helper (`_GetExchangePSSession`) has a "current user context" auto-detect path that reads `$config.exchange.onPremises.uri` - a nested shape the real flat config schema (`Organization`/`AppId`/`CertificateThumbprint`/...) never produces. In practice this path silently falls through, so **credential-file-based auth (`-CredentialPath`, a `.clixml` file created via `scripts/Initialize-ProvisioningConnections.ps1`) is effectively the only auth path that currently works reliably** - do not treat current-user-context auth as an equally-viable fallback.
+
 ```powershell
 # Service account password storage
 # Best practice: Use Credential Manager or Key Vault
@@ -598,4 +632,4 @@ if ($originalHash -ne $currentHash) { Write-Warning "Audit log modified" }
 
 ---
 
-**Document Version:** 1.0 | **Last Updated:** 2026-06-30
+**Document Version:** 1.1 | **Last Updated:** 2026-07-01
